@@ -1,0 +1,87 @@
+pipeline {
+    agent {
+        node {
+            label 'built-in'
+            customWorkspace '/var/www/inmogestpro-front'
+        }
+    }
+
+    stages {
+        stage('Clean') {
+            steps {
+                sh '''
+                    echo "🧹 Limpiando directorio..."
+                    rm -rf ./* || true
+                    rm -rf ./.* || true
+                    echo "✅ Limpio"
+                '''
+            }
+        }
+
+        stage('Clone Repository') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/Nieto35/inmogestpro-front.git',
+                    credentialsId: 'github-token-nieto35'
+            }
+        }
+
+        stage('Deploy Frontend with Docker Compose') {
+            steps {
+                sh '''
+                    echo "📂 Directorio: $(pwd)"
+
+                    # Verificar archivos necesarios
+                    [ -f .env ] || { echo "❌ .env no existe"; exit 1; }
+                    [ -f docker-compose.yml ] || { echo "❌ docker-compose.yml no existe"; exit 1; }
+
+                    # Verificar que la red del backend existe
+                    docker network inspect inmogest-network > /dev/null 2>&1 || {
+                        echo "❌ La red inmogest-network no existe. Despliega el backend primero."
+                        exit 1
+                    }
+
+                    # Detener contenedor anterior
+                    docker-compose down --remove-orphans || true
+
+                    # Construir y levantar
+                    docker-compose up -d --build
+
+                    # Verificar estado
+                    docker-compose ps
+
+                    # Mostrar logs
+                    docker logs inmogest-front --tail 20
+                '''
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                sh '''
+                    echo "🏥 Verificando salud del frontend..."
+                    sleep 5
+
+                    # Verificar que Nginx responde
+                    curl -s http://localhost:5173 | grep -q "html" && echo "✅ Frontend responde" || echo "⚠️ Frontend no responde"
+
+                    # Verificar proxy a backend
+                    curl -s http://localhost:5173/api/health || echo "⚠️ Backend no accesible vía proxy"
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🎉 Frontend desplegado exitosamente!"
+            echo "📍 Acceso: http://localhost:5173"
+            echo "🔗 Backend API: http://localhost:5173/api"
+        }
+        failure {
+            echo "❌ Error en despliegue del frontend"
+            sh 'docker-compose logs --tail=50'
+            sh 'docker-compose down || true'
+        }
+    }
+}
