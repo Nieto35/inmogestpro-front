@@ -26,7 +26,12 @@ const getAuthBase = () => {
             ? parts[0]
             : sessionStorage.getItem("inmogest_tenant");
 
-    return slug ? `${API_BASE_URL}${API_VERSION}/${slug}` : `${API_BASE_URL}${API_VERSION}`;
+    console.log(slug);
+
+    const data = slug ? `${API_BASE_URL}${API_VERSION}/${slug}` : `${API_BASE_URL}${API_VERSION}`;
+
+    console.log(data);
+    return data
 };
 
 
