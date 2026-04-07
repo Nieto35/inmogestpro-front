@@ -292,13 +292,28 @@ const saApi = axios.create({
   headers: { 'Content-Type':'application/json' }
 });
 
+saApi.interceptors.request.use(config => {
+  config.baseURL = getSuperAdminBase();
+  const token = localStorage.getItem('inmogest_sa_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  console.log('🚀 SuperAdmin Request:', config.baseURL + config.url);
+  return config;
+});
+
 saApi.interceptors.response.use(
     (response) => {
+      console.log('📦 SuperAdmin Response completa:', response);
+      console.log('📦 Response data:', response.data);
+
       // Si la respuesta tiene la estructura { success: true, data: { token, user } }
       if (response.data?.success && response.data?.data) {
+        console.log('✅ Normalizando respuesta...');
         // Normalizar para que el token esté disponible en response.data.token
         if (response.data.data.token && !response.data.token) {
           response.data.token = response.data.data.token;
+          console.log('📝 Token normalizado:', response.data.token.substring(0, 50) + '...');
         }
         if (response.data.data.user && !response.data.user) {
           response.data.user = response.data.data.user;
@@ -307,6 +322,7 @@ saApi.interceptors.response.use(
       return response;
     },
     (error) => {
+      console.error('❌ SuperAdmin Error:', error);
       if (error.response?.status === 401) {
         localStorage.removeItem('inmogest_sa_token');
         if (!window.location.pathname.includes('/super-admin/login')) {
