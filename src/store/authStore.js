@@ -21,7 +21,12 @@ const API_VERSION = '/api/v1';
 
 const getAuthBase = () => {
     // Para autenticación, usamos la URL base sin slug
-    return `${API_BASE_URL}${API_VERSION}`;
+    const slug =
+        parts[0] && parts[0] !== "super-admin"
+            ? parts[0]
+            : sessionStorage.getItem("inmogest_tenant");
+
+    return slug ? `${API_BASE_URL}${API_VERSION}/${slug}` : `${API_BASE_URL}${API_VERSION}`;
 };
 
 
