@@ -21,6 +21,7 @@ const API_VERSION = '/api/v1';
 
 const getAuthBase = () => {
     // Para autenticación, usamos la URL base sin slug
+    const parts = window.location.pathname.split("/").filter(Boolean);
     const slug =
         parts[0] && parts[0] !== "super-admin"
             ? parts[0]
