@@ -16,6 +16,15 @@ const decodeJWT = (token) => {
   }
 };
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const API_VERSION = '/api/v1';
+
+const getAuthBase = () => {
+    // Para autenticación, usamos la URL base sin slug
+    return `${API_BASE_URL}${API_VERSION}`;
+};
+
+
 // API base dinámica según el tenant activo
 const getBase = () => {
   const parts = window.location.pathname.split("/").filter(Boolean);
@@ -40,7 +49,7 @@ const useAuthStore = create(
         set({ isLoading: true, error: null });
         try {
           const response = await axios.post(
-            `${getBase()}/auth/login`,
+            `${getAuthBase()}/auth/login`,
             credentials,
             {
               headers: { "Content-Type": "application/json" },
