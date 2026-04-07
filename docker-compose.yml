@@ -7,7 +7,7 @@ services:
     ports:
       - "5173:80"  # ✅ Cambiado: puerto 80 del contenedor mapeado al 5173 del host
     environment:
-      - VITE_API_URL=https://inmogestpro.com/api
+      - VITE_API_URL=https://back.inmogestpro.com/api
     env_file:
       - .env
     restart: always
