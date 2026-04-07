@@ -11,7 +11,7 @@ const API_VERSION = '/api/v1';
 
 const getApiBase = () => {
   const slug = getActiveTenantSlug();
-  const base = import.meta.env.VITE_API_URL || '/api/v1';
+  let base = `${API_BASE_URL}${API_VERSION}`;
   return slug ? `${base}/${slug}` : base;
 };
 
