@@ -275,8 +275,13 @@ export const interactionsService = {
 };
 
 // ── Super Admin Service ─────────────────────────────────────
-const SA_BASE = '/api/v1/super-admin';
-const saApi = axios.create({ baseURL: SA_BASE, timeout: 30000, headers: { 'Content-Type':'application/json' } });
+const getSuperAdminBase = () => {
+  const base = import.meta.env.VITE_API_URL || '/api/v1';
+  return `${base}/super-admin`;
+};
+
+
+const saApi = axios.create({ baseURL: getSuperAdminBase(), timeout: 30000, headers: { 'Content-Type':'application/json' } });
 saApi.interceptors.request.use(config => {
   const token = localStorage.getItem('inmogest_sa_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
