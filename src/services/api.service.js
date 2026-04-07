@@ -5,6 +5,10 @@ import { getActiveTenantSlug } from '../utils/tenant';
 
 // Base URL dinámica según el tenant activo
 // getActiveTenantSlug() ya filtra palabras reservadas como 'dashboard'
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const API_VERSION = '/api/v1';
+
 const getApiBase = () => {
   const slug = getActiveTenantSlug();
   const base = import.meta.env.VITE_API_URL || '/api/v1';
@@ -276,19 +280,24 @@ export const interactionsService = {
 
 // ── Super Admin Service ─────────────────────────────────────
 const getSuperAdminBase = () => {
-  let base = import.meta.env.VITE_API_URL || '/api/v1';
-
-  if (base && !base.endsWith('/api/v1')) {
-    base = `${base}/api/v1`;
+  if (API_BASE_URL) {
+    return `${API_BASE_URL}${API_VERSION}/super-admin`;
   }
-  return `${base}/super-admin`;
+  return `${API_VERSION}/super-admin`;
 };
 
+const saApi = axios.create({
+  baseURL: getSuperAdminBase(),
+  timeout: 30000,
+  headers: { 'Content-Type':'application/json' }
+});
 
-const saApi = axios.create({ baseURL: getSuperAdminBase(), timeout: 30000, headers: { 'Content-Type':'application/json' } });
 saApi.interceptors.request.use(config => {
+  config.baseURL = getSuperAdminBase();
   const token = localStorage.getItem('inmogest_sa_token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 });
 
