@@ -12,7 +12,6 @@ const API_VERSION = '/api/v1';
 const getApiBase = () => {
   const slug = getActiveTenantSlug();
   const base = `${API_BASE_URL}${API_VERSION}`;
-  console.log(base);
   return slug ? `${base}/${slug}` : base;
 };
 
@@ -165,40 +164,11 @@ export default api;
 // Servicios
 // ──────────────────────────────────────────────────────────────
 
-const authApi = axios.create({
-  baseURL: `${API_BASE_URL}${API_VERSION}`,
-  timeout: 30000,
-  headers: { 'Content-Type': 'application/json' }
-});
-
-authApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem('inmogest_token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-
-authApi.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-      if (error.response?.status === 401) {
-        localStorage.removeItem('inmogest_token');
-        localStorage.removeItem('inmogest_refresh');
-        const slug = getActiveTenantSlug();
-        const loginPath = slug ? `/${slug}/login` : '/login';
-        if (!window.location.pathname.includes('/login')) {
-          window.location.replace(`${loginPath}?reason=session_expired`);
-        }
-      }
-      return Promise.reject(error);
-    }
-);
-
-
 export const authService = {
-  login:   (d)  => authApi.post('/auth/login',  d),
-  logout:  ()   => authApi.post('/auth/logout'),
-  refresh: (rt) => authApi.post('/auth/refresh', { refreshToken:rt }),
-  me:      ()   => authApi.get('/auth/me'),
+  login:   (d)  => api.post('/auth/login',  d),
+  logout:  ()   => api.post('/auth/logout'),
+  refresh: (rt) => api.post('/auth/refresh', { refreshToken:rt }),
+  me:      ()   => api.get('/auth/me'),
 };
 
 export const clientsService = {
