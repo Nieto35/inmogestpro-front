@@ -12,6 +12,7 @@ const API_VERSION = '/api/v1';
 const getApiBase = () => {
   const slug = getActiveTenantSlug();
   const base = `${API_BASE_URL}${API_VERSION}`;
+  console.log(base);
   return slug ? `${base}/${slug}` : base;
 };
 
