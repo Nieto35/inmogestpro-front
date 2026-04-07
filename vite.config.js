@@ -20,7 +20,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://inmogest-back:3001',
+        target: 'https://back.inmogestpro.com',
         changeOrigin: true,
       },
     },
