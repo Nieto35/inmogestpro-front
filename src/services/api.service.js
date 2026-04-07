@@ -276,7 +276,11 @@ export const interactionsService = {
 
 // ── Super Admin Service ─────────────────────────────────────
 const getSuperAdminBase = () => {
-  const base = import.meta.env.VITE_API_URL || '/api/v1';
+  let base = import.meta.env.VITE_API_URL || '/api/v1';
+
+  if (base && !base.endsWith('/api/v1')) {
+    base = `${base}/api/v1`;
+  }
   return `${base}/super-admin`;
 };
 
