@@ -292,14 +292,30 @@ const saApi = axios.create({
   headers: { 'Content-Type':'application/json' }
 });
 
-saApi.interceptors.request.use(config => {
-  config.baseURL = getSuperAdminBase();
-  const token = localStorage.getItem('inmogest_sa_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+saApi.interceptors.response.use(
+    (response) => {
+      // Si la respuesta tiene la estructura { success: true, data: { token, user } }
+      if (response.data?.success && response.data?.data) {
+        // Normalizar para que el token esté disponible en response.data.token
+        if (response.data.data.token && !response.data.token) {
+          response.data.token = response.data.data.token;
+        }
+        if (response.data.data.user && !response.data.user) {
+          response.data.user = response.data.data.user;
+        }
+      }
+      return response;
+    },
+    (error) => {
+      if (error.response?.status === 401) {
+        localStorage.removeItem('inmogest_sa_token');
+        if (!window.location.pathname.includes('/super-admin/login')) {
+          window.location.replace('/super-admin/login?reason=session_expired');
+        }
+      }
+      return Promise.reject(error);
+    }
+);
 
 export const superAdminService = {
   login:                (d)   => saApi.post('/login',                           d),
