@@ -54,6 +54,8 @@ const InfoItem = ({ icon:Icon, label, value }) => (
 const ClientDetailPage = () => {
   const { id }       = useParams();
   const navigate     = useNavigate();
+  const { tenant } = useParams();
+  const to = (path) => `/${tenant}/${path.replace(/^\//, '')}`;
   const queryClient  = useQueryClient();
   const { hasRole }  = useAuthStore();
   const canEdit      = hasRole('admin','gerente','asesor');
@@ -301,7 +303,7 @@ const ClientDetailPage = () => {
             </span>
           </h3>
           {hasRole('admin','gerente','asesor') && (
-            <button onClick={() => navigate('/contracts/new')} className="btn btn-primary btn-sm">
+            <button onClick={() => navigate(to('contracts/new'))} className="btn btn-primary btn-sm">
               <Plus size={13}/> Nuevo Contrato
             </button>
           )}
