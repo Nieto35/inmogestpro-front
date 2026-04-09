@@ -644,7 +644,7 @@ const ContractDetailPage = () => {
                 <div key={i} className="flex items-center gap-2 p-2 rounded-lg text-xs"
                   style={{ border:'1px solid var(--color-border)' }}>
                   <Paperclip size={12} style={{ color:'#60a5fa', flexShrink:0 }}/>
-                  <a href={`/api/v1${doc.url}`} target="_blank" rel="noopener noreferrer"
+                  <a href={doc.url} target="_blank" rel="noopener noreferrer"
                     className="flex-1 truncate hover:underline" style={{ color:'#60a5fa' }}>
                     {doc.filename}
                   </a>
