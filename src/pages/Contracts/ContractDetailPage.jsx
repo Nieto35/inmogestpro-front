@@ -368,6 +368,8 @@ const PaymentModal = ({ contract, schedule, onClose, onSaved }) => {
 };
 
 // ── Página principal ──────────────────────────────────────────
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://back.inmogestpro.com';
 const ContractDetailPage = () => {
   const { id }         = useParams();
   const navigate       = useNavigate();
@@ -375,7 +377,7 @@ const ContractDetailPage = () => {
   const { hasRole }    = useAuthStore();
   const { tenant }     = useParams();
   const to = (path) => `/${tenant}/${path}`;
-  const apiBase = () => `/api/v1/${tenant}`;
+  const apiBase = () => `${API_URL}/api/v1/${tenant}`;
   const canPay         = hasRole('admin','gerente','contador');
   const canUpload      = hasRole('admin','gerente','contador','asesor');
   const [showPayModal, setShowPayModal] = useState(false);
