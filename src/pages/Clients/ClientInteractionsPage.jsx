@@ -490,6 +490,8 @@ const ClientInteractionsPage = () => {
   const [showModal, setShowModal] = useState(false);
   const { tenant }     = useParams();
 
+  const apiBase = () => `${API_URL}/api/v1/${tenant}`;
+
   const { data, refetch, isFetching } = useQuery({
     queryKey: ['interactions'],
     queryFn:  () => interactionsService.getAll({ limit:200 }),
@@ -690,7 +692,7 @@ const ClientInteractionsPage = () => {
                                         e.stopPropagation();
                                         if (!confirm('¿Eliminar este archivo?')) return;
                                         const token = localStorage.getItem('inmogest_token');
-                                        const res = await fetch(`/api/v1/${getActiveTenantSlug()}/interactions/${i.id}/documents/${di}`, {
+                                        const res = await fetch(`${apiBase()}/interactions/${i.id}/documents/${di}`, {
                                           method:'DELETE', headers:{ Authorization:`Bearer ${token}` }
                                         });
                                         const json = await res.json();

@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import { getActiveTenantSlug } from '../../utils/tenant';
 import useAuthStore from '../../store/authStore';
 import { useCurrencyFormat } from '../../utils/currency';
+import { useParams } from 'react-router-dom';
 
 // ── Modal Nueva Comisión ──────────────────────────────────────
 const NewCommissionModal = ({ onClose, onSaved }) => {
@@ -553,6 +554,9 @@ const CommissionRow = ({ comm, canEdit, onRefresh, compact = false }) => {
   const [pendingFiles, setPendingFiles] = useState({}); // evidencia pendiente por payId
   const { formatCurrency } = useCurrencyFormat();
   const queryClient = useQueryClient();
+  const { tenant }     = useParams();
+  const API_URL = import.meta.env.VITE_API_URL || 'https://back.inmogestpro.com';
+  const apiBase = () => `${API_URL}/api/v1/${tenant}`;
 
   const { data: paymentsData, refetch: refetchPayments } = useQuery({
     queryKey: ['comm-payments', comm.id],
@@ -582,7 +586,7 @@ const CommissionRow = ({ comm, canEdit, onRefresh, compact = false }) => {
           const fd = new FormData();
           fd.append('file', pendingFile);
           const token = localStorage.getItem('inmogest_token');
-          const res = await fetch(`/api/v1/${getActiveTenantSlug()}/commissions/payments/${payId}/evidence`, {
+          const res = await fetch(`${apiBase()}/commissions/payments/${payId}/evidence`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` },
             body: fd,
@@ -774,7 +778,7 @@ const CommissionRow = ({ comm, canEdit, onRefresh, compact = false }) => {
                                      : ext === 'pdf' ? '📄' : '📎';
                           return (
                             <a key={ei}
-                              href={`/api/v1/${getActiveTenantSlug()}${url}`}
+                              href={`${apiBase()}${url}`}
                               target="_blank" rel="noopener noreferrer"
                               className="flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors hover:opacity-80"
                               style={{ background:'rgba(59,130,246,0.12)', border:'1px solid rgba(59,130,246,0.25)', color:'#60a5fa' }}>
@@ -805,7 +809,7 @@ const CommissionRow = ({ comm, canEdit, onRefresh, compact = false }) => {
                             fd.append('file', file);
                             try {
                               const token = localStorage.getItem('inmogest_token');
-                              const res = await fetch(`/api/v1/${getActiveTenantSlug()}/commissions/payments/${pay.id}/evidence`, {
+                              const res = await fetch(`${apiBase()}/commissions/payments/${pay.id}/evidence`, {
                                 method:'POST',
                                 headers:{ Authorization:`Bearer ${token}` },
                                 body: fd,

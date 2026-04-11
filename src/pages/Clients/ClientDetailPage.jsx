@@ -423,6 +423,7 @@ const ClientEvaluation = ({ clientId, contracts, clientData }) => {
   const navigate    = useNavigate();
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
+  const { tenant }     = useParams();
 
   const { data: intData } = useQuery({
     queryKey: ['client-interactions', clientId],
@@ -598,6 +599,7 @@ const ClientEvaluation = ({ clientId, contracts, clientData }) => {
       {/* Modal nueva interacción con datos prellenados */}
       {showModal && (
         <NewInteractionModal
+          tenant={tenant}
           preselectedClient={clientData}
           onClose={() => setShowModal(false)}
           onSaved={() => {
