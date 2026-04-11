@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import { useParams } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://back.inmogestpro.com';
 const formatCurrency = v =>
@@ -30,8 +31,8 @@ const uploadPaymentFile = async (paymentId, file) => {
   const formData = new FormData();
   formData.append('file', file);
   const token = localStorage.getItem('inmogest_token');
-  const slug = getActiveTenantSlug() || '';
-  const apiBase = () => `${API_URL}/api/v1/${slug}`;
+  const { tenant }     = useParams();
+  const apiBase = () => `${API_URL}/api/v1/${tenant}`;
 
   const res = await fetch(`${apiBase()}/payments/${paymentId}/upload`, {
     method: 'POST',

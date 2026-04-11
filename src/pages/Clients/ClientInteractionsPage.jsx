@@ -12,6 +12,7 @@ import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import { getActiveTenantSlug } from '../../utils/tenant';
 import useAuthStore from '../../store/authStore';
+import { useParams } from 'react-router-dom';
 
 const FILE_ICONS = {
   imagen: '🖼️', pdf: '📄', audio: '🎵', video: '🎬', archivo: '📎'
@@ -719,8 +720,8 @@ const ClientInteractionsPage = () => {
                                   fd.append('file', file);
                                   try {
                                     const token = localStorage.getItem('inmogest_token');
-                                    const slug = getActiveTenantSlug();
-                                    const apiBase = () => `${API_URL}/api/v1/${slug}`;
+                                    const { tenant }     = useParams();
+                                    const apiBase = () => `${API_URL}/api/v1/${tenant}`;
                                     const res = await fetch(`${apiBase()}/interactions/${i.id}/upload`, {
                                       method:'POST',
                                       headers:{ Authorization:`Bearer ${token}` },

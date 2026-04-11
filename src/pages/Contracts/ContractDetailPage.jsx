@@ -59,8 +59,8 @@ const uploadPaymentFile = async (paymentId, file) => {
   const fd    = new FormData();
   fd.append('file', file);
   const token = localStorage.getItem('inmogest_token');
-  const slug  = localStorage.getItem('inmogest_tenant') || '';
-  const apiBase = () => `${API_URL}/api/v1/${slug}`;
+  const { tenant }     = useParams();
+  const apiBase = () => `${API_URL}/api/v1/${tenant}`;
   const res   = await fetch(`${apiBase()}/payments/${paymentId}/upload`, {
     method:'POST', headers:{ Authorization:`Bearer ${token}` }, body:fd,
   });
@@ -650,7 +650,7 @@ const ContractDetailPage = () => {
                     className="flex-1 truncate hover:underline" style={{ color:'#60a5fa' }}>
                     {doc.filename}
                   </a>
-                  <a href={`/api/v1${doc.url}`} target="_blank" rel="noopener noreferrer"
+                  <a href={`${doc.url}`} target="_blank" rel="noopener noreferrer"
                     style={{ color:'var(--color-text-muted)' }}>
                     <ExternalLink size={11}/>
                   </a>
@@ -954,7 +954,7 @@ const ContractDetailPage = () => {
                         {Array.isArray(p.documents) && p.documents.length > 0 && (
                           p.documents.map((doc,di) => (
                             <a key={di}
-                              href={`/api/v1${doc.url}`}
+                              href={`${doc.url}`}
                               target="_blank" rel="noopener noreferrer"
                               className="btn btn-ghost btn-sm"
                               title={doc.filename}
