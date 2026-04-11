@@ -33,6 +33,8 @@ const OUTCOMES = {
   pendiente_seguimiento: 'Pendiente seguimiento',
 };
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://back.inmogestpro.com';
+
 
 // ── Selector de contrato con estado visual ────────────────────
 const ContractSelector = ({ clientId, selected, onSelect }) => {
@@ -717,7 +719,9 @@ const ClientInteractionsPage = () => {
                                   fd.append('file', file);
                                   try {
                                     const token = localStorage.getItem('inmogest_token');
-                                    const res = await fetch(`/api/v1/${getActiveTenantSlug()}/interactions/${i.id}/upload`, {
+                                    const slug = getActiveTenantSlug();
+                                    const apiBase = () => `${API_URL}/api/v1/${slug}`;
+                                    const res = await fetch(`${apiBase()}/interactions/${i.id}/upload`, {
                                       method:'POST',
                                       headers:{ Authorization:`Bearer ${token}` },
                                       body: fd,

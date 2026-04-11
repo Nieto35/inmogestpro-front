@@ -687,7 +687,7 @@ const PaymentsPage = () => {
                         <div className="flex gap-1 items-center">
                           {Array.isArray(p.documents) && p.documents.length > 0 ? (
                             p.documents.map((doc,di) => (
-                              <a key={di} href={`/api/v1/${getActiveTenantSlug()}${doc.url}`} target="_blank" rel="noopener noreferrer"
+                              <a key={di} href={`${doc.url}`} target="_blank" rel="noopener noreferrer"
                                 className="btn btn-ghost btn-sm" title={doc.filename}
                                 style={{ color:'#60a5fa' }}>
                                 <ExternalLink size={13}/>

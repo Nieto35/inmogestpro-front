@@ -14,6 +14,7 @@ import toast from 'react-hot-toast';
 import useAuthStore from '../../store/authStore';
 import * as XLSX from 'xlsx';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://back.inmogestpro.com';
 const formatCurrency = (v) =>
   new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0}).format(v||0);
 
@@ -59,7 +60,8 @@ const uploadPaymentFile = async (paymentId, file) => {
   fd.append('file', file);
   const token = localStorage.getItem('inmogest_token');
   const slug  = localStorage.getItem('inmogest_tenant') || '';
-  const res   = await fetch(`/api/v1/${slug}/payments/${paymentId}/upload`, {
+  const apiBase = () => `${API_URL}/api/v1/${slug}`;
+  const res   = await fetch(`${apiBase()}/payments/${paymentId}/upload`, {
     method:'POST', headers:{ Authorization:`Bearer ${token}` }, body:fd,
   });
   return res.json();
@@ -369,7 +371,7 @@ const PaymentModal = ({ contract, schedule, onClose, onSaved }) => {
 
 // ── Página principal ──────────────────────────────────────────
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://back.inmogestpro.com';
+
 const ContractDetailPage = () => {
   const { id }         = useParams();
   const navigate       = useNavigate();
