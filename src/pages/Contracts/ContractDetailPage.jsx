@@ -67,11 +67,10 @@ const uploadPaymentFile = async (tenant, paymentId, file) => {
 };
 
 // ── Modal Registrar Pago (desde detalle del contrato) ─────────
-const PaymentModal = ({ contract, schedule, onClose, onSaved }) => {
+const PaymentModal = ({ tenant, contract, schedule, onClose, onSaved }) => {
   const [saving,     setSaving]     = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
   const fileRef = useRef();
-  const { tenant }     = useParams();
 
   const pendingSchedule = (schedule||[]).filter(s => s.status !== 'pagado' && s.status !== 'condonado');
 
@@ -373,11 +372,10 @@ const PaymentModal = ({ contract, schedule, onClose, onSaved }) => {
 
 
 const ContractDetailPage = () => {
-  const { id }         = useParams();
+  const { id, tenant }         = useParams();
   const navigate       = useNavigate();
   const queryClient    = useQueryClient();
   const { hasRole }    = useAuthStore();
-  const { tenant }     = useParams();
   const to = (path) => `/${tenant}/${path}`;
   const apiBase = () => `${API_URL}/api/v1/${tenant}`;
   const canPay         = hasRole('admin','gerente','contador');
@@ -432,6 +430,7 @@ const ContractDetailPage = () => {
     <div className="space-y-5 animate-fade-in">
       {showPayModal && (
         <PaymentModal
+          tenant={tenant}
           contract={contract}
           schedule={payment_schedule}
           onClose={() => setShowPayModal(false)}
