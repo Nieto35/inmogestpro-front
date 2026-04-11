@@ -119,7 +119,7 @@ const ContractSelector = ({ clientId, selected, onSelect }) => {
 };
 
 // ── Modal Nueva Interacción ───────────────────────────────────
-const NewInteractionModal = ({ onClose, onSaved, preselectedClient = null, preselectedContract = null }) => {
+const NewInteractionModal = ({ onClose, onSaved, preselectedClient = null, preselectedContract = null, tenant }) => {
   const [saving,    setSaving]    = useState(false);
   const [search,    setSearch]    = useState(preselectedClient?.full_name || '');
   const [client,    setClient]    = useState(preselectedClient);
@@ -171,6 +171,7 @@ const NewInteractionModal = ({ onClose, onSaved, preselectedClient = null, prese
 
       const newId = res.data?.data?.id;
 
+      const apiBase = () => `${API_URL}/api/v1/${tenant}`;
       // Subir archivos adjuntos si hay
       if (newId && attachedFiles.length > 0) {
         const token = localStorage.getItem('inmogest_token');
@@ -178,7 +179,7 @@ const NewInteractionModal = ({ onClose, onSaved, preselectedClient = null, prese
           try {
             const fd = new FormData();
             fd.append('file', file);
-            await fetch(`/api/v1/${getActiveTenantSlug()}/interactions/${newId}/upload`, {
+            await fetch(`${apiBase()}/interactions/${newId}/upload`, {
               method: 'POST',
               headers: { Authorization: `Bearer ${token}` },
               body: fd,
@@ -529,6 +530,7 @@ const ClientInteractionsPage = () => {
         <NewInteractionModal
           onClose={() => setShowModal(false)}
           onSaved={handleSaved}
+          tenant={tenant}
         />
       )}
 
