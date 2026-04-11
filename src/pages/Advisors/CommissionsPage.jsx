@@ -768,26 +768,29 @@ const CommissionRow = ({ comm, canEdit, onRefresh, compact = false }) => {
                       </p>
                     )}
                     {/* Mostrar evidencias adjuntas */}
-                    {pay.notes && pay.notes.includes('[evidencia:') && (
-                      <div className="flex flex-wrap gap-1.5 mt-1.5">
-                        {pay.notes.match(/\[evidencia:([^\]]+)\]/g)?.map((match, ei) => {
-                          const url = match.replace('[evidencia:','').replace(']','');
-                          const filename = url.split('/').pop();
-                          const ext = filename.split('.').pop().toLowerCase();
-                          const icon = ['jpg','jpeg','png','webp'].includes(ext) ? '🖼️'
-                                     : ext === 'pdf' ? '📄' : '📎';
-                          return (
-                            <a key={ei}
-                              href={`${apiBase()}${url}`}
-                              target="_blank" rel="noopener noreferrer"
-                              className="flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors hover:opacity-80"
-                              style={{ background:'rgba(59,130,246,0.12)', border:'1px solid rgba(59,130,246,0.25)', color:'#60a5fa' }}>
-                              <span>{icon}</span>
-                              <span>Evidencia {ei+1}</span>
-                            </a>
-                          );
-                        })}
-                      </div>
+                    {pay.documents && Array.isArray(pay.documents) && pay.documents.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {pay.documents.map((doc, idx) => {
+                            const filename = doc.filename || 'archivo';
+                            const ext = filename.split('.').pop().toLowerCase();
+                            const icon = ['jpg', 'jpeg', 'png', 'webp'].includes(ext) ? '🖼️'
+                                : ext === 'pdf' ? '📄'
+                                    : ext === 'mp3' ? '🎵'
+                                        : ext === 'mp4' ? '🎬'
+                                            : '📎';
+                            return (
+                                <a key={idx}
+                                   href={doc.url}
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   className="flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors hover:opacity-80"
+                                   style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)', color: '#60a5fa' }}>
+                                  <span>{icon}</span>
+                                  <span>{filename.length > 25 ? filename.substring(0, 22) + '...' : filename}</span>
+                                </a>
+                            );
+                          })}
+                        </div>
                     )}
                   </div>
                 </div>
