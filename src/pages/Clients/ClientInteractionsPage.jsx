@@ -487,6 +487,7 @@ const ClientInteractionsPage = () => {
   const queryClient = useQueryClient();
   const { user }    = useAuthStore();
   const [showModal, setShowModal] = useState(false);
+  const { tenant }     = useParams();
 
   const { data, refetch, isFetching } = useQuery({
     queryKey: ['interactions'],
@@ -673,11 +674,11 @@ const ClientInteractionsPage = () => {
                                 <div key={di} className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs"
                                   style={{ background:'rgba(59,130,246,0.1)', border:'1px solid rgba(59,130,246,0.2)' }}>
                                   <span>{FILE_ICONS[doc.type] || '📎'}</span>
-                                  <a href={`/api/v1/${getActiveTenantSlug()}${doc.url}`} target="_blank" rel="noopener noreferrer"
+                                  <a href={`${doc.url}`} target="_blank" rel="noopener noreferrer"
                                     className="max-w-[120px] truncate hover:underline" style={{ color:'#60a5fa' }}>
                                     {doc.filename}
                                   </a>
-                                  <a href={`/api/v1/${getActiveTenantSlug()}${doc.url}`} target="_blank" rel="noopener noreferrer"
+                                  <a href={`${doc.url}`} target="_blank" rel="noopener noreferrer"
                                     style={{ color:'rgba(96,165,250,0.6)' }}>
                                     <ExternalLink size={10}/>
                                   </a>
@@ -720,7 +721,6 @@ const ClientInteractionsPage = () => {
                                   fd.append('file', file);
                                   try {
                                     const token = localStorage.getItem('inmogest_token');
-                                    const { tenant }     = useParams();
                                     const apiBase = () => `${API_URL}/api/v1/${tenant}`;
                                     const res = await fetch(`${apiBase()}/interactions/${i.id}/upload`, {
                                       method:'POST',

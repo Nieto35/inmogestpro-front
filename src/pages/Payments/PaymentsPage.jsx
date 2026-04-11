@@ -27,12 +27,12 @@ const PAYMENT_METHODS = [
 ];
 
 // Subir comprobante
-const uploadPaymentFile = async (paymentId, file) => {
+
+const uploadPaymentFile = async (tenantSlug, paymentId, file) => {
   const formData = new FormData();
   formData.append('file', file);
   const token = localStorage.getItem('inmogest_token');
-  const { tenant }     = useParams();
-  const apiBase = () => `${API_URL}/api/v1/${tenant}`;
+  const apiBase = () => `${API_URL}/api/v1/${tenantSlug}`;
 
   const res = await fetch(`${apiBase()}/payments/${paymentId}/upload`, {
     method: 'POST',
@@ -50,6 +50,7 @@ const PaymentModal = ({ onClose, onSaved }) => {
   const [saving,    setSaving]    = useState(false);
   const [uploadFile,setUploadFile]= useState(null);
   const fileInputRef = useRef();
+  const { tenant }     = useParams();
 
   const [form, setForm] = useState({
     payment_date:   new Date().toISOString().split('T')[0],
@@ -123,7 +124,7 @@ const PaymentModal = ({ onClose, onSaved }) => {
       // Subir comprobante si se seleccionó
       if (uploadFile && paymentId) {
         try {
-          await uploadPaymentFile(paymentId, uploadFile);
+          await uploadPaymentFile(tenant, paymentId, uploadFile);
           toast.success(`Comprobante subido correctamente`);
         } catch {
           toast.error('El pago se registró pero falló al subir el comprobante');

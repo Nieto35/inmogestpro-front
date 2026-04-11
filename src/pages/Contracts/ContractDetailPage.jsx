@@ -55,11 +55,10 @@ const SectionCard = ({ title, icon:Icon, children }) => (
 );
 
 // Subir comprobante
-const uploadPaymentFile = async (paymentId, file) => {
+const uploadPaymentFile = async (tenant, paymentId, file) => {
   const fd    = new FormData();
   fd.append('file', file);
   const token = localStorage.getItem('inmogest_token');
-  const { tenant }     = useParams();
   const apiBase = () => `${API_URL}/api/v1/${tenant}`;
   const res   = await fetch(`${apiBase()}/payments/${paymentId}/upload`, {
     method:'POST', headers:{ Authorization:`Bearer ${token}` }, body:fd,
@@ -72,6 +71,7 @@ const PaymentModal = ({ contract, schedule, onClose, onSaved }) => {
   const [saving,     setSaving]     = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
   const fileRef = useRef();
+  const { tenant }     = useParams();
 
   const pendingSchedule = (schedule||[]).filter(s => s.status !== 'pagado' && s.status !== 'condonado');
 
@@ -133,7 +133,7 @@ const PaymentModal = ({ contract, schedule, onClose, onSaved }) => {
       // Subir comprobante si se seleccionó
       if (uploadFile && paymentId) {
         try {
-          await uploadPaymentFile(paymentId, uploadFile);
+          await uploadPaymentFile(tenant, paymentId, uploadFile);
         } catch {
           toast.error('Pago registrado pero falló la subida del comprobante');
         }
