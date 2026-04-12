@@ -27,13 +27,11 @@ const PAYMENT_METHODS = [
 ];
 
 // Subir comprobante
-
 const uploadPaymentFile = async (tenantSlug, paymentId, file) => {
   const formData = new FormData();
   formData.append('file', file);
   const token = localStorage.getItem('inmogest_token');
   const apiBase = () => `${API_URL}/api/v1/${tenantSlug}`;
-
   const res = await fetch(`${apiBase()}/payments/${paymentId}/upload`, {
     method: 'POST',
     headers: { Authorization:`Bearer ${token}` },
@@ -41,6 +39,25 @@ const uploadPaymentFile = async (tenantSlug, paymentId, file) => {
   });
   return res.json();
 };
+
+// Badge de método de pago — estilo marca, sin verde
+const MethodBadge = ({ method }) => (
+  <span style={{
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '0.2rem 0.65rem',
+    borderRadius: '99px',
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    fontFamily: 'var(--font-sans)',
+    background: 'rgba(13,27,62,0.07)',
+    color: 'var(--color-navy)',
+    border: '1px solid rgba(13,27,62,0.15)',
+    letterSpacing: '0.01em',
+  }}>
+    {method}
+  </span>
+);
 
 // ── Modal registrar pago ─────────────────────────────────────
 const PaymentModal = ({ onClose, onSaved }) => {
@@ -50,7 +67,7 @@ const PaymentModal = ({ onClose, onSaved }) => {
   const [saving,    setSaving]    = useState(false);
   const [uploadFile,setUploadFile]= useState(null);
   const fileInputRef = useRef();
-  const { tenant }     = useParams();
+  const { tenant } = useParams();
 
   const [form, setForm] = useState({
     payment_date:   new Date().toISOString().split('T')[0],
@@ -72,7 +89,7 @@ const PaymentModal = ({ onClose, onSaved }) => {
   const contracts = contractsData?.data?.data || [];
 
   // Detalle del contrato seleccionado (cuotas)
-  const { data: contractDetail, refetch: refetchDetail } = useQuery({
+  const { data: contractDetail } = useQuery({
     queryKey: ['contract-pay-detail', contract?.id],
     queryFn:  () => contractsService.getById(contract.id),
     enabled:  !!contract?.id,
@@ -91,7 +108,6 @@ const PaymentModal = ({ onClose, onSaved }) => {
     if (sid) {
       const s = pendingSchedule.find(p => p.id === sid);
       if (s) {
-        // Pre-llenar con el saldo pendiente de la cuota
         const remaining = parseFloat(s.amount) - parseFloat(s.paid_amount||0);
         set('amount', String(Math.round(remaining)));
       }
@@ -121,7 +137,6 @@ const PaymentModal = ({ onClose, onSaved }) => {
       const isPartial  = res.data?.data?.is_partial;
       const excess     = res.data?.data?.excess;
 
-      // Subir comprobante si se seleccionó
       if (uploadFile && paymentId) {
         try {
           await uploadPaymentFile(tenant, paymentId, uploadFile);
@@ -131,7 +146,6 @@ const PaymentModal = ({ onClose, onSaved }) => {
         }
       }
 
-      // Mensaje informativo
       if (isPartial) {
         toast.success(`${receiptNum} registrado — Pago parcial. Cuota pendiente por completar.`, { duration:5000 });
       } else if (excess > 0) {
@@ -151,36 +165,41 @@ const PaymentModal = ({ onClose, onSaved }) => {
 
   // Cuota seleccionada
   const selectedSchedule = pendingSchedule.find(s => s.id === form.schedule_id);
-  const paidSoFar   = parseFloat(selectedSchedule?.paid_amount || 0);
-  const cuotaTotal  = parseFloat(selectedSchedule?.amount      || 0);
-  const remaining   = cuotaTotal - paidSoFar;
-  const pago        = parseFloat(form.amount || 0);
-  const afterPay    = paidSoFar + pago;
-  const isOverpay   = afterPay > cuotaTotal && cuotaTotal > 0;
-  const isFullPay   = afterPay >= cuotaTotal && cuotaTotal > 0;
-  const isPartial   = pago > 0 && !isFullPay;
+  const paidSoFar  = parseFloat(selectedSchedule?.paid_amount || 0);
+  const cuotaTotal = parseFloat(selectedSchedule?.amount      || 0);
+  const remaining  = cuotaTotal - paidSoFar;
+  const pago       = parseFloat(form.amount || 0);
+  const afterPay   = paidSoFar + pago;
+  const isOverpay  = afterPay > cuotaTotal && cuotaTotal > 0;
+  const isFullPay  = afterPay >= cuotaTotal && cuotaTotal > 0;
+  const isPartial  = pago > 0 && !isFullPay;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background:'rgba(0,0,0,0.7)' }}>
-      <div className="w-full max-w-lg rounded-2xl shadow-2xl max-h-[92vh] overflow-y-auto"
+      style={{ background:'rgba(13,27,62,0.55)' }}>
+      <div className="w-full max-w-lg rounded-xl shadow-2xl max-h-[92vh] overflow-y-auto"
         style={{ background:'var(--color-bg-card)', border:'1px solid var(--color-border)' }}>
 
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b sticky top-0 z-10"
-          style={{ borderColor:'var(--color-border)', background:'var(--color-bg-card)' }}>
+        {/* Header — azul noche con línea dorada */}
+        <div className="flex items-center justify-between p-5 sticky top-0 z-10"
+          style={{
+            borderBottom: '3px solid var(--color-gold)',
+            background: 'var(--color-navy)',
+          }}>
           <div>
-            <h2 className="font-bold" style={{ color:'var(--color-text-primary)' }}>
+            <h2 className="font-bold" style={{ color:'#F5F3EE', fontFamily:'var(--font-display)', fontSize:'1.1rem' }}>
               Registrar Pago
             </h2>
             {contract && (
-              <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
-                Contrato: <span style={{ color:'var(--color-text-accent)' }}>{contract.contract_number}</span>
+              <p className="text-xs mt-0.5" style={{ color:'rgba(245,243,238,0.6)' }}>
+                Contrato: <span style={{ color:'var(--color-gold)' }}>{contract.contract_number}</span>
                 {' · '}{contract.client_name}
               </p>
             )}
           </div>
-          <button onClick={onClose} className="btn btn-ghost btn-sm"><X size={16}/></button>
+          <button onClick={onClose} className="btn btn-ghost btn-sm" style={{ color:'rgba(245,243,238,0.7)' }}>
+            <X size={16}/>
+          </button>
         </div>
 
         <div className="p-5">
@@ -208,11 +227,17 @@ const PaymentModal = ({ onClose, onSaved }) => {
               <div className="space-y-2">
                 {contracts.map(c => (
                   <button key={c.id} onClick={() => selectContract(c)}
-                    className="w-full text-left p-3 rounded-lg transition-colors hover:bg-slate-700"
-                    style={{ border:'1px solid var(--color-border)' }}>
+                    className="w-full text-left p-3 rounded transition-colors"
+                    style={{
+                      border:'1px solid var(--color-border)',
+                      background: 'var(--color-bg-elevated)',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-gold)'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
+                  >
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-mono text-sm font-medium"
-                        style={{ color:'var(--color-text-accent)' }}>
+                        style={{ color:'var(--color-gold)' }}>
                         {c.contract_number}
                       </span>
                       <span className="badge badge-activo text-xs">Activo</span>
@@ -241,54 +266,59 @@ const PaymentModal = ({ onClose, onSaved }) => {
             <div className="space-y-4">
 
               {/* Resumen del contrato */}
-              <div className="p-3 rounded-lg text-sm grid grid-cols-2 gap-2"
+              <div className="p-3 rounded text-sm grid grid-cols-2 gap-2"
                 style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)' }}>
                 <div>
                   <span style={{ color:'var(--color-text-muted)' }}>Valor total: </span>
-                  <span style={{ color:'var(--color-text-primary)' }}>{formatCurrency(contract.total_value)}</span>
+                  <span style={{ color:'var(--color-text-primary)', fontWeight:600 }}>{formatCurrency(contract.total_value)}</span>
                 </div>
                 <div>
                   <span style={{ color:'var(--color-text-muted)' }}>Recaudado: </span>
-                  <span style={{ color:'#10b981' }}>{formatCurrency(contract.total_paid)}</span>
+                  {/* Monto recaudado en azul noche, no verde */}
+                  <span style={{ color:'var(--color-navy)', fontWeight:600 }}>{formatCurrency(contract.total_paid)}</span>
                 </div>
                 <div>
                   <span style={{ color:'var(--color-text-muted)' }}>Cuotas: </span>
-                  <span style={{ color:'var(--color-text-primary)' }}>
+                  <span style={{ color:'var(--color-text-primary)', fontWeight:600 }}>
                     {contract.paid_installments}/{contract.installments_total}
                   </span>
                 </div>
                 <div>
                   <span style={{ color:'var(--color-text-muted)' }}>Valor cuota: </span>
-                  <span style={{ color:'var(--color-text-primary)' }}>
+                  <span style={{ color:'var(--color-text-primary)', fontWeight:600 }}>
                     {formatCurrency(contract.installment_amount)}
                   </span>
                 </div>
               </div>
 
-              {/* Selección de cuota — OBLIGATORIA */}
+              {/* Selección de cuota */}
               <div>
                 <label className="block text-sm font-medium mb-1.5"
                   style={{ color:'var(--color-text-secondary)' }}>
-                  Cuota a pagar <span className="text-red-400">*</span>
+                  Cuota a pagar <span style={{ color:'var(--color-danger)' }}>*</span>
                   <span className="ml-2 text-xs font-normal" style={{ color:'var(--color-text-muted)' }}>
                     (obligatorio)
                   </span>
                 </label>
                 {pendingSchedule.length === 0 ? (
-                  <div className="p-3 rounded-lg text-sm text-center"
-                    style={{ background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.2)', color:'#10b981' }}>
+                  <div className="p-3 rounded text-sm text-center"
+                    style={{
+                      background:'var(--color-success-bg)',
+                      border:'1px solid var(--color-success-border)',
+                      color:'var(--color-success)',
+                    }}>
                     ✓ Todas las cuotas de este contrato están pagadas
                   </div>
                 ) : (
                   <select value={form.schedule_id} onChange={e => handleScheduleSelect(e.target.value)}
                     className="input text-sm"
-                    style={{ borderColor: !form.schedule_id ? 'rgba(239,68,68,0.5)' : undefined }}>
+                    style={{ borderColor: !form.schedule_id ? 'rgba(192,57,43,0.4)' : undefined }}>
                     <option value="">— Seleccionar cuota —</option>
                     {pendingSchedule.map(s => {
-                      const paid    = parseFloat(s.paid_amount||0);
-                      const total   = parseFloat(s.amount);
-                      const remain  = total - paid;
-                      const isPart  = paid > 0 && paid < total;
+                      const paid   = parseFloat(s.paid_amount||0);
+                      const total  = parseFloat(s.amount);
+                      const remain = total - paid;
+                      const isPart = paid > 0 && paid < total;
                       return (
                         <option key={s.id} value={s.id}>
                           Cuota #{s.installment_number}
@@ -301,25 +331,28 @@ const PaymentModal = ({ onClose, onSaved }) => {
                   </select>
                 )}
 
-                {/* Info de la cuota seleccionada */}
+                {/* Info cuota seleccionada */}
                 {selectedSchedule && (
-                  <div className="mt-2 p-2.5 rounded-lg text-xs grid grid-cols-3 gap-2"
-                    style={{ background:'rgba(59,130,246,0.07)', border:'1px solid rgba(59,130,246,0.2)' }}>
+                  <div className="mt-2 p-2.5 rounded text-xs grid grid-cols-3 gap-2"
+                    style={{
+                      background:'rgba(13,27,62,0.04)',
+                      border:'1px solid var(--color-border)',
+                    }}>
                     <div className="text-center">
                       <p style={{ color:'var(--color-text-muted)' }}>Total cuota</p>
-                      <p className="font-bold" style={{ color:'var(--color-text-primary)' }}>
+                      <p className="font-bold" style={{ color:'var(--color-navy)' }}>
                         {formatCurrency(cuotaTotal)}
                       </p>
                     </div>
                     <div className="text-center">
                       <p style={{ color:'var(--color-text-muted)' }}>Ya pagado</p>
-                      <p className="font-bold" style={{ color: paidSoFar > 0 ? '#f59e0b' : 'var(--color-text-muted)' }}>
+                      <p className="font-bold" style={{ color: paidSoFar > 0 ? 'var(--color-warning)' : 'var(--color-text-muted)' }}>
                         {formatCurrency(paidSoFar)}
                       </p>
                     </div>
                     <div className="text-center">
                       <p style={{ color:'var(--color-text-muted)' }}>Pendiente</p>
-                      <p className="font-bold" style={{ color:'#ef4444' }}>
+                      <p className="font-bold" style={{ color:'var(--color-danger)' }}>
                         {formatCurrency(remaining)}
                       </p>
                     </div>
@@ -332,7 +365,7 @@ const PaymentModal = ({ onClose, onSaved }) => {
                 <div>
                   <label className="block text-sm font-medium mb-1.5"
                     style={{ color:'var(--color-text-secondary)' }}>
-                    Fecha <span className="text-red-400">*</span>
+                    Fecha <span style={{ color:'var(--color-danger)' }}>*</span>
                   </label>
                   <input type="date" value={form.payment_date}
                     onChange={e => set('payment_date',e.target.value)} className="input text-sm"/>
@@ -340,7 +373,7 @@ const PaymentModal = ({ onClose, onSaved }) => {
                 <div>
                   <label className="block text-sm font-medium mb-1.5"
                     style={{ color:'var(--color-text-secondary)' }}>
-                    Monto (COP) <span className="text-red-400">*</span>
+                    Monto (COP) <span style={{ color:'var(--color-danger)' }}>*</span>
                   </label>
                   <input type="number" value={form.amount}
                     onChange={e => set('amount',e.target.value)}
@@ -349,13 +382,27 @@ const PaymentModal = ({ onClose, onSaved }) => {
                 </div>
               </div>
 
-              {/* Indicador de pago parcial / excedente */}
+              {/* Indicador pago parcial / excedente */}
               {form.schedule_id && pago > 0 && (
-                <div className="p-2.5 rounded-lg text-xs font-medium"
+                <div className="p-2.5 rounded text-xs font-medium"
                   style={{
-                    background: isOverpay ? 'rgba(245,158,11,0.08)' : isPartial ? 'rgba(59,130,246,0.08)' : 'rgba(16,185,129,0.08)',
-                    border: `1px solid ${isOverpay ? 'rgba(245,158,11,0.25)' : isPartial ? 'rgba(59,130,246,0.25)' : 'rgba(16,185,129,0.25)'}`,
-                    color:  isOverpay ? '#f59e0b' : isPartial ? '#60a5fa' : '#10b981',
+                    background: isOverpay
+                      ? 'var(--color-warning-bg)'
+                      : isPartial
+                      ? 'rgba(13,27,62,0.05)'
+                      : 'var(--color-success-bg)',
+                    border: `1px solid ${
+                      isOverpay
+                        ? 'var(--color-warning-border)'
+                        : isPartial
+                        ? 'var(--color-border)'
+                        : 'var(--color-success-border)'
+                    }`,
+                    color: isOverpay
+                      ? 'var(--color-warning)'
+                      : isPartial
+                      ? 'var(--color-navy)'
+                      : 'var(--color-success)',
                   }}>
                   {isOverpay
                     ? `⚡ Excedente de ${formatCurrency(afterPay - cuotaTotal)} → se abonará a la siguiente cuota`
@@ -369,7 +416,7 @@ const PaymentModal = ({ onClose, onSaved }) => {
               <div>
                 <label className="block text-sm font-medium mb-1.5"
                   style={{ color:'var(--color-text-secondary)' }}>
-                  Método <span className="text-red-400">*</span>
+                  Método <span style={{ color:'var(--color-danger)' }}>*</span>
                 </label>
                 <select value={form.payment_method}
                   onChange={e => set('payment_method',e.target.value)} className="input text-sm">
@@ -395,16 +442,20 @@ const PaymentModal = ({ onClose, onSaved }) => {
                 </div>
               </div>
 
-              {/* N° Recibo — automático */}
-              <div className="p-3 rounded-lg flex items-center gap-2 text-sm"
-                style={{ background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.2)' }}>
-                <Info size={14} className="text-emerald-400 flex-shrink-0"/>
+              {/* N° Recibo automático */}
+              <div className="p-3 rounded flex items-center gap-2 text-sm"
+                style={{
+                  background:'rgba(13,27,62,0.04)',
+                  border:'1px solid var(--color-border)',
+                }}>
+                <Info size={14} style={{ color:'var(--color-gold)', flexShrink:0 }}/>
                 <span style={{ color:'var(--color-text-secondary)' }}>
-                  El número de recibo se genera automáticamente: <strong style={{ color:'#10b981' }}>PA-XXXX</strong>
+                  El número de recibo se genera automáticamente:{' '}
+                  <strong style={{ color:'var(--color-navy)', fontFamily:'var(--font-mono)' }}>PA-XXXX</strong>
                 </span>
               </div>
 
-              {/* Comprobante (archivo) */}
+              {/* Comprobante */}
               <div>
                 <label className="block text-sm font-medium mb-1.5"
                   style={{ color:'var(--color-text-secondary)' }}>
@@ -416,8 +467,8 @@ const PaymentModal = ({ onClose, onSaved }) => {
                 <div
                   className="relative border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors"
                   style={{
-                    borderColor: uploadFile ? 'rgba(16,185,129,0.5)' : 'var(--color-border)',
-                    background:  uploadFile ? 'rgba(16,185,129,0.05)' : 'var(--color-bg-primary)',
+                    borderColor: uploadFile ? 'var(--color-gold)' : 'var(--color-border)',
+                    background:  uploadFile ? 'rgba(200,168,75,0.05)' : 'var(--color-bg-primary)',
                   }}
                   onClick={() => fileInputRef.current?.click()}>
                   <input ref={fileInputRef} type="file" className="hidden"
@@ -425,13 +476,13 @@ const PaymentModal = ({ onClose, onSaved }) => {
                     onChange={e => setUploadFile(e.target.files[0] || null)}/>
                   {uploadFile ? (
                     <div className="flex items-center justify-center gap-2">
-                      <Paperclip size={16} className="text-emerald-400"/>
-                      <span className="text-sm font-medium" style={{ color:'#10b981' }}>
+                      <Paperclip size={16} style={{ color:'var(--color-gold)' }}/>
+                      <span className="text-sm font-medium" style={{ color:'var(--color-navy)' }}>
                         {uploadFile.name}
                       </span>
                       <button
                         onClick={e => { e.stopPropagation(); setUploadFile(null); fileInputRef.current.value=''; }}
-                        className="ml-2 text-red-400 hover:text-red-300">
+                        style={{ color:'var(--color-danger)', marginLeft:'0.5rem' }}>
                         <X size={14}/>
                       </button>
                     </div>
@@ -458,7 +509,7 @@ const PaymentModal = ({ onClose, onSaved }) => {
               {/* Botones */}
               <div className="flex gap-2 pt-1">
                 <button onClick={() => { setStep(1); setContract(null); setSearch(''); }}
-                  className="btn btn-secondary flex-1 text-sm">
+                  className="btn btn-outline flex-1 text-sm">
                   ← Cambiar contrato
                 </button>
                 <button onClick={handleSubmit}
@@ -515,17 +566,20 @@ const PaymentsPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color:'var(--color-text-primary)' }}>Pagos</h1>
+          <h1 className="text-2xl font-bold"
+            style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
+            Pagos
+          </h1>
           <p className="text-sm" style={{ color:'var(--color-text-muted)' }}>
             Registro y seguimiento de cartera
           </p>
         </div>
         <div className="flex gap-2">
+          {/* Exportar Excel — estilo outline marca */}
           <button
             onClick={() => {
               const wb = XLSX.utils.book_new();
               const fm = v => parseFloat(v||0);
-              // Hoja 1: Pagos recibidos
               const payRows = [['Recibo','Contrato','Cliente','Fecha Pago','Monto','Método','Registrado por']];
               payments.forEach(p => payRows.push([
                 p.receipt_number||'',
@@ -541,7 +595,6 @@ const PaymentsPage = () => {
               ws1['!cols'] = [12,16,22,14,16,14,18].map(w=>({wch:w}));
               XLSX.utils.book_append_sheet(wb, ws1, 'Pagos Recibidos');
 
-              // Hoja 2: Cartera vencida (mora)
               if (overdue.length > 0) {
                 const overdueRows = [['Contrato','Cliente','Teléfono','Proyecto','Asesor','Cuota','Monto','Vencimiento','Días Mora']];
                 overdue.forEach(o => overdueRows.push([
@@ -562,26 +615,31 @@ const PaymentsPage = () => {
               }
               XLSX.writeFile(wb, `Pagos_${format(new Date(),'yyyyMMdd_HHmm')}.xlsx`);
             }}
-            className="btn btn-secondary btn-sm flex items-center gap-1.5"
-            style={{ color:'#10b981', borderColor:'rgba(16,185,129,0.3)' }}>
+            className="btn btn-secondary btn-sm flex items-center gap-1.5">
             ⬇ Exportar Excel
           </button>
-          <button onClick={() => refetch()} className="btn btn-secondary btn-sm">
+
+          <button onClick={() => refetch()} className="btn btn-outline btn-sm">
             <RefreshCw size={14} className={isFetching ? 'animate-spin':''}/>
           </button>
+
           <button onClick={() => setShowModal(true)} className="btn btn-primary btn-sm">
             <Plus size={14}/> Registrar Pago
           </button>
         </div>
       </div>
 
-      {/* Alerta mora */}
+      {/* Alerta mora — rojo semántico */}
       {overdue.length > 0 && (
         <div className="flex items-start gap-3 p-4 rounded-xl"
-          style={{ background:'rgba(239,68,68,0.07)', border:'1px solid rgba(239,68,68,0.2)' }}>
-          <AlertTriangle size={18} className="text-red-400 flex-shrink-0 mt-0.5"/>
+          style={{
+            background: 'var(--color-danger-bg)',
+            border: '1px solid var(--color-danger-border)',
+            borderLeft: '4px solid var(--color-danger)',
+          }}>
+          <AlertTriangle size={18} style={{ color:'var(--color-danger)', flexShrink:0, marginTop:'0.125rem' }}/>
           <div>
-            <p className="font-semibold text-sm text-red-400">
+            <p className="font-semibold text-sm" style={{ color:'var(--color-danger)' }}>
               {overdue.length} cuota{overdue.length>1?'s':''} en mora
             </p>
             <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
@@ -593,18 +651,20 @@ const PaymentsPage = () => {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-lg w-fit"
-        style={{ background:'var(--color-bg-secondary)' }}>
+      <div className="flex gap-1 p-1 rounded w-fit"
+        style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)' }}>
         {[['payments','Pagos recibidos'],['overdue','Cartera vencida']].map(([key,label]) => (
           <button key={key} onClick={() => setTab(key)}
             className="px-4 py-1.5 rounded text-sm font-medium transition-all"
             style={{
-              background: tab===key ? 'var(--color-brand-600)' : 'transparent',
-              color:      tab===key ? 'white' : 'var(--color-text-muted)',
+              background: tab===key ? 'var(--color-navy)' : 'transparent',
+              color:      tab===key ? '#F5F3EE'           : 'var(--color-text-muted)',
+              borderBottom: tab===key ? '2px solid var(--color-gold)' : '2px solid transparent',
             }}>
             {label}
             {key==='overdue' && overdue.length > 0 && (
-              <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-xs bg-red-500 text-white">
+              <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-xs"
+                style={{ background:'var(--color-danger)', color:'white' }}>
                 {overdue.length}
               </span>
             )}
@@ -612,7 +672,7 @@ const PaymentsPage = () => {
         ))}
       </div>
 
-      {/* Tab Pagos */}
+      {/* Tab Pagos recibidos */}
       {tab === 'payments' && (
         <>
           <div className="card p-4">
@@ -659,12 +719,14 @@ const PaymentsPage = () => {
                 <tbody>
                   {payments.map(p => (
                     <tr key={p.id}>
+                      {/* Recibo — azul noche, mono */}
                       <td className="font-mono text-sm font-bold"
-                        style={{ color:'#10b981', whiteSpace:'nowrap' }}>
+                        style={{ color:'var(--color-navy)', whiteSpace:'nowrap' }}>
                         {p.receipt_number || '—'}
                       </td>
+                      {/* Contrato — dorado */}
                       <td className="font-mono text-sm"
-                        style={{ color:'var(--color-text-accent)' }}>
+                        style={{ color:'var(--color-gold)' }}>
                         {p.contract_number}
                       </td>
                       <td className="text-sm" style={{ color:'var(--color-text-primary)' }}>
@@ -673,11 +735,14 @@ const PaymentsPage = () => {
                       <td className="text-sm" style={{ color:'var(--color-text-secondary)', whiteSpace:'nowrap' }}>
                         {p.payment_date ? format(new Date(p.payment_date),'dd/MM/yyyy') : '—'}
                       </td>
-                      <td className="text-sm font-mono font-bold text-emerald-400">
+                      {/* Monto — azul noche, mono. Sin verde. */}
+                      <td className="text-sm font-mono font-bold"
+                        style={{ color:'var(--color-navy)' }}>
                         {formatCurrency(p.amount)}
                       </td>
+                      {/* Badge método — estilo marca neutro */}
                       <td>
-                        <span className="badge badge-activo text-xs">{p.payment_method}</span>
+                        <MethodBadge method={p.payment_method} />
                       </td>
                       <td className="text-sm font-mono" style={{ color:'var(--color-text-muted)' }}>
                         {p.bank_reference || '—'}
@@ -691,7 +756,7 @@ const PaymentsPage = () => {
                             p.documents.map((doc,di) => (
                               <a key={di} href={`${doc.url}`} target="_blank" rel="noopener noreferrer"
                                 className="btn btn-ghost btn-sm" title={doc.filename}
-                                style={{ color:'#60a5fa' }}>
+                                style={{ color:'var(--color-navy)' }}>
                                 <ExternalLink size={13}/>
                               </a>
                             ))
@@ -714,7 +779,7 @@ const PaymentsPage = () => {
         <div className="table-container">
           {overdue.length === 0 ? (
             <div className="p-12 text-center">
-              <CheckCircle size={40} className="mx-auto mb-3 text-emerald-400"/>
+              <CheckCircle size={40} className="mx-auto mb-3" style={{ color:'var(--color-success)' }}/>
               <p style={{ color:'var(--color-text-secondary)' }}>
                 ¡Sin cartera vencida! Todos los pagos están al día.
               </p>
@@ -731,7 +796,7 @@ const PaymentsPage = () => {
               <tbody>
                 {overdue.map(o => (
                   <tr key={o.id}>
-                    <td className="font-mono text-sm" style={{ color:'var(--color-text-accent)' }}>
+                    <td className="font-mono text-sm" style={{ color:'var(--color-gold)' }}>
                       {o.contract_number}
                     </td>
                     <td className="text-sm font-medium" style={{ color:'var(--color-text-primary)' }}>
@@ -749,7 +814,8 @@ const PaymentsPage = () => {
                     <td className="text-sm" style={{ color:'var(--color-text-secondary)', whiteSpace:'nowrap' }}>
                       {o.due_date ? format(new Date(o.due_date),'dd/MM/yyyy') : '—'}
                     </td>
-                    <td className="text-sm font-mono" style={{ color:'#ef4444' }}>
+                    {/* Monto en mora — rojo semántico */}
+                    <td className="text-sm font-mono font-bold" style={{ color:'var(--color-danger)' }}>
                       {formatCurrency(o.amount)}
                     </td>
                     <td><span className="badge badge-en_mora">{o.days_overdue} días</span></td>

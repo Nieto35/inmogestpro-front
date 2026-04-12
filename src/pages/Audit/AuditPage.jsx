@@ -12,20 +12,20 @@ import toast from 'react-hot-toast';
 
 // ── Configuración de acciones ────────────────────────────────
 const ACTION_CONFIG = {
-  LOGIN:                { label:'Login',              color:'#10b981', bg:'rgba(16,185,129,0.12)' },
-  LOGOUT:               { label:'Logout',             color:'#94a3b8', bg:'rgba(148,163,184,0.12)' },
-  LOGIN_FAILED:         { label:'Login Fallido',      color:'#ef4444', bg:'rgba(239,68,68,0.12)' },
-  CREATE:               { label:'Creación',           color:'#3b82f6', bg:'rgba(59,130,246,0.12)' },
-  READ:                 { label:'Consulta',           color:'#64748b', bg:'rgba(100,116,139,0.12)' },
-  UPDATE:               { label:'Actualización',      color:'#f59e0b', bg:'rgba(245,158,11,0.12)' },
-  DELETE:               { label:'Eliminación',        color:'#ef4444', bg:'rgba(239,68,68,0.12)' },
-  STATUS_CHANGE:        { label:'Cambio Estado',      color:'#a855f7', bg:'rgba(168,85,247,0.12)' },
-  PAYMENT_RECORDED:     { label:'Pago Registrado',    color:'#10b981', bg:'rgba(16,185,129,0.12)' },
-  UNAUTHORIZED_ACCESS:  { label:'Acceso Denegado',    color:'#ef4444', bg:'rgba(239,68,68,0.15)' },
-  PASSWORD_CHANGED:     { label:'Cambio Contraseña',  color:'#f59e0b', bg:'rgba(245,158,11,0.12)' },
-  PASSWORD_CHANGE_FAILED:{ label:'Error Contraseña',  color:'#ef4444', bg:'rgba(239,68,68,0.12)' },
-  EXPORT:               { label:'Exportación',        color:'#06b6d4', bg:'rgba(6,182,212,0.12)' },
-  SYSTEM_ERROR:         { label:'Error Sistema',      color:'#ef4444', bg:'rgba(239,68,68,0.12)' },
+  LOGIN:                { label:'Login',              color:'var(--color-success)', bg:'var(--color-success-bg)'  },
+  LOGOUT:               { label:'Logout',             color:'var(--color-text-muted)', bg:'rgba(13,27,62,0.05)'  },
+  LOGIN_FAILED:         { label:'Login Fallido',      color:'var(--color-danger)',  bg:'var(--color-danger-bg)'  },
+  CREATE:               { label:'Creación',           color:'var(--color-navy)',    bg:'rgba(13,27,62,0.07)'     },
+  READ:                 { label:'Consulta',           color:'var(--color-text-muted)', bg:'rgba(13,27,62,0.04)'  },
+  UPDATE:               { label:'Actualización',      color:'var(--color-warning)', bg:'var(--color-warning-bg)' },
+  DELETE:               { label:'Eliminación',        color:'var(--color-danger)',  bg:'var(--color-danger-bg)'  },
+  STATUS_CHANGE:        { label:'Cambio Estado',      color:'var(--color-gold)',    bg:'rgba(200,168,75,0.10)'   },
+  PAYMENT_RECORDED:     { label:'Pago Registrado',    color:'var(--color-navy)',    bg:'rgba(13,27,62,0.07)'     },
+  UNAUTHORIZED_ACCESS:  { label:'Acceso Denegado',    color:'var(--color-danger)',  bg:'var(--color-danger-bg)'  },
+  PASSWORD_CHANGED:     { label:'Cambio Contraseña',  color:'var(--color-warning)', bg:'var(--color-warning-bg)' },
+  PASSWORD_CHANGE_FAILED:{ label:'Error Contraseña',  color:'var(--color-danger)',  bg:'var(--color-danger-bg)'  },
+  EXPORT:               { label:'Exportación',        color:'var(--color-navy)',    bg:'rgba(13,27,62,0.07)'     },
+  SYSTEM_ERROR:         { label:'Error Sistema',      color:'var(--color-danger)',  bg:'var(--color-danger-bg)'  },
 };
 
 const RESOURCE_LABELS = {
@@ -39,28 +39,29 @@ const VerifyBanner = ({ result }) => {
   if (!result) return null;
   const ok = result.verified;
   return (
-    <div className="flex items-start gap-3 p-4 rounded-xl"
+    <div className="flex items-start gap-3 p-4 rounded"
       style={{
-        background: ok ? 'rgba(16,185,129,0.07)' : 'rgba(239,68,68,0.07)',
-        border: `1px solid ${ok ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)'}`,
+        background: ok ? 'var(--color-success-bg)' : 'var(--color-danger-bg)',
+        border: `1px solid ${ok ? 'var(--color-success-border)' : 'var(--color-danger-border)'}`,
+        borderLeft: `4px solid ${ok ? 'var(--color-success)' : 'var(--color-danger)'}`,
       }}>
       {ok
-        ? <CheckCircle size={22} className="text-emerald-400 flex-shrink-0 mt-0.5"/>
-        : <XCircle    size={22} className="text-red-400 flex-shrink-0 mt-0.5"/>}
+        ? <CheckCircle size={22} style={{ color:'var(--color-success)', flexShrink:0, marginTop:'0.125rem' }}/>
+        : <XCircle    size={22} style={{ color:'var(--color-danger)',  flexShrink:0, marginTop:'0.125rem' }}/>}
       <div>
-        <p className="font-semibold text-sm" style={{ color: ok ? '#10b981':'#ef4444' }}>
+        <p className="font-semibold text-sm" style={{ color: ok ? 'var(--color-success)' : 'var(--color-danger)' }}>
           {ok
             ? `✓ Cadena íntegra — ${result.valid} de ${result.total} registros verificados`
             : `✗ Se detectaron ${result.invalid?.length} registros con integridad comprometida`}
         </p>
         {!ok && result.invalid?.length > 0 && (
-          <p className="text-xs mt-1" style={{ color:'#fca5a5' }}>
+          <p className="text-xs mt-1" style={{ color:'var(--color-danger)' }}>
             IDs afectados: {result.invalid.slice(0,3).map(r=>r.id).join(', ')}
             {result.invalid.length > 3 && ` y ${result.invalid.length-3} más`}
           </p>
         )}
         {result.demo && (
-          <p className="text-xs mt-1" style={{ color:'#94a3b8' }}>
+          <p className="text-xs mt-1" style={{ color:'var(--color-text-muted)' }}>
             (Verificación en modo demo — conecte la BD para verificación real)
           </p>
         )}
@@ -80,56 +81,56 @@ const parseDescription = (log) => {
 
   // Contrato — del backend enriquecido, new_values, o descripción
   const contract = log.contract_number || nv.contract_number || ov.contract_number || desc.match(/CONT-[0-9-]+/)?.[0];
-  if (contract) info.push({ icon:'📄', label:'Contrato', value: contract, color:'#60a5fa' });
+  if (contract) info.push({ icon:'📄', label:'Contrato', value: contract, color:'var(--color-gold)' });
 
   // Cliente
   const client = log.client_name || nv.client_name || ov.client_name;
-  if (client) info.push({ icon:'👤', label:'Cliente', value: client, color:'#a78bfa' });
+  if (client) info.push({ icon:'👤', label:'Cliente', value: client, color:'var(--color-navy)' });
 
   // Asesor — campo nuevo del backend
   const advisor = log.advisor_name || nv.advisor_name || ov.advisor_name;
-  if (advisor) info.push({ icon:'🏆', label:'Asesor', value: advisor, color:'#f472b6' });
+  if (advisor) info.push({ icon:'🏆', label:'Asesor', value: advisor, color:'var(--color-navy)' });
 
   // Teléfono del asesor
   const advisorPhone = nv.advisor_phone;
-  if (advisorPhone) info.push({ icon:'📱', label:'Tel. Asesor', value: advisorPhone, color:'#fb923c' });
+  if (advisorPhone) info.push({ icon:'📱', label:'Tel. Asesor', value: advisorPhone, color:'var(--color-text-secondary)' });
 
   // Proyecto
   const projectName = log.project_name || nv.project_name;
-  if (projectName) info.push({ icon:'🏗️', label:'Proyecto', value: projectName, color:'#f97316' });
+  if (projectName) info.push({ icon:'🏗️', label:'Proyecto', value: projectName, color:'var(--color-navy)' });
 
   // Unidad del inmueble
   const unit = nv.unit_number || ov.unit_number;
-  if (unit) info.push({ icon:'🏠', label:'Unidad', value: unit, color:'#38bdf8' });
+  if (unit) info.push({ icon:'🏠', label:'Unidad', value: unit, color:'var(--color-navy)' });
 
   // Recibo de pago
   const receipt = log.receipt_number || nv.receipt_number || desc.match(/PA-[0-9]+/)?.[0];
-  if (receipt) info.push({ icon:'🧾', label:'Recibo', value: receipt, color:'#34d399' });
+  if (receipt) info.push({ icon:'🧾', label:'Recibo', value: receipt, color:'var(--color-navy)' });
 
   // Monto — del backend enriquecido o new_values
   const amount = log.amount_logged || nv.amount || nv.total_amount || nv.total_commission;
-  if (amount) info.push({ icon:'💰', label:'Monto', value: `$${fmtNum(amount)}`, color:'#fbbf24' });
+  if (amount) info.push({ icon:'💰', label:'Monto', value: `$${fmtNum(amount)}`, color:'var(--color-gold)' });
 
   // Cuota de comisión
   const installNum = nv.installment_num;
   const totalComm  = nv.total_commission;
-  if (installNum) info.push({ icon:'📑', label:'Cuota', value: `${installNum} de ${totalComm ? '$'+fmtNum(totalComm) : '?'}`, color:'#c084fc' });
+  if (installNum) info.push({ icon:'📑', label:'Cuota', value: `${installNum} de ${totalComm ? '$'+fmtNum(totalComm) : '?'}`, color:'var(--color-warning)' });
 
   // Fecha de pago registrada
   const paidDate = nv.paid_date;
-  if (paidDate) info.push({ icon:'📅', label:'Fecha pago', value: paidDate, color:'#67e8f9' });
+  if (paidDate) info.push({ icon:'📅', label:'Fecha pago', value: paidDate, color:'var(--color-text-secondary)' });
 
   // Tipo de comisión
   const commType = nv.commission_type;
-  if (commType) info.push({ icon:'📊', label:'Tipo comisión', value: commType==='fija'?'Monto fijo':'Porcentaje', color:'#86efac' });
+  if (commType) info.push({ icon:'📊', label:'Tipo comisión', value: commType==='fija'?'Monto fijo':'Porcentaje', color:'var(--color-gold)' });
 
   // Canal de interacción
   const itype = nv.interaction_type || ov.interaction_type;
-  if (itype) info.push({ icon:'📞', label:'Canal', value:{llamada:'Llamada',whatsapp:'WhatsApp',email:'Email',visita:'Visita',otro:'Otro'}[itype]||itype, color:'#4ade80' });
+  if (itype) info.push({ icon:'📞', label:'Canal', value:{llamada:'Llamada',whatsapp:'WhatsApp',email:'Email',visita:'Visita',otro:'Otro'}[itype]||itype, color:'var(--color-navy)' });
 
   // Resultado de interacción
   const outcome = nv.outcome || ov.outcome;
-  if (outcome) info.push({ icon:'📋', label:'Resultado', value:{acuerdo_pago:'Acuerdo de pago',interesado:'Interesado',sin_respuesta:'Sin respuesta',negativo:'No interesado',pendiente_seguimiento:'Pendiente'}[outcome]||outcome, color:'#94a3b8' });
+  if (outcome) info.push({ icon:'📋', label:'Resultado', value:{acuerdo_pago:'Acuerdo de pago',interesado:'Interesado',sin_respuesta:'Sin respuesta',negativo:'No interesado',pendiente_seguimiento:'Pendiente'}[outcome]||outcome, color:'var(--color-text-muted)' });
 
   return info;
 };
@@ -199,13 +200,13 @@ const LogRow = ({ log }) => {
             return (
               <div className="flex gap-1 mt-1 flex-wrap" onClick={e => e.stopPropagation()}>
                 {contract && <span className="text-xs px-1.5 py-0.5 rounded font-mono"
-                  style={{ background:'rgba(96,165,250,0.12)', color:'#60a5fa' }}>{contract}</span>}
+                  style={{ background:'rgba(200,168,75,0.12)', color:'var(--color-gold)', border:'1px solid rgba(200,168,75,0.25)' }}>{contract}</span>}
                 {client && <span className="text-xs px-1.5 py-0.5 rounded"
-                  style={{ background:'rgba(167,139,250,0.12)', color:'#a78bfa' }}>{client}</span>}
+                  style={{ background:'rgba(13,27,62,0.07)', color:'var(--color-navy)', border:'1px solid rgba(13,27,62,0.15)' }}>{client}</span>}
                 {advisor && <span className="text-xs px-1.5 py-0.5 rounded"
-                  style={{ background:'rgba(244,114,182,0.12)', color:'#f472b6' }}>🏆 {advisor}</span>}
+                  style={{ background:'rgba(13,27,62,0.07)', color:'var(--color-navy)', border:'1px solid rgba(13,27,62,0.15)' }}>🏆 {advisor}</span>}
                 {receipt && <span className="text-xs px-1.5 py-0.5 rounded font-mono"
-                  style={{ background:'rgba(52,211,153,0.12)', color:'#34d399' }}>{receipt}</span>}
+                  style={{ background:'rgba(13,27,62,0.05)', color:'var(--color-text-secondary)', border:'1px solid var(--color-border)' }}>{receipt}</span>}
               </div>
             );
           })()}
@@ -213,8 +214,9 @@ const LogRow = ({ log }) => {
         <td>
           <span className="badge text-xs"
             style={{
-              background: log.success ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
-              color:      log.success ? '#10b981'              : '#ef4444',
+              background: log.success ? 'var(--color-success-bg)' : 'var(--color-danger-bg)',
+              color:      log.success ? 'var(--color-success)'    : 'var(--color-danger)',
+              border:     `1px solid ${log.success ? 'var(--color-success-border)' : 'var(--color-danger-border)'}`,
             }}>
             {log.success ? '✓ OK' : '✗ Error'}
           </span>
@@ -246,7 +248,7 @@ const LogRow = ({ log }) => {
                 {/* LADO IZQUIERDO — Integridad */}
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider mb-3"
-                    style={{ color:'var(--color-text-muted)' }}>
+                    style={{ color:'var(--color-gold)', letterSpacing:'0.08em' }}>
                     Integridad del Registro
                   </p>
                   <div className="space-y-2">
@@ -255,7 +257,7 @@ const LogRow = ({ log }) => {
                         <Lock size={11} style={{ color:'var(--color-text-muted)' }}/>
                         <span className="text-xs" style={{ color:'var(--color-text-muted)' }}>Hash actual:</span>
                       </div>
-                      <p className="font-mono text-xs break-all leading-relaxed" style={{ color:'#60a5fa' }}>
+                      <p className="font-mono text-xs break-all leading-relaxed" style={{ color:'var(--color-gold)' }}>
                         {log.log_hash || '—'}
                       </p>
                     </div>
@@ -275,7 +277,7 @@ const LogRow = ({ log }) => {
                 {/* LADO CENTRAL — Contexto de acceso */}
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider mb-3"
-                    style={{ color:'var(--color-text-muted)' }}>
+                    style={{ color:'var(--color-gold)', letterSpacing:'0.08em' }}>
                     Contexto de Acceso
                   </p>
                   <div className="space-y-2 text-xs">
@@ -294,7 +296,7 @@ const LogRow = ({ log }) => {
                     ))}
                     {log.error_message && (
                       <div className="mt-2 p-2 rounded text-xs"
-                        style={{ background:'rgba(239,68,68,0.08)', color:'#fca5a5', border:'1px solid rgba(239,68,68,0.2)' }}>
+                        style={{ background:'var(--color-danger-bg)', color:'var(--color-danger)', border:'1px solid var(--color-danger-border)' }}>
                         Error: {log.error_message}
                       </div>
                     )}
@@ -304,18 +306,17 @@ const LogRow = ({ log }) => {
                 {/* LADO DERECHO — Datos del cambio */}
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider mb-3"
-                    style={{ color:'var(--color-text-muted)' }}>
+                    style={{ color:'var(--color-gold)', letterSpacing:'0.08em' }}>
                     Datos del Cambio
                   </p>
-                  {/* Info rica: contrato, cliente, monto, etc */}
                   {(() => {
                     const info = parseDescription(log);
                     if (info.length === 0) return null;
                     return (
                       <div className="flex flex-wrap gap-2 mb-3">
                         {info.map((item, i) => (
-                          <div key={i} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs"
-                            style={{ background:`${item.color}15`, border:`1px solid ${item.color}30` }}>
+                          <div key={i} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs"
+                            style={{ background:'rgba(13,27,62,0.05)', border:'1px solid var(--color-border)' }}>
                             <span>{item.icon}</span>
                             <span style={{ color:'var(--color-text-muted)' }}>{item.label}:</span>
                             <span className="font-semibold" style={{ color: item.color }}>{item.value}</span>
@@ -328,12 +329,12 @@ const LogRow = ({ log }) => {
                     <div className="space-y-3">
                       {log.old_values && (
                         <div>
-                          <p className="text-xs mb-1 font-medium" style={{ color:'#ef4444' }}>
+                          <p className="text-xs mb-1 font-medium" style={{ color:'var(--color-danger)' }}>
                             Antes:
                           </p>
                           <pre className="text-xs p-2 rounded overflow-auto max-h-24"
-                            style={{ background:'var(--color-bg-secondary)', color:'#fca5a5',
-                                     border:'1px solid rgba(239,68,68,0.2)' }}>
+                            style={{ background:'var(--color-danger-bg)', color:'var(--color-danger)',
+                                     border:'1px solid var(--color-danger-border)' }}>
                             {typeof log.old_values === 'string'
                               ? log.old_values
                               : JSON.stringify(log.old_values, null, 2)}
@@ -342,12 +343,12 @@ const LogRow = ({ log }) => {
                       )}
                       {log.new_values && (
                         <div>
-                          <p className="text-xs mb-1 font-medium" style={{ color:'#10b981' }}>
+                          <p className="text-xs mb-1 font-medium" style={{ color:'var(--color-success)' }}>
                             Después:
                           </p>
                           <pre className="text-xs p-2 rounded overflow-auto max-h-24"
-                            style={{ background:'var(--color-bg-secondary)', color:'#86efac',
-                                     border:'1px solid rgba(16,185,129,0.2)' }}>
+                            style={{ background:'var(--color-success-bg)', color:'var(--color-success)',
+                                     border:'1px solid var(--color-success-border)' }}>
                             {typeof log.new_values === 'string'
                               ? log.new_values
                               : JSON.stringify(log.new_values, null, 2)}
@@ -461,12 +462,13 @@ const AuditPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ background:'rgba(59,130,246,0.15)', border:'1px solid rgba(59,130,246,0.3)' }}>
-            <Shield size={20} className="text-blue-400"/>
+          <div className="w-10 h-10 flex items-center justify-center"
+            style={{ background:'var(--color-navy)', border:'1.5px solid var(--color-gold)' }}>
+            <Shield size={20} style={{ color:'var(--color-gold)' }}/>
           </div>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color:'var(--color-text-primary)' }}>
+            <h1 className="text-2xl font-bold"
+              style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
               Auditoría · No Repudio
             </h1>
             <p className="text-sm" style={{ color:'var(--color-text-muted)' }}>
@@ -496,14 +498,19 @@ const AuditPage = () => {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label:'Total registros', value:stats.total,   color:'#3b82f6' },
-          { label:'Errores',         value:stats.errors,  color:'#ef4444' },
-          { label:'Inicios sesión',  value:stats.logins,  color:'#10b981' },
-          { label:'Pagos',           value:stats.payments, color:'#a855f7' },
+          { label:'Total registros', value:stats.total,    color:'var(--color-navy)'   },
+          { label:'Errores',         value:stats.errors,   color:'var(--color-danger)'  },
+          { label:'Inicios sesión',  value:stats.logins,   color:'var(--color-success)' },
+          { label:'Pagos',           value:stats.payments, color:'var(--color-gold)'    },
         ].map((s,i) => (
           <div key={i} className="card p-3">
-            <p className="text-xs mb-1" style={{ color:'var(--color-text-muted)' }}>{s.label}</p>
-            <p className="text-2xl font-bold" style={{ color:s.color }}>{s.value}</p>
+            <p className="text-xs mb-1 uppercase tracking-wide"
+              style={{ color:'var(--color-text-muted)', fontSize:'0.68rem', letterSpacing:'0.06em' }}>
+              {s.label}
+            </p>
+            <p className="text-2xl font-bold font-mono" style={{ color:'var(--color-navy)' }}>{s.value}</p>
+            <div className="mt-2 h-0.5 w-8 rounded"
+              style={{ background: s.color }}/>
           </div>
         ))}
       </div>
@@ -556,11 +563,11 @@ const AuditPage = () => {
       </div>
 
       {/* Aviso legal */}
-      <div className="flex items-start gap-3 p-4 rounded-xl text-sm"
-        style={{ background:'rgba(245,158,11,0.06)', border:'1px solid rgba(245,158,11,0.15)' }}>
-        <AlertTriangle size={16} className="text-amber-400 flex-shrink-0 mt-0.5"/>
+      <div className="flex items-start gap-3 p-4 rounded text-sm"
+        style={{ background:'var(--color-warning-bg)', border:'1px solid var(--color-warning-border)', borderLeft:'4px solid var(--color-warning)' }}>
+        <AlertTriangle size={16} style={{ color:'var(--color-warning)', flexShrink:0, marginTop:'0.125rem' }}/>
         <p style={{ color:'var(--color-text-secondary)' }}>
-          <strong style={{ color:'#f59e0b' }}>Aviso Legal:</strong> Este registro de auditoría
+          <strong style={{ color:'var(--color-warning)' }}>Aviso Legal:</strong> Este registro de auditoría
           es inmutable y constituye evidencia de no repudio. Cada entrada está protegida con un
           hash HMAC-SHA256 encadenado. Cualquier alteración es detectable mediante la verificación
           de integridad. Retención mínima: 5 años (1.825 días).

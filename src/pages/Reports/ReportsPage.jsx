@@ -49,8 +49,7 @@ const ExportBtn = ({ onClick, label='Exportar Excel', loading }) => (
   <button
     onClick={onClick}
     disabled={loading}
-    className="btn btn-secondary btn-sm flex items-center gap-2"
-    style={{ color:'#10b981', borderColor:'rgba(16,185,129,0.3)' }}>
+    className="btn btn-secondary btn-sm flex items-center gap-2">
     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
       fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -64,7 +63,7 @@ const ExportBtn = ({ onClick, label='Exportar Excel', loading }) => (
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                 'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-const COLORS = ['#3b82f6','#10b981','#f59e0b','#a855f7','#ef4444','#06b6d4','#f97316'];
+const COLORS = ['#0D1B3E','#C8A84B','#2D7A3A','#C0392B','#92660A','#1A2F5E'];
 
 const TABS = [
   { id:'resumen',      label:'Resumen',          icon:TrendingUp   },
@@ -90,11 +89,11 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 // ── KPI Card ─────────────────────────────────────────────────
-const KPI = ({ icon:Icon, label, value, sub, color='#3b82f6', loading }) => (
+const KPI = ({ icon:Icon, label, value, sub, color='var(--color-navy)', loading }) => (
   <div className="card p-4">
     <div className="flex items-start justify-between mb-3">
-      <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-        style={{ background:`${color}18` }}>
+      <div className="w-9 h-9 flex items-center justify-center"
+        style={{ background:`${color}18`, border:`1px solid ${color}30` }}>
         <Icon size={16} style={{ color }}/>
       </div>
     </div>
@@ -102,7 +101,7 @@ const KPI = ({ icon:Icon, label, value, sub, color='#3b82f6', loading }) => (
       <div className="h-7 w-24 rounded animate-pulse"
         style={{ background:'var(--color-bg-secondary)' }}/>
     ) : (
-      <p className="text-xl font-bold font-mono" style={{ color }}>{value}</p>
+      <p className="text-xl font-bold font-mono" style={{ color:'var(--color-navy)' }}>{value}</p>
     )}
     <p className="text-xs mt-1" style={{ color:'var(--color-text-muted)' }}>{label}</p>
     {sub && <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>{sub}</p>}
@@ -153,10 +152,10 @@ const TabResumen = () => {
       </div>
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KPI icon={FileText}     label="Contratos activos"   value={kpis.active_contracts||0}             color="#3b82f6" loading={loadKpi}/>
-        <KPI icon={DollarSign}   label="Recaudado total"      value={fmM(kpis.total_collected)}            color="#10b981" loading={loadKpi}/>
-        <KPI icon={AlertTriangle}label="Cuotas en mora"       value={kpis.overdue_count||0}               color="#ef4444" loading={loadKpi}/>
-        <KPI icon={Home}         label="Inmuebles disponibles"value={kpis.available_properties||0}        color="#a855f7" loading={loadKpi}/>
+        <KPI icon={FileText}     label="Contratos activos"    value={kpis.active_contracts||0}      color="#0D1B3E" loading={loadKpi}/>
+        <KPI icon={DollarSign}   label="Recaudado total"       value={fmM(kpis.total_collected)}     color="#C8A84B" loading={loadKpi}/>
+        <KPI icon={AlertTriangle}label="Cuotas en mora"        value={kpis.overdue_count||0}          color="#C0392B" loading={loadKpi}/>
+        <KPI icon={Home}         label="Inmuebles disponibles" value={kpis.available_properties||0}  color="#2D7A3A" loading={loadKpi}/>
       </div>
 
       {/* Contratos y recaudo por mes */}
@@ -185,9 +184,9 @@ const TabResumen = () => {
               <YAxis yAxisId="right" orientation="right" tick={{ fill:'#94a3b8', fontSize:10 }}/>
               <Tooltip content={<CustomTooltip/>}/>
               <Legend wrapperStyle={{ fontSize:'11px', color:'#94a3b8' }}/>
-              <Bar yAxisId="left"  dataKey="recaudado" name="Recaudado" fill="#10b981" radius={[4,4,0,0]}/>
-              <Bar yAxisId="left"  dataKey="valor"     name="Valor contratos" fill="#3b82f6" radius={[4,4,0,0]} opacity={0.6}/>
-              <Bar yAxisId="right" dataKey="contratos" name="Contratos" fill="#a855f7" radius={[4,4,0,0]}/>
+              <Bar yAxisId="left"  dataKey="recaudado" name="Recaudado"        fill="#C8A84B" radius={[4,4,0,0]}/>
+              <Bar yAxisId="left"  dataKey="valor"     name="Valor contratos"  fill="#0D1B3E" radius={[4,4,0,0]} opacity={0.7}/>
+              <Bar yAxisId="right" dataKey="contratos" name="Contratos"        fill="#1A2F5E" radius={[4,4,0,0]}/>
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -213,7 +212,7 @@ const TabResumen = () => {
                     </div>
                     <div className="flex items-center gap-4">
                       <span style={{ color:'var(--color-text-muted)' }}>{a.contratos} contratos</span>
-                      <span className="font-mono font-bold" style={{ color:'#10b981' }}>
+                      <span className="font-mono font-bold" style={{ color:'var(--color-navy)' }}>
                         {fmM(a.valor)}
                       </span>
                     </div>
@@ -272,10 +271,10 @@ const TabVacancia = () => {
       </div>
       {/* KPIs vacancia */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KPI icon={Home}       label="Unidades vacantes"       value={totalVacant}          color="#ef4444"/>
-        <KPI icon={TrendingUp} label="Tasa de vacancia global"  value={`${globalVacancy}%`}  color="#f59e0b"/>
-        <KPI icon={FileText}   label="Unidades vendidas/prometidas" value={totalSold}       color="#10b981"/>
-        <KPI icon={DollarSign} label="Valor cartera vacante"    value={fmM(vacantValue)}     color="#a855f7"/>
+        <KPI icon={Home}       label="Unidades vacantes"            value={totalVacant}         color="#C0392B"/>
+        <KPI icon={TrendingUp} label="Tasa de vacancia global"       value={`${globalVacancy}%`} color="#92660A"/>
+        <KPI icon={FileText}   label="Unidades vendidas/prometidas"  value={totalSold}           color="#2D7A3A"/>
+        <KPI icon={DollarSign} label="Valor cartera vacante"         value={fmM(vacantValue)}    color="#C8A84B"/>
       </div>
 
       {/* Tabla por proyecto */}
@@ -292,10 +291,10 @@ const TabVacancia = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr style={{ background:'var(--color-bg-secondary)' }}>
+              <tr style={{ background:'var(--color-navy)', borderBottom:'2px solid var(--color-gold)' }}>
                 {['Proyecto','Ciudad','Creadas','Vacantes','Reserv.','Prometidas','Escrituradas','% Vacancia','% Vendido','Valor Vacante'].map(h => (
                   <th key={h} className="px-3 py-2.5 text-left font-semibold whitespace-nowrap"
-                    style={{ color:'var(--color-text-muted)' }}>{h}</th>
+                    style={{ color:'rgba(245,243,238,0.75)' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -313,33 +312,33 @@ const TabVacancia = () => {
                       {p.total_created}
                     </td>
                     <td className="px-3 py-2.5 text-center">
-                      <span className="font-bold" style={{ color: p.vacant > 0 ? '#ef4444' : '#10b981' }}>
+                      <span className="font-bold" style={{ color: p.vacant > 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
                         {p.vacant}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 text-center" style={{ color:'#f59e0b' }}>{p.reserved}</td>
-                    <td className="px-3 py-2.5 text-center" style={{ color:'#a855f7' }}>{p.promised}</td>
-                    <td className="px-3 py-2.5 text-center" style={{ color:'#3b82f6' }}>{p.deeded}</td>
+                    <td className="px-3 py-2.5 text-center" style={{ color:'var(--color-warning)' }}>{p.reserved}</td>
+                    <td className="px-3 py-2.5 text-center" style={{ color:'var(--color-gold)' }}>{p.promised}</td>
+                    <td className="px-3 py-2.5 text-center" style={{ color:'var(--color-navy)' }}>{p.deeded}</td>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2">
                         <div className="w-16 h-1.5 rounded-full" style={{ background:'var(--color-bg-primary)' }}>
                           <div className="h-1.5 rounded-full"
-                            style={{ width:`${vr}%`, background: vr > 50 ? '#ef4444' : vr > 25 ? '#f59e0b' : '#10b981' }}/>
+                            style={{ width:`${vr}%`, background: vr > 50 ? 'var(--color-danger)' : vr > 25 ? 'var(--color-warning)' : 'var(--color-success)' }}/>
                         </div>
-                        <span style={{ color: vr > 50 ? '#ef4444' : vr > 25 ? '#f59e0b' : '#10b981' }}>
+                        <span style={{ color: vr > 50 ? 'var(--color-danger)' : vr > 25 ? 'var(--color-warning)' : 'var(--color-success)' }}>
                           {vr}%
                         </span>
                       </div>
                     </td>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2">
-                        <div className="w-16 h-1.5 rounded-full" style={{ background:'var(--color-bg-primary)' }}>
-                          <div className="h-1.5 rounded-full" style={{ width:`${sr}%`, background:'#10b981' }}/>
+                        <div className="w-16 h-1.5 rounded-full" style={{ background:'var(--color-bg-secondary)' }}>
+                          <div className="h-1.5 rounded-full" style={{ width:`${sr}%`, background:'var(--color-gold)' }}/>
                         </div>
-                        <span style={{ color:'#10b981' }}>{sr}%</span>
+                        <span style={{ color:'var(--color-navy)' }}>{sr}%</span>
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 font-mono" style={{ color:'#f59e0b' }}>
+                    <td className="px-3 py-2.5 font-mono font-bold" style={{ color:'var(--color-navy)' }}>
                       {fmM(p.vacant_value)}
                     </td>
                   </tr>
@@ -355,15 +354,15 @@ const TabVacancia = () => {
                 <td className="px-3 py-2.5 text-center font-bold" style={{ color:'var(--color-text-primary)' }}>
                   {totalCreated}
                 </td>
-                <td className="px-3 py-2.5 text-center font-bold" style={{ color:'#ef4444' }}>
+                <td className="px-3 py-2.5 text-center font-bold" style={{ color:'var(--color-danger)' }}>
                   {totalVacant}
                 </td>
                 <td colSpan={3}/>
-                <td className="px-3 py-2.5 font-bold" style={{ color: globalVacancy > 50 ? '#ef4444' : '#10b981' }}>
+                <td className="px-3 py-2.5 font-bold" style={{ color: globalVacancy > 50 ? 'var(--color-danger)' : 'var(--color-success)' }}>
                   {globalVacancy}%
                 </td>
                 <td/>
-                <td className="px-3 py-2.5 font-bold font-mono" style={{ color:'#f59e0b' }}>
+                <td className="px-3 py-2.5 font-bold font-mono" style={{ color:'var(--color-navy)' }}>
                   {fmM(vacantValue)}
                 </td>
               </tr>
@@ -391,10 +390,10 @@ const TabVacancia = () => {
               <YAxis tick={{ fill:'#94a3b8', fontSize:10 }}/>
               <Tooltip content={<CustomTooltip/>}/>
               <Legend wrapperStyle={{ fontSize:'11px', color:'#94a3b8' }}/>
-              <Bar dataKey="Vacantes"    fill="#ef4444" stackId="a" radius={[0,0,0,0]}/>
-              <Bar dataKey="Reservados"  fill="#f59e0b" stackId="a"/>
-              <Bar dataKey="Prometidos"  fill="#a855f7" stackId="a"/>
-              <Bar dataKey="Escriturados" fill="#10b981" stackId="a" radius={[4,4,0,0]}/>
+              <Bar dataKey="Vacantes"     fill="#C0392B" stackId="a" radius={[0,0,0,0]}/>
+              <Bar dataKey="Reservados"   fill="#92660A" stackId="a"/>
+              <Bar dataKey="Prometidos"   fill="#C8A84B" stackId="a"/>
+              <Bar dataKey="Escriturados" fill="#0D1B3E" stackId="a" radius={[4,4,0,0]}/>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -443,9 +442,9 @@ const TabCartera = () => {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-3 gap-4">
-        <KPI icon={DollarSign}    label="Saldo total cartera"    value={fmM(totalBalance)}   color="#3b82f6"/>
-        <KPI icon={AlertTriangle} label="Valor en mora"          value={fmM(totalOverdue)}   color="#ef4444"/>
-        <KPI icon={FileText}      label="Contratos en mora"      value={countMora}           color="#f59e0b"/>
+        <KPI icon={DollarSign}    label="Saldo total cartera"    value={fmM(totalBalance)}   color="#C8A84B"/>
+        <KPI icon={AlertTriangle} label="Valor en mora"          value={fmM(totalOverdue)}   color="#C0392B"/>
+        <KPI icon={FileText}      label="Contratos en mora"      value={countMora}           color="#92660A"/>
       </div>
 
       {/* Filtros */}
@@ -454,11 +453,17 @@ const TabCartera = () => {
           <button key={v} onClick={() => setFilter(v)}
             className="btn btn-sm text-xs"
             style={{
-              background: filter===v ? 'var(--color-brand-600)' : 'var(--color-bg-secondary)',
-              color:      filter===v ? '#fff' : 'var(--color-text-secondary)',
-              border:     `1px solid ${filter===v ? 'var(--color-brand-600)' : 'var(--color-border)'}`,
+              background: filter===v ? 'var(--color-navy)' : 'var(--color-bg-secondary)',
+              color:      filter===v ? '#F5F3EE'           : 'var(--color-text-secondary)',
+              border:     `1px solid ${filter===v ? 'var(--color-gold)' : 'var(--color-border)'}`,
+              borderBottom: filter===v ? '2px solid var(--color-gold)' : undefined,
             }}>
-            {l} {v==='mora' && countMora > 0 && <span className="ml-1 px-1.5 rounded-full text-xs bg-red-500 text-white">{countMora}</span>}
+            {l} {v==='mora' && countMora > 0 && (
+              <span className="ml-1 px-1.5 rounded-full text-xs"
+                style={{ background:'var(--color-danger)', color:'#fff' }}>
+                {countMora}
+              </span>
+            )}
           </button>
         ))}
         <button onClick={() => refetch()} className="btn btn-ghost btn-sm ml-auto">
@@ -471,10 +476,10 @@ const TabCartera = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr style={{ background:'var(--color-bg-secondary)' }}>
+              <tr style={{ background:'var(--color-navy)', borderBottom:'2px solid var(--color-gold)' }}>
                 {['Contrato','Cliente','Proyecto','Asesor','Valor Neto','Recaudado','Saldo','Cuotas Mora','Valor Mora','Próx. Vto.'].map(h => (
                   <th key={h} className="px-3 py-2.5 text-left font-semibold whitespace-nowrap"
-                    style={{ color:'var(--color-text-muted)' }}>{h}</th>
+                    style={{ color:'rgba(245,243,238,0.75)' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -485,10 +490,10 @@ const TabCartera = () => {
                   <tr key={i}
                     style={{
                       borderBottom:'1px solid var(--color-border)',
-                      background: mora ? 'rgba(239,68,68,0.04)' : undefined,
-                      borderLeft: mora ? '3px solid #ef4444' : '3px solid transparent',
+                      background: mora ? 'var(--color-danger-bg)' : undefined,
+                      borderLeft: mora ? '3px solid var(--color-danger)' : '3px solid transparent',
                     }}>
-                    <td className="px-3 py-2.5 font-mono" style={{ color:'var(--color-text-accent)' }}>
+                    <td className="px-3 py-2.5 font-mono font-medium" style={{ color:'var(--color-gold)' }}>
                       {c.contract_number}
                     </td>
                     <td className="px-3 py-2.5" style={{ color:'var(--color-text-primary)' }}>
@@ -501,27 +506,28 @@ const TabCartera = () => {
                     <td className="px-3 py-2.5" style={{ color:'var(--color-text-muted)' }}>
                       {c.advisor_name || '—'}
                     </td>
-                    <td className="px-3 py-2.5 font-mono" style={{ color:'var(--color-text-primary)' }}>
+                    <td className="px-3 py-2.5 font-mono" style={{ color:'var(--color-navy)' }}>
                       {fmM(c.net_value)}
                     </td>
-                    <td className="px-3 py-2.5 font-mono" style={{ color:'#10b981' }}>
+                    <td className="px-3 py-2.5 font-mono" style={{ color:'var(--color-navy)' }}>
                       {fmM(c.total_paid)}
                     </td>
-                    <td className="px-3 py-2.5 font-mono font-bold" style={{ color:'#f59e0b' }}>
+                    <td className="px-3 py-2.5 font-mono font-bold" style={{ color:'var(--color-warning)' }}>
                       {fmM(c.balance)}
                     </td>
                     <td className="px-3 py-2.5 text-center">
                       {mora
-                        ? <span className="px-2 py-0.5 rounded-full font-bold" style={{ background:'rgba(239,68,68,0.15)', color:'#ef4444' }}>
+                        ? <span className="px-2 py-0.5 rounded-full font-bold"
+                            style={{ background:'var(--color-danger-bg)', color:'var(--color-danger)', border:'1px solid var(--color-danger-border)' }}>
                             {c.overdue_installments} cuota{c.overdue_installments!==1?'s':''}
                           </span>
-                        : <span style={{ color:'#10b981' }}>✓ Al día</span>}
+                        : <span style={{ color:'var(--color-success)' }}>✓ Al día</span>}
                     </td>
-                    <td className="px-3 py-2.5 font-mono" style={{ color: mora ? '#ef4444' : 'var(--color-text-muted)' }}>
+                    <td className="px-3 py-2.5 font-mono" style={{ color: mora ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
                       {mora ? fmM(c.overdue_value) : '—'}
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap"
-                      style={{ color: mora ? '#ef4444' : 'var(--color-text-muted)' }}>
+                      style={{ color: mora ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
                       {c.next_due_date ? format(new Date(c.next_due_date),'dd/MM/yyyy') : '—'}
                     </td>
                   </tr>
@@ -621,10 +627,10 @@ const TabLiquidacion = () => {
 
       {/* KPIs liquidación */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KPI icon={DollarSign}    label="Total recaudado" value={fmM(liq.total_recaudado)}   color="#10b981"/>
-        <KPI icon={Users}         label="Pagos registrados" value={pagos.length}             color="#3b82f6"/>
-        <KPI icon={TrendingUp}    label="Comisiones pagadas" value={fmM(liq.total_comisiones)} color="#f59e0b"/>
-        <KPI icon={Building}      label="Neto inmobiliaria" value={fmM(liq.neto_inmobiliaria)} color="#a855f7"/>
+        <KPI icon={DollarSign}    label="Total recaudado"   value={fmM(liq.total_recaudado)}    color="#C8A84B"/>
+        <KPI icon={Users}         label="Pagos registrados" value={pagos.length}                 color="#0D1B3E"/>
+        <KPI icon={TrendingUp}    label="Comisiones pagadas" value={fmM(liq.total_comisiones)}   color="#92660A"/>
+        <KPI icon={Building}      label="Neto inmobiliaria" value={fmM(liq.neto_inmobiliaria)}   color="#0D1B3E"/>
       </div>
 
       {/* Distribución por método de pago */}
@@ -640,7 +646,7 @@ const TabLiquidacion = () => {
                 <p className="text-xs capitalize mb-1" style={{ color:'var(--color-text-muted)' }}>
                   {method}
                 </p>
-                <p className="font-bold font-mono text-sm" style={{ color:COLORS[i%COLORS.length] }}>
+                <p className="font-bold font-mono text-sm" style={{ color:'var(--color-navy)' }}>
                   {fmM(total)}
                 </p>
               </div>
@@ -665,10 +671,10 @@ const TabLiquidacion = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr style={{ background:'var(--color-bg-secondary)' }}>
+                <tr style={{ background:'var(--color-navy)', borderBottom:'2px solid var(--color-gold)' }}>
                   {['Recibo','Contrato','Cliente','Proyecto','Fecha','Monto','Método','Asesor'].map(h => (
                     <th key={h} className="px-3 py-2.5 text-left font-semibold whitespace-nowrap"
-                      style={{ color:'var(--color-text-muted)' }}>{h}</th>
+                      style={{ color:'rgba(245,243,238,0.75)' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -676,8 +682,8 @@ const TabLiquidacion = () => {
                 {pagos.map((p,i) => (
                   <tr key={i} style={{ borderBottom:'1px solid var(--color-border)' }}>
                     <td className="px-3 py-2.5 font-mono font-bold"
-                      style={{ color:'var(--color-text-accent)' }}>{p.receipt_number}</td>
-                    <td className="px-3 py-2.5 font-mono" style={{ color:'#60a5fa' }}>
+                      style={{ color:'var(--color-navy)' }}>{p.receipt_number}</td>
+                    <td className="px-3 py-2.5 font-mono" style={{ color:'var(--color-gold)' }}>
                       {p.contract_number}
                     </td>
                     <td className="px-3 py-2.5" style={{ color:'var(--color-text-primary)' }}>
@@ -689,12 +695,12 @@ const TabLiquidacion = () => {
                     <td className="px-3 py-2.5 whitespace-nowrap" style={{ color:'var(--color-text-muted)' }}>
                       {p.payment_date ? format(new Date(p.payment_date),'dd/MM/yyyy') : '—'}
                     </td>
-                    <td className="px-3 py-2.5 font-mono font-bold" style={{ color:'#10b981' }}>
+                    <td className="px-3 py-2.5 font-mono font-bold" style={{ color:'var(--color-navy)' }}>
                       {fm(p.amount)}
                     </td>
                     <td className="px-3 py-2.5">
-                      <span className="px-2 py-0.5 rounded-full capitalize"
-                        style={{ background:'rgba(59,130,246,0.1)', color:'#60a5fa' }}>
+                      <span className="px-2 py-0.5 rounded capitalize"
+                        style={{ background:'rgba(13,27,62,0.07)', color:'var(--color-navy)', border:'1px solid rgba(13,27,62,0.15)' }}>
                         {p.payment_method}
                       </span>
                     </td>
@@ -705,12 +711,12 @@ const TabLiquidacion = () => {
                 ))}
               </tbody>
               <tfoot>
-                <tr style={{ background:'var(--color-bg-secondary)', borderTop:'2px solid var(--color-border)' }}>
+                <tr style={{ background:'var(--color-navy)', borderTop:'2px solid var(--color-gold)' }}>
                   <td colSpan={5} className="px-3 py-2.5 text-right font-bold text-xs"
-                    style={{ color:'var(--color-text-secondary)' }}>
+                    style={{ color:'rgba(245,243,238,0.7)' }}>
                     TOTAL RECAUDADO:
                   </td>
-                  <td className="px-3 py-2.5 font-bold font-mono" style={{ color:'#10b981' }}>
+                  <td className="px-3 py-2.5 font-bold font-mono" style={{ color:'var(--color-gold)' }}>
                     {fm(liq.total_recaudado)}
                   </td>
                   <td colSpan={2}/>
@@ -725,39 +731,41 @@ const TabLiquidacion = () => {
       {liq.comisiones_pagadas?.length > 0 && (
         <div className="card p-0 overflow-hidden">
           <div className="px-5 py-4 border-b" style={{ borderColor:'var(--color-border)' }}>
-            <h3 className="font-semibold text-sm" style={{ color:'var(--color-text-primary)' }}>
+            <h3 className="font-semibold text-sm"
+              style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
               Comisiones Pagadas a Asesores
             </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr style={{ background:'var(--color-bg-secondary)' }}>
+                <tr style={{ background:'var(--color-navy)', borderBottom:'2px solid var(--color-gold)' }}>
                   {['Asesor','Contrato','Tipo','Monto Pagado','Fecha'].map(h => (
                     <th key={h} className="px-3 py-2.5 text-left font-semibold"
-                      style={{ color:'var(--color-text-muted)' }}>{h}</th>
+                      style={{ color:'rgba(245,243,238,0.75)' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {liq.comisiones_pagadas.map((c,i) => (
                   <tr key={i} style={{ borderBottom:'1px solid var(--color-border)' }}>
-                    <td className="px-3 py-2.5" style={{ color:'var(--color-text-primary)' }}>
+                    <td className="px-3 py-2.5" style={{ color:'var(--color-navy)' }}>
                       {c.advisor_name}
                     </td>
-                    <td className="px-3 py-2.5 font-mono" style={{ color:'#60a5fa' }}>
+                    <td className="px-3 py-2.5 font-mono" style={{ color:'var(--color-gold)' }}>
                       {c.contract_number}
                     </td>
                     <td className="px-3 py-2.5">
-                      <span className="px-2 py-0.5 rounded-full text-xs"
+                      <span className="px-2 py-0.5 rounded text-xs"
                         style={{
-                          background: c.commission_type==='fija' ? 'rgba(168,85,247,0.1)' : 'rgba(59,130,246,0.1)',
-                          color:      c.commission_type==='fija' ? '#c084fc' : '#60a5fa',
+                          background: c.commission_type==='fija' ? 'rgba(200,168,75,0.12)' : 'rgba(13,27,62,0.07)',
+                          color:      c.commission_type==='fija' ? 'var(--color-gold)'      : 'var(--color-navy)',
+                          border:     `1px solid ${c.commission_type==='fija' ? 'rgba(200,168,75,0.3)' : 'rgba(13,27,62,0.15)'}`,
                         }}>
                         {c.commission_type === 'fija' ? '$ Fija' : '% Porc.'}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 font-mono font-bold" style={{ color:'#f59e0b' }}>
+                    <td className="px-3 py-2.5 font-mono font-bold" style={{ color:'var(--color-navy)' }}>
                       {fm(c.paid_amount)}
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap" style={{ color:'var(--color-text-muted)' }}>
@@ -784,7 +792,7 @@ const ReportsPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color:'var(--color-text-primary)' }}>
+          <h1 className="text-2xl font-bold" style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
             Reportes
           </h1>
           <p className="text-sm" style={{ color:'var(--color-text-muted)' }}>
@@ -803,9 +811,10 @@ const ReportsPage = () => {
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
               style={{
-                background: sel ? 'var(--color-bg-card)' : 'transparent',
-                color:      sel ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
-                boxShadow:  sel ? 'var(--shadow-sm)' : 'none',
+                background: sel ? 'var(--color-navy)' : 'transparent',
+                color:      sel ? '#F5F3EE'           : 'var(--color-text-muted)',
+                borderBottom: sel ? '2px solid var(--color-gold)' : '2px solid transparent',
+                boxShadow:  'none',
               }}>
               <Icon size={14}/>
               {tab.label}

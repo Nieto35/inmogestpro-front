@@ -48,7 +48,8 @@ const CurrencySettingsPage = () => {
   return (
     <div className="space-y-6 animate-fade-in max-w-2xl">
       <div>
-        <h1 className="text-2xl font-bold" style={{ color:'var(--color-text-primary)' }}>
+        <h1 className="text-2xl font-bold"
+          style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
           🌍 Moneda del Sistema
         </h1>
         <p className="text-sm mt-1" style={{ color:'var(--color-text-muted)' }}>
@@ -59,11 +60,12 @@ const CurrencySettingsPage = () => {
       {/* Moneda actual */}
       {config.currency_code && (
         <div className="card p-4 flex items-center gap-4"
-          style={{ background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.2)' }}>
+          style={{ background:'rgba(200,168,75,0.07)', border:'1px solid rgba(200,168,75,0.3)', borderLeft:'4px solid var(--color-gold)' }}>
           <span style={{ fontSize:'32px' }}>💱</span>
           <div>
-            <p className="text-xs font-semibold" style={{ color:'var(--color-text-muted)' }}>Moneda activa</p>
-            <p className="text-lg font-bold" style={{ color:'#10b981' }}>
+            <p className="text-xs font-semibold uppercase tracking-wide"
+              style={{ color:'var(--color-gold)', letterSpacing:'0.08em' }}>Moneda activa</p>
+            <p className="text-lg font-bold" style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
               {config.currency_name} — {config.currency_symbol} ({config.currency_code})
             </p>
           </div>
@@ -83,21 +85,22 @@ const CurrencySettingsPage = () => {
               type="button"
               disabled={!canEdit}
               onClick={() => setSelected(cur.code)}
-              className="flex items-center gap-4 px-4 py-3 rounded-xl text-left transition-all"
+              className="flex items-center gap-4 px-4 py-3 rounded text-left transition-all"
               style={{
                 background: selected === cur.code
-                  ? 'rgba(59,130,246,0.1)'
+                  ? 'rgba(200,168,75,0.08)'
                   : 'var(--color-bg-secondary)',
-                border: `2px solid ${selected === cur.code ? '#3b82f6' : 'var(--color-border)'}`,
+                border: `2px solid ${selected === cur.code ? 'var(--color-gold)' : 'var(--color-border)'}`,
                 cursor: canEdit ? 'pointer' : 'default',
               }}>
               <div className="w-12 text-center">
-                <span className="text-xl font-bold" style={{ color: selected === cur.code ? '#60a5fa' : 'var(--color-text-muted)' }}>
+                <span className="text-xl font-bold"
+                  style={{ color: selected === cur.code ? 'var(--color-gold)' : 'var(--color-text-muted)', fontFamily:'var(--font-display)' }}>
                   {cur.symbol}
                 </span>
               </div>
               <div className="flex-1">
-                <p className="font-semibold text-sm" style={{ color:'var(--color-text-primary)' }}>
+                <p className="font-semibold text-sm" style={{ color:'var(--color-navy)' }}>
                   {cur.name}
                 </p>
                 <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>
@@ -105,7 +108,7 @@ const CurrencySettingsPage = () => {
                 </p>
               </div>
               {selected === cur.code && (
-                <span className="text-blue-400 font-bold text-lg">✓</span>
+                <span style={{ color:'var(--color-gold)', fontWeight:700, fontSize:'1.1rem' }}>✓</span>
               )}
             </button>
           ))}
@@ -121,15 +124,16 @@ const CurrencySettingsPage = () => {
       {/* Preview */}
       {selectedCur && (
         <div className="card p-4"
-          style={{ background:'rgba(59,130,246,0.06)', border:'1px solid rgba(59,130,246,0.2)' }}>
-          <p className="text-xs font-semibold mb-2" style={{ color:'var(--color-text-muted)' }}>
+          style={{ background:'rgba(13,27,62,0.04)', border:'1px solid var(--color-border)', borderLeft:'3px solid var(--color-gold)' }}>
+          <p className="text-xs font-semibold mb-2 uppercase tracking-wide"
+            style={{ color:'var(--color-gold)', letterSpacing:'0.08em' }}>
             Vista previa de formato:
           </p>
           <div className="flex flex-wrap gap-4">
             {[100000, 1500000, 50000000].map(v => (
               <div key={v} className="text-center">
                 <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>{v.toLocaleString()}</p>
-                <p className="font-bold text-sm" style={{ color:'#60a5fa' }}>
+                <p className="font-bold text-sm font-mono" style={{ color:'var(--color-navy)' }}>
                   {new Intl.NumberFormat(selectedCur.locale, { style:'currency', currency:selectedCur.code, minimumFractionDigits:0 }).format(v)}
                 </p>
               </div>

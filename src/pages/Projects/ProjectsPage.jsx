@@ -60,22 +60,24 @@ const EditProjectModal = ({ project, onClose, onSaved }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background:'rgba(0,0,0,0.7)' }}>
-      <div className="w-full max-w-lg rounded-2xl shadow-2xl flex flex-col"
+      style={{ background:'rgba(13,27,62,0.55)' }}>
+      <div className="w-full max-w-lg rounded-xl shadow-2xl flex flex-col"
         style={{ background:'var(--color-bg-card)', border:'1px solid var(--color-border)', maxHeight:'90vh' }}>
 
-        {/* Header */}
+        {/* Header — azul noche + línea dorada */}
         <div className="flex items-center justify-between px-5 py-4 flex-shrink-0"
-          style={{ borderBottom:'1px solid var(--color-border)' }}>
+          style={{ background:'var(--color-navy)', borderBottom:'3px solid var(--color-gold)' }}>
           <div>
-            <h2 className="font-bold" style={{ color:'var(--color-text-primary)' }}>
+            <h2 className="font-bold" style={{ color:'#F5F3EE', fontFamily:'var(--font-display)' }}>
               Editar Proyecto
             </h2>
-            <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
+            <p className="text-xs mt-0.5" style={{ color:'rgba(200,168,75,0.7)' }}>
               {project.code} · {project.name}
             </p>
           </div>
-          <button onClick={onClose} className="btn btn-ghost btn-sm"><X size={16}/></button>
+          <button onClick={onClose} className="btn btn-ghost btn-sm" style={{ color:'rgba(245,243,238,0.7)' }}>
+            <X size={16}/>
+          </button>
         </div>
 
         {/* Body */}
@@ -127,7 +129,7 @@ const EditProjectModal = ({ project, onClose, onSaved }) => {
         {/* Footer */}
         <div className="flex gap-3 px-5 py-4 flex-shrink-0"
           style={{ borderTop:'1px solid var(--color-border)' }}>
-          <button onClick={onClose} className="btn btn-secondary flex-1">Cancelar</button>
+          <button onClick={onClose} className="btn btn-outline flex-1">Cancelar</button>
           <button onClick={handleSave} disabled={saving} className="btn btn-primary flex-1">
             <Save size={14}/> {saving ? 'Guardando...' : 'Guardar Cambios'}
           </button>
@@ -174,7 +176,8 @@ const ProjectsPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color:'var(--color-text-primary)' }}>
+          <h1 className="text-2xl font-bold"
+            style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
             Proyectos
           </h1>
           <p className="text-sm" style={{ color:'var(--color-text-muted)' }}>
@@ -182,7 +185,7 @@ const ProjectsPage = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => refetch()} className="btn btn-secondary btn-sm">
+          <button onClick={() => refetch()} className="btn btn-outline btn-sm">
             <RefreshCw size={14} className={isFetching ? 'animate-spin':''}/>
           </button>
           {canCreate && (
@@ -214,31 +217,35 @@ const ProjectsPage = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {projects.map(p => {
-            const total     = parseInt(p.total_units)    || 0;
-            const props     = parseInt(p.total_properties)|| 0;
-            const avail     = parseInt(p.available)      || 0;
-            const promised  = parseInt(p.promised)       || 0;
-            const deeded    = parseInt(p.deeded)         || 0;
-            const sold      = promised + deeded;
-            const pct       = props > 0 ? Math.round((sold/props)*100) : 0;
+            const total    = parseInt(p.total_units)     || 0;
+            const props    = parseInt(p.total_properties)|| 0;
+            const avail    = parseInt(p.available)       || 0;
+            const promised = parseInt(p.promised)        || 0;
+            const deeded   = parseInt(p.deeded)          || 0;
+            const sold     = promised + deeded;
+            const pct      = props > 0 ? Math.round((sold/props)*100) : 0;
 
             return (
-              <div key={p.id} className="card hover:shadow-lg transition-all">
+              <div key={p.id} className="card hover:shadow-lg transition-all"
+                style={{ borderTop:'3px solid var(--color-gold)' }}>
 
-                {/* Header */}
+                {/* Header tarjeta */}
                 <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background:'rgba(59,130,246,0.1)' }}>
-                    <Building size={18} className="text-blue-400"/>
+                  <div className="w-10 h-10 flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background:'var(--color-navy)',
+                      border:'1.5px solid var(--color-gold)',
+                    }}>
+                    <Building size={18} style={{ color:'var(--color-gold)' }}/>
                   </div>
-                  <span className="font-mono text-xs px-2 py-0.5 rounded-lg"
-                    style={{ background:'var(--color-bg-secondary)', color:'var(--color-text-muted)' }}>
+                  <span className="font-mono text-xs px-2 py-0.5 rounded"
+                    style={{ background:'var(--color-bg-secondary)', color:'var(--color-text-muted)', border:'1px solid var(--color-border)' }}>
                     {p.code}
                   </span>
                 </div>
 
                 {/* Info */}
-                <p className="font-semibold" style={{ color:'var(--color-text-primary)' }}>
+                <p className="font-semibold" style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
                   {p.name}
                 </p>
                 {p.city && (
@@ -248,44 +255,42 @@ const ProjectsPage = () => {
                   </p>
                 )}
 
-                {/* Stats */}
+                {/* Stats — colores semánticos ajustados */}
                 <div className="grid grid-cols-4 gap-1.5 text-xs text-center mb-3">
                   {[
-                    [avail,        'Disp.',     '#10b981'],
-                    [p.reserved||0,'Reserv.',   '#f59e0b'],
-                    [promised,     'Promet.',   '#a855f7'],
-                    [deeded,       'Escritur.', '#3b82f6'],
-                  ].map(([val, lbl, color]) => (
-                    <div key={lbl} className="rounded-lg p-1.5"
-                      style={{ background:'var(--color-bg-primary)' }}>
+                    [avail,         'Disp.',     'var(--color-success)',  'var(--color-success-bg)'],
+                    [p.reserved||0, 'Reserv.',   'var(--color-warning)',  'var(--color-warning-bg)'],
+                    [promised,      'Promet.',   'var(--color-gold)',     'rgba(200,168,75,0.1)'],
+                    [deeded,        'Escritur.', 'var(--color-navy)',     'rgba(13,27,62,0.06)'],
+                  ].map(([val, lbl, color, bg]) => (
+                    <div key={lbl} className="rounded p-1.5"
+                      style={{ background: bg, border:`1px solid ${color}22` }}>
                       <p className="font-bold" style={{ color }}>{val}</p>
                       <p style={{ color:'var(--color-text-muted)', fontSize:'10px' }}>{lbl}</p>
                     </div>
                   ))}
                 </div>
 
-                {/* Progreso */}
+                {/* Progreso — barra dorada */}
                 <div className="mb-3">
                   <div className="flex justify-between text-xs mb-1">
                     <span style={{ color:'var(--color-text-muted)' }}>
-                      {props} inmuebles creados
-                      {total > 0 && ` de ${total} totales`}
+                      {props} inmuebles{total > 0 && ` de ${total} totales`}
                     </span>
-                    <span style={{ color:'#a855f7' }}>{pct}% vendido</span>
+                    <span style={{ color:'var(--color-gold)', fontWeight:600 }}>{pct}% vendido</span>
                   </div>
                   <div className="h-1.5 rounded-full"
-                    style={{ background:'var(--color-bg-primary)' }}>
+                    style={{ background:'var(--color-bg-secondary)' }}>
                     <div className="h-1.5 rounded-full transition-all"
-                      style={{ width:`${pct}%`, background:'#a855f7' }}/>
+                      style={{ width:`${pct}%`, background:'var(--color-gold)' }}/>
                   </div>
-                  {/* Tope de unidades */}
                   {total > 0 && props < total && (
                     <p className="text-xs mt-1" style={{ color:'var(--color-text-muted)' }}>
                       Capacidad restante: {total - props} unidad{(total-props)!==1?'es':''}
                     </p>
                   )}
                   {total > 0 && props >= total && (
-                    <p className="text-xs mt-1" style={{ color:'#10b981' }}>
+                    <p className="text-xs mt-1" style={{ color:'var(--color-success)', fontWeight:600 }}>
                       ✓ Proyecto completo — todas las unidades creadas
                     </p>
                   )}
@@ -295,13 +300,12 @@ const ProjectsPage = () => {
                 <div className="flex gap-2 pt-3"
                   style={{ borderTop:'1px solid var(--color-border)' }}>
                   <button onClick={() => navigate(to('properties'))}
-                    className="btn btn-secondary btn-sm flex-1 text-xs">
+                    className="btn btn-outline btn-sm flex-1 text-xs">
                     Ver inmuebles
                   </button>
                   {canEdit && (
                     <button onClick={() => setEditTarget(p)}
-                      className="btn btn-secondary btn-sm text-xs"
-                      style={{ color:'#f59e0b' }}>
+                      className="btn btn-secondary btn-sm text-xs">
                       <Edit size={12}/> Editar
                     </button>
                   )}
