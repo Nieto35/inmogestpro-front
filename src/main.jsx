@@ -6,13 +6,15 @@ import { Toaster } from 'react-hot-toast';
 import App from './App.jsx';
 import './index.css';
 
+
+// src/main.jsx
 // Aplicar tema guardado antes de renderizar
 try {
   const saved = JSON.parse(localStorage.getItem('inmogest-theme') || '{}');
-  const theme = saved?.state?.theme || 'dark';
+  const theme = saved?.state?.theme || 'light'; // ✅ era 'dark'
   document.documentElement.setAttribute('data-theme', theme);
 } catch(e) {
-  document.documentElement.setAttribute('data-theme', 'dark');
+  document.documentElement.setAttribute('data-theme', 'light'); // ✅ era 'dark'
 }
 
 const queryClient = new QueryClient({
