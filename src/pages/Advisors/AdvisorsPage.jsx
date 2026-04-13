@@ -8,14 +8,12 @@ import {
 } from 'lucide-react';
 import { advisorsService, usersService, commissionsService } from '../../services/api.service';
 import useAuthStore from '../../store/authStore';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 
 const formatCurrency = v =>
   new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0}).format(v||0);
-
-const COLORS = ['#f59e0b','#94a3b8','#cd7f32','#3b82f6','#a855f7','#10b981'];
 
 const Field = ({ label, children }) => (
   <div>
@@ -71,15 +69,17 @@ const EditAdvisorModal = ({ advisor, onClose, onSaved }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background:'rgba(0,0,0,0.65)' }}>
-      <div className="w-full max-w-lg rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
+      style={{ background:'rgba(13,27,62,0.55)' }}>
+      <div className="w-full max-w-lg rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto"
         style={{ background:'var(--color-bg-card)', border:'1px solid var(--color-border)' }}>
-        <div className="flex items-center justify-between p-5 border-b sticky top-0"
-          style={{ borderColor:'var(--color-border)', background:'var(--color-bg-card)' }}>
-          <h2 className="font-bold" style={{ color:'var(--color-text-primary)' }}>
+        <div className="flex items-center justify-between p-5 sticky top-0"
+          style={{ background:'var(--color-navy)', borderBottom:'3px solid var(--color-gold)' }}>
+          <h2 className="font-bold" style={{ color:'#F5F3EE', fontFamily:'var(--font-display)' }}>
             Editar Asesor — {advisor.full_name}
           </h2>
-          <button onClick={onClose} className="btn btn-ghost btn-sm"><X size={16}/></button>
+          <button onClick={onClose} className="btn btn-ghost btn-sm" style={{ color:'rgba(245,243,238,0.7)' }}>
+            <X size={16}/>
+          </button>
         </div>
         <div className="p-5 space-y-4">
           <Field label="Nombre completo *">
@@ -119,24 +119,22 @@ const EditAdvisorModal = ({ advisor, onClose, onSaved }) => {
               className="input text-sm">
               <option value="">Sin usuario vinculado</option>
               {advisorUsers.map(u => (
-                <option key={u.id} value={u.id}>
-                  {u.full_name} — @{u.username}
-                </option>
+                <option key={u.id} value={u.id}>{u.full_name} — @{u.username}</option>
               ))}
             </select>
           </Field>
-          <div className="flex items-center gap-3 p-3 rounded-lg"
-            style={{ background:'var(--color-bg-secondary)' }}>
+          <div className="flex items-center gap-3 p-3 rounded"
+            style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)' }}>
             <input type="checkbox" id="is_active" checked={form.is_active}
               onChange={e=>set('is_active',e.target.checked)}
-              className="w-4 h-4 accent-blue-500"/>
+              className="w-4 h-4"/>
             <label htmlFor="is_active" className="text-sm"
               style={{ color:'var(--color-text-secondary)' }}>
               Asesor activo (desmarcar para desactivar sin eliminar)
             </label>
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={onClose} className="btn btn-secondary flex-1">Cancelar</button>
+            <button onClick={onClose} className="btn btn-outline flex-1">Cancelar</button>
             <button onClick={handleSave} disabled={saving} className="btn btn-primary flex-1">
               <Save size={14}/> {saving ? 'Guardando...' : 'Guardar cambios'}
             </button>
@@ -153,7 +151,6 @@ const AdvisorDetail = ({ advisor, onEdit }) => {
   const { tenant } = useParams();
   const to = (path) => `/${tenant}/${path}`;
 
-  // Contratos del asesor
   const { data: contractsData } = useQuery({
     queryKey: ['advisor-contracts', advisor.id],
     queryFn:  () => advisorsService.getCommissions(advisor.id),
@@ -162,21 +159,17 @@ const AdvisorDetail = ({ advisor, onEdit }) => {
   });
   const contracts = contractsData?.data?.data || [];
 
-  // Comisiones reales registradas en el módulo de Comisiones
   const { data: commData } = useQuery({
     queryKey: ['commissions-advisor', advisor.id],
     queryFn:  () => commissionsService.getAll({ advisor_id: advisor.id }),
-    staleTime: 0,       // siempre refetch al cambiar asesor
+    staleTime: 0,
     enabled:   !!advisor?.id,
   });
   const commissions = commData?.data?.data || [];
 
-  // KPIs reales de comisiones
-  const totalComm    = commissions.reduce((s,c) => s + parseFloat(c.total_amount||0), 0);
-  const paidComm     = commissions.reduce((s,c) => s + parseFloat(c.paid_amount||0), 0);
-  const pendingComm  = totalComm - paidComm;
-
-
+  const totalComm   = commissions.reduce((s,c) => s + parseFloat(c.total_amount||0), 0);
+  const paidComm    = commissions.reduce((s,c) => s + parseFloat(c.paid_amount||0), 0);
+  const pendingComm = totalComm - paidComm;
 
   return (
     <div className="space-y-4">
@@ -188,64 +181,59 @@ const AdvisorDetail = ({ advisor, onEdit }) => {
              advisor.advisor_type === 'gerente'   ? 'Gerente'            :
              advisor.advisor_type === 'abogado'   ? 'Abogado'            :
              advisor.advisor_type === 'externo'   ? 'Externo'            :
-             advisor.advisor_type === 'referido'  ? 'Referido'           :
-             advisor.advisor_type === 'referido'  ? 'Referido' : 'Planta'}
+             advisor.advisor_type === 'referido'  ? 'Referido'           : 'Planta'}
           </p>
           <div className="flex gap-3 flex-wrap text-xs" style={{ color:'var(--color-text-muted)' }}>
             {advisor.email && <span>✉ {advisor.email}</span>}
             {advisor.phone && <span>📞 {advisor.phone}</span>}
           </div>
         </div>
-        <button onClick={onEdit} className="btn btn-secondary btn-sm">
+        <button onClick={onEdit} className="btn btn-outline btn-sm">
           <Edit size={13}/> Editar
         </button>
       </div>
 
-      {/* KPIs */}
+      {/* KPIs — navy/gold/warning en lugar de blue/green */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl p-3 text-center"
-          style={{ background:'rgba(59,130,246,0.08)', border:'1px solid rgba(59,130,246,0.15)' }}>
-          <p className="text-xs mb-1" style={{ color:'#60a5fa' }}>Contratos</p>
-          <p className="font-bold text-lg" style={{ color:'#60a5fa' }}>{contracts.length}</p>
+        <div className="rounded p-3 text-center"
+          style={{ background:'rgba(13,27,62,0.05)', border:'1px solid rgba(13,27,62,0.12)' }}>
+          <p className="text-xs mb-1" style={{ color:'var(--color-navy)' }}>Contratos</p>
+          <p className="font-bold text-lg" style={{ color:'var(--color-navy)' }}>{contracts.length}</p>
           <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
             {formatCurrency(advisor.total_value)} vendido
           </p>
         </div>
-        <div className="rounded-xl p-3 text-center"
-          style={{ background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.15)' }}>
-          <p className="text-xs mb-1" style={{ color:'#f59e0b' }}>Comisión pendiente</p>
-          <p className="font-bold text-sm" style={{ color:'#f59e0b' }}>
+        <div className="rounded p-3 text-center"
+          style={{ background:'var(--color-warning-bg)', border:'1px solid var(--color-warning-border)' }}>
+          <p className="text-xs mb-1" style={{ color:'var(--color-warning)' }}>Comisión pendiente</p>
+          <p className="font-bold text-sm" style={{ color:'var(--color-warning)' }}>
             {formatCurrency(pendingComm)}
           </p>
-          <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
-            por pagar
-          </p>
+          <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>por pagar</p>
         </div>
-        <div className="rounded-xl p-3 text-center"
-          style={{ background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.15)' }}>
-          <p className="text-xs mb-1" style={{ color:'#10b981' }}>Comisión pagada</p>
-          <p className="font-bold text-sm" style={{ color:'#10b981' }}>
+        <div className="rounded p-3 text-center"
+          style={{ background:'rgba(200,168,75,0.08)', border:'1px solid rgba(200,168,75,0.2)' }}>
+          <p className="text-xs mb-1" style={{ color:'var(--color-gold)' }}>Comisión pagada</p>
+          <p className="font-bold text-sm" style={{ color:'var(--color-gold)' }}>
             {formatCurrency(paidComm)}
           </p>
-          <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
-            acumulado
-          </p>
+          <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>acumulado</p>
         </div>
       </div>
 
       {/* Comisiones registradas */}
-      <div className="rounded-xl overflow-hidden"
+      <div className="rounded overflow-hidden"
         style={{ border:'1px solid var(--color-border)' }}>
         <div className="px-4 py-2.5 flex items-center justify-between"
-          style={{ background:'var(--color-bg-secondary)', borderBottom:'1px solid var(--color-border)' }}>
+          style={{ background:'var(--color-navy)', borderBottom:'2px solid var(--color-gold)' }}>
           <p className="text-xs font-semibold uppercase tracking-wide"
-            style={{ color:'var(--color-text-muted)' }}>
+            style={{ color:'rgba(245,243,238,0.7)' }}>
             Comisiones Registradas
           </p>
           <button
             onClick={() => navigate(to('commissions'))}
-            className="text-xs px-2 py-1 rounded-lg transition-colors hover:opacity-80"
-            style={{ background:'rgba(59,130,246,0.1)', color:'#60a5fa' }}>
+            className="text-xs px-2 py-1 rounded transition-colors"
+            style={{ background:'rgba(200,168,75,0.15)', color:'var(--color-gold)', border:'1px solid rgba(200,168,75,0.3)' }}>
             Ver todas →
           </button>
         </div>
@@ -254,7 +242,7 @@ const AdvisorDetail = ({ advisor, onEdit }) => {
           <div className="px-4 py-6 text-center text-xs" style={{ color:'var(--color-text-muted)' }}>
             Sin comisiones registradas aún.{' '}
             <button onClick={() => navigate(to('commissions'))}
-              className="underline" style={{ color:'#60a5fa' }}>
+              className="underline" style={{ color:'var(--color-gold)' }}>
               Registrar en Comisiones
             </button>
           </div>
@@ -273,20 +261,20 @@ const AdvisorDetail = ({ advisor, onEdit }) => {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-mono text-xs font-medium"
-                          style={{ color:'var(--color-text-accent)' }}>
+                          style={{ color:'var(--color-gold)' }}>
                           {comm.contract_number}
                         </span>
                         <span className="text-xs px-1.5 py-0.5 rounded"
                           style={{
-                            background: comm.commission_type==='fija'
-                              ? 'rgba(168,85,247,0.1)' : 'rgba(59,130,246,0.1)',
-                            color: comm.commission_type==='fija' ? '#c084fc' : '#60a5fa',
+                            background: comm.commission_type==='fija' ? 'rgba(200,168,75,0.1)' : 'rgba(13,27,62,0.07)',
+                            color:      comm.commission_type==='fija' ? 'var(--color-gold)'    : 'var(--color-navy)',
+                            border:     `1px solid ${comm.commission_type==='fija' ? 'rgba(200,168,75,0.2)' : 'rgba(13,27,62,0.12)'}`,
                           }}>
                           {comm.commission_type === 'fija' ? '$ Fija' : '% Porc.'}
                         </span>
                         {allPaid && (
                           <span className="text-xs px-1.5 py-0.5 rounded"
-                            style={{ background:'rgba(16,185,129,0.1)', color:'#10b981' }}>
+                            style={{ background:'var(--color-success-bg)', color:'var(--color-success)', border:'1px solid var(--color-success-border)' }}>
                             ✓ Pagada
                           </span>
                         )}
@@ -296,30 +284,25 @@ const AdvisorDetail = ({ advisor, onEdit }) => {
                       </p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-xs font-bold font-mono" style={{ color:'#10b981' }}>
+                      <p className="text-xs font-bold font-mono" style={{ color:'var(--color-navy)' }}>
                         {formatCurrency(total)}
                       </p>
                       {!allPaid && (
-                        <p className="text-xs" style={{ color:'#f59e0b' }}>
+                        <p className="text-xs" style={{ color:'var(--color-warning)' }}>
                           {formatCurrency(pending)} pend.
                         </p>
                       )}
                     </div>
                   </div>
-
-                  {/* Barra progreso */}
+                  {/* Barra progreso — dorada */}
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-1.5 rounded-full"
-                      style={{ background:'var(--color-bg-primary)' }}>
+                      style={{ background:'var(--color-bg-secondary)' }}>
                       <div className="h-1.5 rounded-full transition-all"
-                        style={{
-                          width: `${pct}%`,
-                          background: allPaid ? '#10b981' : '#3b82f6',
-                        }}/>
+                        style={{ width:`${pct}%`, background: allPaid ? 'var(--color-gold)' : 'var(--color-navy)' }}/>
                     </div>
-                    <span className="text-xs flex-shrink-0"
-                      style={{ color:'var(--color-text-muted)' }}>
-                      {pct}% pagado · {comm.installments} pago{comm.installments!==1?'s':''}
+                    <span className="text-xs flex-shrink-0" style={{ color:'var(--color-text-muted)' }}>
+                      {pct}% · {comm.installments} pago{comm.installments!==1?'s':''}
                     </span>
                   </div>
                 </div>
@@ -329,9 +312,9 @@ const AdvisorDetail = ({ advisor, onEdit }) => {
         )}
       </div>
 
-      {/* Historial de contratos */}
+      {/* Historial contratos */}
       {contracts.length > 0 && (
-        <div className="rounded-xl overflow-hidden"
+        <div className="rounded overflow-hidden"
           style={{ border:'1px solid var(--color-border)' }}>
           <div className="px-4 py-2.5"
             style={{ background:'var(--color-bg-secondary)', borderBottom:'1px solid var(--color-border)' }}>
@@ -344,13 +327,13 @@ const AdvisorDetail = ({ advisor, onEdit }) => {
             {contracts.map((c,i) => (
               <div key={i} className="flex items-center justify-between px-4 py-2.5 gap-2">
                 <div>
-                  <p className="font-mono font-medium" style={{ color:'var(--color-text-accent)' }}>
+                  <p className="font-mono font-medium" style={{ color:'var(--color-gold)' }}>
                     {c.contract_number}
                   </p>
                   <p style={{ color:'var(--color-text-muted)' }}>{c.client_name}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-mono" style={{ color:'var(--color-text-primary)' }}>
+                  <p className="font-mono" style={{ color:'var(--color-navy)', fontWeight:600 }}>
                     {formatCurrency(c.net_value)}
                   </p>
                   <p style={{ color:'var(--color-text-muted)' }}>
@@ -381,9 +364,10 @@ const AdvisorsPage = () => {
   const queryClient  = useQueryClient();
   const { hasRole }  = useAuthStore();
   const canCreate    = hasRole('admin','gerente');
+  const canEdit      = hasRole('admin','gerente');
 
-  const [selected,    setSelected]    = useState(null);
-  const [editTarget,  setEditTarget]  = useState(null);
+  const [selected,   setSelected]   = useState(null);
+  const [editTarget, setEditTarget] = useState(null);
 
   const { data, refetch, isFetching } = useQuery({
     queryKey: ['advisors'],
@@ -400,7 +384,6 @@ const AdvisorsPage = () => {
   return (
     <div className="animate-fade-in">
 
-      {/* Modal editar */}
       {editTarget && (
         <EditAdvisorModal
           advisor={editTarget}
@@ -412,7 +395,8 @@ const AdvisorsPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color:'var(--color-text-primary)' }}>
+          <h1 className="text-2xl font-bold"
+            style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
             Asesores Comerciales
           </h1>
           <p className="text-sm" style={{ color:'var(--color-text-muted)' }}>
@@ -420,7 +404,7 @@ const AdvisorsPage = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => refetch()} className="btn btn-secondary btn-sm">
+          <button onClick={() => refetch()} className="btn btn-outline btn-sm">
             <RefreshCw size={14} className={isFetching ? 'animate-spin':''}/>
           </button>
           {canCreate && (
@@ -431,10 +415,9 @@ const AdvisorsPage = () => {
         </div>
       </div>
 
-      {/* Layout: lista + detalle */}
       <div className="flex gap-4" style={{ alignItems:'flex-start' }}>
 
-        {/* Lista de asesores */}
+        {/* Lista */}
         <div className={`space-y-3 ${selected ? 'w-72 flex-shrink-0' : 'w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'}`}
           style={{ transition:'all 0.3s' }}>
 
@@ -461,17 +444,21 @@ const AdvisorsPage = () => {
             const isSelected = selected?.id === a.id;
             return (
               <div key={a.id}
-                className={`card cursor-pointer transition-all ${isSelected ? 'ring-2' : 'hover:shadow-lg'}`}
-                style={ isSelected ? { ringColor:'#3b82f6', borderColor:'#3b82f6' } : {} }
+                className="card cursor-pointer transition-all"
+                style={{
+                  borderLeft: isSelected ? '4px solid var(--color-gold)' : '4px solid transparent',
+                  boxShadow:  isSelected ? 'var(--shadow-md)' : undefined,
+                }}
                 onClick={() => setSelected(isSelected ? null : a)}>
 
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0"
-                    style={{ background:'rgba(59,130,246,0.15)', color:COLORS[i%COLORS.length] }}>
+                  {/* Avatar — navy + inicial dorada */}
+                  <div className="w-11 h-11 flex items-center justify-center font-bold text-lg flex-shrink-0"
+                    style={{ background:'var(--color-navy)', color:'var(--color-gold)', fontFamily:'var(--font-display)' }}>
                     {a.full_name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate" style={{ color:'var(--color-text-primary)' }}>
+                    <p className="font-semibold truncate" style={{ color:'var(--color-navy)' }}>
                       {a.full_name}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
@@ -483,27 +470,29 @@ const AdvisorsPage = () => {
                       )}
                     </div>
                   </div>
+                  {/* Número ranking en dorado */}
                   <span className="text-xl font-bold flex-shrink-0"
-                    style={{ color:COLORS[i%COLORS.length] }}>
+                    style={{ color:'var(--color-gold)', fontFamily:'var(--font-display)' }}>
                     #{i+1}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="rounded p-1.5" style={{ background:'var(--color-bg-primary)' }}>
-                    <p className="font-bold text-sm" style={{ color:'var(--color-text-primary)' }}>
+                  <div className="rounded p-1.5" style={{ background:'var(--color-bg-secondary)' }}>
+                    <p className="font-bold text-sm" style={{ color:'var(--color-navy)' }}>
                       {a.contracts_count ?? 0}
                     </p>
                     <p style={{ color:'var(--color-text-muted)' }}>Contratos</p>
                   </div>
-                  <div className="rounded p-1.5" style={{ background:'var(--color-bg-primary)' }}>
-                    <p className="font-bold text-sm" style={{ color:'var(--color-text-primary)' }}>
+                  <div className="rounded p-1.5" style={{ background:'var(--color-bg-secondary)' }}>
+                    <p className="font-bold text-sm" style={{ color:'var(--color-navy)' }}>
                       {a.commission_rate ?? 3}%
                     </p>
                     <p style={{ color:'var(--color-text-muted)' }}>Comisión</p>
                   </div>
-                  <div className="rounded p-1.5" style={{ background:'var(--color-bg-primary)' }}>
-                    <p className="font-bold text-sm" style={{ color:'#10b981' }}>
+                  {/* Vendido — navy, sin verde */}
+                  <div className="rounded p-1.5" style={{ background:'rgba(200,168,75,0.08)', border:'1px solid rgba(200,168,75,0.15)' }}>
+                    <p className="font-bold text-sm" style={{ color:'var(--color-gold)' }}>
                       {a.total_value > 0 ? `$${(parseFloat(a.total_value)/1000000).toFixed(1)}M` : '$0'}
                     </p>
                     <p style={{ color:'var(--color-text-muted)' }}>Vendido</p>
@@ -518,7 +507,7 @@ const AdvisorsPage = () => {
                     <Edit size={12}/> Editar
                   </button>
                   <button className="btn btn-ghost btn-sm text-xs"
-                    style={{ color:'#60a5fa' }}>
+                    style={{ color:'var(--color-gold)' }}>
                     <Eye size={12}/> {isSelected ? 'Ocultar' : 'Ver detalle'}
                   </button>
                 </div>
@@ -529,16 +518,16 @@ const AdvisorsPage = () => {
 
         {/* Panel de detalle */}
         {selected && (
-          <div className="flex-1 card" style={{ minWidth:0 }}>
+          <div className="flex-1 card" style={{ minWidth:0, borderTop:'3px solid var(--color-gold)' }}>
             <div className="flex items-center justify-between mb-4 pb-3"
               style={{ borderBottom:'1px solid var(--color-border)' }}>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold"
-                  style={{ background:'rgba(59,130,246,0.15)', color:'#60a5fa' }}>
+                <div className="w-10 h-10 flex items-center justify-center font-bold"
+                  style={{ background:'var(--color-navy)', color:'var(--color-gold)', fontFamily:'var(--font-display)' }}>
                   {selected.full_name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h2 className="font-bold" style={{ color:'var(--color-text-primary)' }}>
+                  <h2 className="font-bold" style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
                     {selected.full_name}
                   </h2>
                   <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>

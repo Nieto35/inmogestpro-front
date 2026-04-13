@@ -19,11 +19,11 @@ const formatCurrency = (v) =>
   new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0}).format(v||0);
 
 const STATUS_CONFIG = {
-  activo:       { label:'Activo',       color:'#10b981', bg:'rgba(16,185,129,0.1)' },
-  cancelado:    { label:'Cancelado',    color:'#ef4444', bg:'rgba(239,68,68,0.1)'  },
-  escriturado:  { label:'Escriturado',  color:'#3b82f6', bg:'rgba(59,130,246,0.1)' },
-  en_mora:      { label:'En Mora',      color:'#f59e0b', bg:'rgba(245,158,11,0.1)' },
-  refinanciado: { label:'Refinanciado', color:'#a855f7', bg:'rgba(168,85,247,0.1)' },
+  activo:       { label:'Activo',       color:'var(--color-success)', bg:'var(--color-success-bg)' },
+  cancelado:    { label:'Cancelado',    color:'var(--color-danger)',  bg:'var(--color-danger-bg)'  },
+  escriturado:  { label:'Escriturado',  color:'var(--color-navy)',    bg:'rgba(13,27,62,0.07)'     },
+  en_mora:      { label:'En Mora',      color:'var(--color-warning)', bg:'var(--color-warning-bg)' },
+  refinanciado: { label:'Refinanciado', color:'var(--color-gold)',    bg:'rgba(200,168,75,0.1)'    },
 };
 
 const PAYMENT_METHODS = [
@@ -182,7 +182,7 @@ const PaymentModal = ({ tenant, contract, schedule, onClose, onSaved }) => {
             </label>
             {pendingSchedule.length === 0 ? (
               <div className="p-3 rounded-lg text-sm text-center"
-                style={{ background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.2)', color:'#10b981' }}>
+                style={{ background:'var(--color-success-bg)', border:'1px solid var(--color-success-border)', color:'var(--color-success)' }}>
                 ✓ Todas las cuotas de este contrato están pagadas
               </div>
             ) : (
@@ -211,7 +211,7 @@ const PaymentModal = ({ tenant, contract, schedule, onClose, onSaved }) => {
             {/* Info de la cuota seleccionada */}
             {selected && (
               <div className="mt-2 p-2.5 rounded-lg text-xs grid grid-cols-3 gap-2"
-                style={{ background:'rgba(59,130,246,0.07)', border:'1px solid rgba(59,130,246,0.2)' }}>
+                style={{ background:'rgba(13,27,62,0.04)', border:'1px solid var(--color-border)' }}>
                 <div className="text-center">
                   <p style={{ color:'var(--color-text-muted)' }}>Total cuota</p>
                   <p className="font-bold" style={{ color:'var(--color-text-primary)' }}>{formatCurrency(cuotaTotal)}</p>
@@ -258,9 +258,9 @@ const PaymentModal = ({ tenant, contract, schedule, onClose, onSaved }) => {
           {form.schedule_id && pago > 0 && (
             <div className="p-2.5 rounded-lg text-xs font-medium"
               style={{
-                background: isOverpay  ? 'rgba(245,158,11,0.08)' : isPartialPay ? 'rgba(59,130,246,0.08)' : 'rgba(16,185,129,0.08)',
-                border:`1px solid ${isOverpay?'rgba(245,158,11,0.25)':isPartialPay?'rgba(59,130,246,0.25)':'rgba(16,185,129,0.25)'}`,
-                color: isOverpay?'#f59e0b':isPartialPay?'#60a5fa':'#10b981',
+                background: isOverpay  ? 'var(--color-warning-bg)' : isPartialPay ? 'rgba(13,27,62,0.04)' : 'var(--color-success-bg)',
+                border:`1px solid ${isOverpay?'var(--color-warning-border)':isPartialPay?'var(--color-border)':'var(--color-success-border)'}`,
+                color: isOverpay?'var(--color-warning)':isPartialPay?'var(--color-navy)':'var(--color-success)',
               }}>
               {isOverpay
                 ? `⚡ Excedente de ${formatCurrency(afterPay-cuotaTotal)} → se abonará en cascada a cuotas siguientes`
@@ -300,10 +300,10 @@ const PaymentModal = ({ tenant, contract, schedule, onClose, onSaved }) => {
 
           {/* Recibo automático */}
           <div className="flex items-center gap-2 p-2.5 rounded-lg text-xs"
-            style={{ background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.2)' }}>
-            <Info size={13} className="text-emerald-400 flex-shrink-0"/>
+            style={{ background:'rgba(13,27,62,0.04)', border:'1px solid var(--color-border)' }}>
+            <Info size={13} style={{ color:'var(--color-gold)', flexShrink:0 }}/>
             <span style={{ color:'var(--color-text-secondary)' }}>
-              Número de recibo generado automáticamente: <strong style={{ color:'#10b981' }}>PA-XXXX</strong>
+              Número de recibo generado automáticamente: <strong style={{ color:'var(--color-navy)', fontFamily:'var(--font-mono)' }}>PA-XXXX</strong>
             </span>
           </div>
 
@@ -319,8 +319,8 @@ const PaymentModal = ({ tenant, contract, schedule, onClose, onSaved }) => {
             <div
               className="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors"
               style={{
-                borderColor: uploadFile ? 'rgba(16,185,129,0.5)' : 'var(--color-border)',
-                background:  uploadFile ? 'rgba(16,185,129,0.05)' : 'var(--color-bg-primary)',
+                borderColor: uploadFile ? 'var(--color-gold)' : 'var(--color-border)',
+                background:  uploadFile ? 'rgba(200,168,75,0.05)' : 'var(--color-bg-primary)',
               }}
               onClick={() => fileRef.current?.click()}>
               <input ref={fileRef} type="file" className="hidden"
@@ -328,8 +328,8 @@ const PaymentModal = ({ tenant, contract, schedule, onClose, onSaved }) => {
                 onChange={e => setUploadFile(e.target.files[0]||null)}/>
               {uploadFile ? (
                 <div className="flex items-center justify-center gap-2">
-                  <Paperclip size={15} className="text-emerald-400"/>
-                  <span className="text-sm font-medium" style={{ color:'#10b981' }}>{uploadFile.name}</span>
+                  <Paperclip size={15} style={{ color:'var(--color-gold)' }}/>
+                  <span className="text-sm font-medium" style={{ color:'var(--color-navy)' }}>{uploadFile.name}</span>
                   <button onClick={e=>{ e.stopPropagation(); setUploadFile(null); fileRef.current.value=''; }}
                     className="ml-2 text-red-400 hover:text-red-300">
                     <X size={13}/>
@@ -364,6 +364,185 @@ const PaymentModal = ({ tenant, contract, schedule, onClose, onSaved }) => {
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+// ── Panel de hitos de entrega ─────────────────────────────────
+const MILESTONES = [
+  {
+    key:   'terrain_delivery',
+    label: 'Entrega de terreno',
+    desc:  'Fecha en que se hace entrega física del terreno o inmueble al comprador',
+    hasDate: true, // permite registrar la fecha en que ocurrió
+  },
+  {
+    key:   'basic_services',
+    label: 'Pagos de servicios básicos',
+    desc:  'Confirmación de que los servicios públicos están al día (agua, luz, gas)',
+    hasDate: false,
+  },
+  {
+    key:   'additional_values',
+    label: 'Pago de valores adicionales',
+    desc:  'Pagos extra acordados: administración, impuestos, escrituración, etc.',
+    hasDate: false,
+  },
+];
+
+const MilestonesPanel = ({ contractId, tenant, deliveryDate, canEdit, onRefresh, milestones }) => {
+  const [saving, setSaving] = useState(null); // key que se está guardando
+  // Estado local — inicializado desde los milestones que vienen del contrato
+  const [state, setState] = useState({
+    terrain_delivery:  milestones.terrain_delivery  || { done:false, date:'' },
+    basic_services:    milestones.basic_services    || { done:false, date:'' },
+    additional_values: milestones.additional_values || { done:false, date:'' },
+  });
+  const API_URL = import.meta.env.VITE_API_URL || 'https://back.inmogestpro.com';
+
+  const toggleMilestone = async (key) => {
+    if (!canEdit) return;
+    const current = state[key];
+    const next = { ...current, done: !current.done };
+    // Si se desmarca, limpiamos fecha
+    if (!next.done) next.date = '';
+    setState(prev => ({ ...prev, [key]: next }));
+
+    setSaving(key);
+    try {
+      const token = localStorage.getItem('inmogest_token');
+      const res = await fetch(
+        `${API_URL}/api/v1/${tenant}/contracts/${contractId}/milestones`,
+        {
+          method:  'PATCH',
+          headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+          body:    JSON.stringify({ key, done: next.done, date: next.date || null }),
+        }
+      );
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message || 'Error');
+      onRefresh();
+    } catch {
+      // Revertir si falla
+      setState(prev => ({ ...prev, [key]: current }));
+      toast.error('No se pudo actualizar el hito');
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const setDate = async (key, date) => {
+    if (!canEdit) return;
+    const current = state[key];
+    const next = { ...current, date };
+    setState(prev => ({ ...prev, [key]: next }));
+
+    setSaving(key);
+    try {
+      const token = localStorage.getItem('inmogest_token');
+      await fetch(
+        `${API_URL}/api/v1/${tenant}/contracts/${contractId}/milestones`,
+        {
+          method:  'PATCH',
+          headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+          body:    JSON.stringify({ key, done: next.done, date: date || null }),
+        }
+      );
+      onRefresh();
+    } catch {
+      setState(prev => ({ ...prev, [key]: current }));
+      toast.error('No se pudo actualizar la fecha');
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      {MILESTONES.map(m => {
+        const ms      = state[m.key];
+        const isDone  = ms.done;
+        const isSaving= saving === m.key;
+
+        return (
+          <div key={m.key}
+            className="flex items-start gap-3 p-3 rounded transition-all"
+            style={{
+              background: isDone ? 'rgba(200,168,75,0.07)' : 'var(--color-bg-secondary)',
+              border:     `1px solid ${isDone ? 'rgba(200,168,75,0.3)' : 'var(--color-border)'}`,
+            }}>
+
+            {/* Botón marcar — estilo del sistema */}
+            <button
+              onClick={() => toggleMilestone(m.key)}
+              disabled={!canEdit || isSaving}
+              title={isDone ? 'Marcar como pendiente' : 'Marcar como realizado'}
+              className="flex-shrink-0 mt-0.5 transition-all"
+              style={{
+                width:        '22px',
+                height:       '22px',
+                borderRadius: '4px',
+                border:       `2px solid ${isDone ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                background:   isDone ? 'var(--color-gold)' : 'transparent',
+                display:      'flex',
+                alignItems:   'center',
+                justifyContent:'center',
+                cursor:       canEdit ? 'pointer' : 'default',
+                opacity:      isSaving ? 0.5 : 1,
+              }}>
+              {isDone && (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 6L5 9L10 3" stroke="#0D1B3E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </button>
+
+            {/* Contenido */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm font-medium"
+                  style={{ color: isDone ? 'var(--color-navy)' : 'var(--color-text-secondary)' }}>
+                  {m.label}
+                </p>
+                {isDone && (
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                    style={{ background:'rgba(200,168,75,0.15)', color:'var(--color-gold)', border:'1px solid rgba(200,168,75,0.3)' }}>
+                    Realizado
+                  </span>
+                )}
+              </div>
+
+              {/* Fecha de entrega de terreno — campo especial */}
+              {m.hasDate && isDone && (
+                <div className="mt-2 flex items-center gap-2">
+                  <label className="text-xs" style={{ color:'var(--color-text-muted)' }}>
+                    Fecha en que se realizó:
+                  </label>
+                  <input
+                    type="date"
+                    value={ms.date || ''}
+                    max={new Date().toISOString().split('T')[0]}
+                    onChange={e => setDate(m.key, e.target.value)}
+                    disabled={!canEdit}
+                    className="input text-xs"
+                    style={{ height:'28px', padding:'3px 8px', width:'140px' }}
+                  />
+                </div>
+              )}
+
+              {/* Fecha programada de entrega (del contrato) — solo en terrain_delivery */}
+              {m.key === 'terrain_delivery' && deliveryDate && !isDone && (
+                <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
+                  Programada para:{' '}
+                  <span style={{ color:'var(--color-warning)', fontWeight:600 }}>
+                    {format(new Date(deliveryDate), 'dd/MM/yyyy')}
+                  </span>
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };
@@ -485,26 +664,26 @@ const ContractDetailPage = () => {
           <span className="text-sm font-medium" style={{ color:'var(--color-text-secondary)' }}>
             {paidCount} de {contract.installments_total} cuotas pagadas
           </span>
-          <span className="text-sm font-bold"
-            style={{ color:progressPct>=100?'#10b981':'#3b82f6' }}>
+          <span className="text-sm font-bold font-mono"
+            style={{ color: progressPct>=100 ? 'var(--color-gold)' : 'var(--color-navy)' }}>
             {progressPct}%
           </span>
         </div>
-        <div className="w-full h-2 rounded-full" style={{ background:'var(--color-bg-primary)' }}>
+        <div className="w-full h-2 rounded-full" style={{ background:'var(--color-bg-secondary)' }}>
           <div className="h-2 rounded-full transition-all" style={{
             width:`${progressPct}%`,
-            background:progressPct>=100?'#10b981':'linear-gradient(90deg,#2563eb,#3b82f6)',
+            background: progressPct>=100 ? 'var(--color-gold)' : 'var(--color-navy)',
           }}/>
         </div>
         <div className="flex items-center justify-between mt-2 text-xs"
           style={{ color:'var(--color-text-muted)' }}>
-          <span>Recaudado: <strong style={{ color:'#10b981' }}>{formatCurrency(totalPaid)}</strong></span>
-          <span>Pendiente: <strong style={{ color:'#f59e0b' }}>{formatCurrency(netValue - totalPaid)}</strong></span>
-          <span>Total neto: <strong>{formatCurrency(netValue)}</strong></span>
+          <span>Recaudado: <strong style={{ color:'var(--color-navy)' }}>{formatCurrency(totalPaid)}</strong></span>
+          <span>Pendiente: <strong style={{ color:'var(--color-warning)' }}>{formatCurrency(netValue - totalPaid)}</strong></span>
+          <span>Total neto: <strong style={{ color:'var(--color-navy)' }}>{formatCurrency(netValue)}</strong></span>
         </div>
         {discount > 0 && (
           <div className="mt-2 text-xs text-center"
-            style={{ color:'#a78bfa' }}>
+            style={{ color:'var(--color-gold)' }}>
             🎁 Descuento aplicado: <strong>{formatCurrency(discount)}</strong>
             {' '}· Precio original: <strong>{formatCurrency(totalValue)}</strong>
           </div>
@@ -529,7 +708,7 @@ const ContractDetailPage = () => {
                   style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)' }}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                      style={{ background:'rgba(59,130,246,0.1)', color:'#60a5fa' }}>
+                      style={{ background:'rgba(13,27,62,0.07)', color:'var(--color-navy)' }}>
                       Inmueble {i + 1}
                     </span>
                     <span className="text-sm font-semibold" style={{ color:'var(--color-text-primary)' }}>
@@ -560,7 +739,7 @@ const ContractDetailPage = () => {
             {discount > 0 && (
               <InfoBlock label="Descuento aplicado"
                 value={`- ${formatCurrency(discount)}`} mono
-                extra={<span style={{ color:'#a78bfa', fontSize:'11px' }}>
+                extra={<span style={{ color:'var(--color-gold)', fontSize:'11px' }}>
                   {totalValue > 0 ? Math.round(discount/totalValue*100) : 0}% de descuento
                 </span>}/>
             )}
@@ -569,7 +748,7 @@ const ContractDetailPage = () => {
             {parseFloat(contract.down_payment||0) > 0 && (
               <InfoBlock label="Cuota inicial pactada"
                 value={formatCurrency(contract.down_payment)} mono
-                extra={<span style={{ color:'#10b981', fontSize:'11px' }}>
+                extra={<span style={{ color:'var(--color-text-muted)', fontSize:'11px' }}>
                   Incluida en el valor neto
                 </span>}/>
             )}
@@ -578,25 +757,50 @@ const ContractDetailPage = () => {
           </div>
         </SectionCard>
         <SectionCard title="Asesor y Fechas" icon={Calendar}>
-          <div className="grid grid-cols-2 gap-3">
-            <InfoBlock label="Asesor"        value={contract.advisor_name}/>
-            <InfoBlock label="Fecha firma"   value={contract.signing_date?format(new Date(contract.signing_date),'dd/MM/yyyy'):'—'}/>
-            <InfoBlock label="Registrado por" value={contract.created_by_name}/>
-            <InfoBlock label="Estado"        value={statusCfg.label}/>
+          {/* Info grid */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <InfoBlock label="Asesor"          value={contract.advisor_name}/>
+            <InfoBlock label="Fecha firma"     value={contract.signing_date?format(new Date(contract.signing_date),'dd/MM/yyyy'):'—'}/>
+            <InfoBlock label="Registrado por"  value={contract.created_by_name}/>
+            <InfoBlock label="Estado"          value={statusCfg.label}/>
+            <InfoBlock label="Fecha de entrega"
+              value={contract.delivery_date ? format(new Date(contract.delivery_date),'dd/MM/yyyy') : '—'}
+              extra={!contract.delivery_date && (
+                <span className="text-xs" style={{ color:'var(--color-text-muted)' }}>
+                  No definida en el contrato
+                </span>
+              )}
+            />
+          </div>
+
+          {/* Hitos de entrega */}
+          <div className="pt-3" style={{ borderTop:'1px solid var(--color-border)' }}>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-3"
+              style={{ color:'var(--color-gold)', letterSpacing:'0.08em' }}>
+              Hitos de entrega
+            </p>
+            <MilestonesPanel
+              contractId={contract.id}
+              tenant={tenant}
+              deliveryDate={contract.delivery_date}
+              canEdit={canPay}
+              onRefresh={refetch}
+              milestones={contract.milestones || {}}
+            />
           </div>
         </SectionCard>
       </div>
 
       {/* Hash no repudio + Documentos del contrato */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="card p-4" style={{ borderColor:'rgba(59,130,246,0.2)' }}>
+        <div className="card p-4" style={{ borderColor:'var(--color-border)' }}>
           <div className="flex items-center gap-2 mb-2">
-            <Shield size={15} className="text-blue-400"/>
+            <Shield size={15} style={{ color:'var(--color-navy)' }}/>
             <span className="text-sm font-medium" style={{ color:'var(--color-text-primary)' }}>
               Integridad del Contrato
             </span>
           </div>
-          <p className="font-mono text-xs break-all" style={{ color:'#60a5fa' }}>
+          <p className="font-mono text-xs break-all" style={{ color:'var(--color-navy)' }}>
             {contract.contract_hash||'—'}
           </p>
         </div>
@@ -644,9 +848,9 @@ const ContractDetailPage = () => {
               {(contract.documents||[]).map((doc,i) => (
                 <div key={i} className="flex items-center gap-2 p-2 rounded-lg text-xs"
                   style={{ border:'1px solid var(--color-border)' }}>
-                  <Paperclip size={12} style={{ color:'#60a5fa', flexShrink:0 }}/>
+                  <Paperclip size={12} style={{ color:'var(--color-gold)', flexShrink:0 }}/>
                   <a href={doc.url} target="_blank" rel="noopener noreferrer"
-                    className="flex-1 truncate hover:underline" style={{ color:'#60a5fa' }}>
+                    className="flex-1 truncate hover:underline" style={{ color:'var(--color-navy)' }}>
                     {doc.filename}
                   </a>
                   <a href={`${doc.url}`} target="_blank" rel="noopener noreferrer"
@@ -776,8 +980,7 @@ const ContractDetailPage = () => {
 
                   XLSX.writeFile(wb, `Contrato_${contract.contract_number}_${format(new Date(),'yyyyMMdd')}.xlsx`);
                 }}
-                className="btn btn-secondary btn-sm text-xs flex items-center gap-1.5"
-                style={{ color:'#10b981', borderColor:'rgba(16,185,129,0.3)' }}>
+                className="btn btn-secondary btn-sm text-xs flex items-center gap-1.5">
                 <Download size={12}/> Exportar
               </button>
             )}
@@ -838,11 +1041,11 @@ const ContractDetailPage = () => {
                           ? 'rgba(245,158,11,0.04)'
                           : undefined,
                         borderLeft: isOverdue
-                          ? '4px solid #ef4444'
+                          ? '4px solid var(--color-danger)'
                           : isPart
-                          ? '4px solid #f59e0b'
+                          ? '4px solid var(--color-warning)'
                           : ps.status==='pagado'
-                          ? '4px solid #10b981'
+                          ? '4px solid var(--color-gold)'
                           : '4px solid transparent',
                       }}>
                       <td className="font-mono text-sm" style={{ color:'var(--color-text-muted)' }}>
@@ -870,7 +1073,7 @@ const ContractDetailPage = () => {
                         :                          <span className="badge badge-pendiente"><Clock size={11}/> Pendiente</span>}
                       </td>
                       <td className="text-sm font-mono"
-                        style={{ color:paid>0?'#10b981':'var(--color-text-muted)' }}>
+                        style={{ color:paid>0?'var(--color-navy)':'var(--color-text-muted)' }}>
                         {paid > 0 ? formatCurrency(paid) : '—'}
                       </td>
                       <td className="text-sm font-mono"
@@ -896,11 +1099,11 @@ const ContractDetailPage = () => {
           <h3 className="font-semibold text-sm" style={{ color:'var(--color-text-primary)' }}>
             Pagos Recibidos
             <span className="ml-2 px-2 py-0.5 rounded-full text-xs"
-              style={{ background:'rgba(16,185,129,0.1)', color:'#10b981' }}>
+              style={{ background:'rgba(13,27,62,0.07)', color:'var(--color-navy)' }}>
               {payments.length}
             </span>
           </h3>
-          <span className="text-sm font-mono" style={{ color:'#10b981' }}>
+          <span className="text-sm font-mono font-bold" style={{ color:'var(--color-navy)' }}>
             Total: {formatCurrency(totalPaid)}
           </span>
         </div>
@@ -923,11 +1126,11 @@ const ContractDetailPage = () => {
               <tbody>
                 {payments.map(p => (
                   <tr key={p.id}>
-                    <td className="font-mono text-sm font-bold" style={{ color:'#10b981' }}>
+                    <td className="font-mono text-sm font-bold" style={{ color:'var(--color-navy)' }}>
                       {p.receipt_number||'—'}
                       {p.notes?.includes('Cuota inicial') && (
                         <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full"
-                          style={{ background:'rgba(251,191,36,0.15)', color:'#fbbf24' }}>
+                          style={{ background:'rgba(200,168,75,0.15)', color:'var(--color-gold)' }}>
                           Inicial
                         </span>
                       )}
@@ -935,7 +1138,7 @@ const ContractDetailPage = () => {
                     <td className="text-sm" style={{ color:'var(--color-text-secondary)', whiteSpace:'nowrap' }}>
                       {p.payment_date?format(new Date(p.payment_date),'dd/MM/yyyy'):'—'}
                     </td>
-                    <td className="text-sm font-mono font-bold text-emerald-400">
+                    <td className="text-sm font-mono font-bold" style={{ color:'var(--color-navy)' }}>
                       {formatCurrency(p.amount)}
                     </td>
                     <td><span className="badge badge-activo text-xs">{p.payment_method}</span></td>
@@ -957,7 +1160,7 @@ const ContractDetailPage = () => {
                               target="_blank" rel="noopener noreferrer"
                               className="btn btn-ghost btn-sm"
                               title={doc.filename}
-                              style={{ color:'#60a5fa' }}>
+                              style={{ color:'var(--color-navy)' }}>
                               <Paperclip size={13}/>
                             </a>
                           ))

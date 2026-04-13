@@ -10,7 +10,14 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
 const ROLE_LABELS  = { admin:'Administrador', gerente:'Gerente', contador:'Contador', asesor:'Asesor Comercial', abogado:'Abogado', readonly:'Solo Lectura' };
-const ROLE_COLORS  = { admin:'text-red-400 bg-red-500/10', gerente:'text-purple-400 bg-purple-500/10', contador:'text-blue-400 bg-blue-500/10', asesor:'text-green-400 bg-green-500/10', abogado:'text-amber-400 bg-amber-500/10', readonly:'text-gray-400 bg-gray-500/10' };
+const ROLE_COLORS = {
+  admin:    'text-red-700 bg-red-100',
+  gerente:  'text-purple-700 bg-purple-100',
+  contador: 'text-blue-700 bg-blue-100',
+  asesor:   'text-emerald-700 bg-emerald-100',
+  abogado:  'text-amber-700 bg-amber-100',
+  readonly: 'text-gray-500 bg-gray-100',
+};
 
 const Field = ({ label, required, children }) => (
   <div>
@@ -61,13 +68,20 @@ const NewUserModal = ({ onClose, onCreated }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background:'rgba(0,0,0,0.6)' }}>
-      <div className="w-full max-w-lg rounded-2xl shadow-2xl"
+      <div className="w-full max-w-lg rounded-xl shadow-2xl"
         style={{ background:'var(--color-bg-card)', border:'1px solid var(--color-border)' }}>
 
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b" style={{ borderColor:'var(--color-border)' }}>
-          <h2 className="font-bold text-lg" style={{ color:'var(--color-text-primary)' }}>Nuevo Usuario</h2>
-          <button onClick={onClose} className="btn btn-ghost btn-sm"><X size={16} /></button>
+        {/* Header — navy + gold */}
+        <div className="flex items-center justify-between p-5 flex-shrink-0"
+          style={{ background:'var(--color-navy)', borderBottom:'3px solid var(--color-gold)' }}>
+          <h2 className="font-bold text-lg"
+            style={{ color:'#F5F3EE', fontFamily:'var(--font-display)' }}>
+            Nuevo Usuario
+          </h2>
+          <button onClick={onClose} className="btn btn-ghost btn-sm"
+            style={{ color:'rgba(245,243,238,0.7)' }}>
+            <X size={16} />
+          </button>
         </div>
 
         <div className="p-5 space-y-4">
@@ -116,12 +130,13 @@ const NewUserModal = ({ onClose, onCreated }) => {
             )}
           </div>
 
-          <div className="p-3 rounded-lg text-xs" style={{ background:'rgba(59,130,246,0.06)', border:'1px solid rgba(59,130,246,0.15)', color:'var(--color-text-muted)' }}>
-            💡 Si no ingresa contraseña, se asignará <strong>Temporal@2024!</strong> — el usuario deberá cambiarla al ingresar.
+          <div className="p-3 rounded text-xs"
+            style={{ background:'rgba(13,27,62,0.04)', border:'1px solid var(--color-border)', borderLeft:'3px solid var(--color-gold)', color:'var(--color-text-muted)' }}>
+            💡 Si no ingresa contraseña, se asignará <strong style={{ color:'var(--color-navy)' }}>Temporal@2024!</strong> — el usuario deberá cambiarla al ingresar.
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={onClose} className="btn btn-secondary">Cancelar</button>
+            <button onClick={onClose} className="btn btn-outline">Cancelar</button>
             <button onClick={handleSubmit} disabled={saving} className="btn btn-primary">
               <Save size={14} /> {saving ? 'Creando...' : 'Crear Usuario'}
             </button>
@@ -175,7 +190,8 @@ const UsersPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color:'var(--color-text-primary)' }}>
+          <h1 className="text-2xl font-bold"
+            style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
             Gestión de Usuarios
           </h1>
           <p className="text-sm" style={{ color:'var(--color-text-muted)' }}>
@@ -199,7 +215,7 @@ const UsersPage = () => {
           return (
             <div key={role} className="card p-3">
               <p className="text-xs mb-0.5" style={{ color:'var(--color-text-muted)' }}>{label}</p>
-              <p className={`text-xl font-bold ${ROLE_COLORS[role]?.split(' ')[0]}`}>{count}</p>
+              <p className="text-xl font-bold font-mono" style={{ color:'var(--color-navy)' }}>{count}</p>
             </div>
           );
         })}
@@ -231,7 +247,7 @@ const UsersPage = () => {
             <tbody>
               {users.map(u => (
                 <tr key={u.id}>
-                  <td className="font-mono text-sm" style={{ color:'var(--color-text-accent)' }}>
+                  <td className="font-mono text-sm font-medium" style={{ color:'var(--color-gold)' }}>
                     {u.username}
                   </td>
                   <td className="text-sm font-medium" style={{ color:'var(--color-text-primary)' }}>
@@ -280,7 +296,8 @@ const UsersPage = () => {
 
       {/* Leyenda de roles */}
       <div className="card p-4">
-        <p className="text-xs font-semibold mb-3 uppercase tracking-wide" style={{ color:'var(--color-text-muted)' }}>
+        <p className="text-xs font-semibold mb-3 uppercase tracking-wide"
+          style={{ color:'var(--color-gold)', letterSpacing:'0.08em' }}>
           Permisos por Rol
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs" style={{ color:'var(--color-text-muted)' }}>

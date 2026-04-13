@@ -34,10 +34,14 @@ const roleLabels = {
   asesor: 'Asesor', abogado: 'Abogado', readonly: 'Solo Lectura',
 };
 
+// Badges de rol — tonos semánticos sobre fondo claro
 const roleBadgeColors = {
-  admin: 'bg-red-500/20 text-red-400',       gerente: 'bg-purple-500/20 text-purple-400',
-  contador: 'bg-blue-500/20 text-blue-400',  asesor: 'bg-green-500/20 text-green-400',
-  abogado: 'bg-amber-500/20 text-amber-400', readonly: 'bg-gray-500/20 text-gray-400',
+  admin:    'bg-red-100 text-red-700',
+  gerente:  'bg-purple-100 text-purple-700',
+  contador: 'bg-blue-100 text-blue-700',
+  asesor:   'bg-emerald-100 text-emerald-700',
+  abogado:  'bg-amber-100 text-amber-700',
+  readonly: 'bg-gray-100 text-gray-500',
 };
 
 const Layout = () => {
@@ -64,21 +68,49 @@ const Layout = () => {
         transition-all duration-300 ease-in-out
       `}
       style={{
-        background: 'var(--color-bg-secondary)',
+        background: 'var(--color-bg-card)',
         borderRight: '1px solid var(--color-border)',
       }}
     >
-      {/* Logo */}
-      <div className="flex items-center gap-3 p-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
-        <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
-          <Building2 size={18} color="white" />
+      {/* Logo — azul noche con acento dorado */}
+      <div
+        className="flex items-center gap-3 p-4"
+        style={{
+          background: 'var(--color-navy)',
+          borderBottom: '3px solid var(--color-gold)',
+        }}
+      >
+        <div
+          className="flex-shrink-0 w-9 h-9 flex items-center justify-center"
+          style={{
+            border: '1.5px solid var(--color-gold)',
+            position: 'relative',
+          }}
+        >
+          <Building2 size={18} color="var(--color-gold)" />
         </div>
         {(sidebarOpen || mobile) && (
           <div className="overflow-hidden">
-            <div className="font-bold text-base leading-tight" style={{ color: 'var(--color-text-primary)' }}>
-              InmoGest
+            <div
+              className="font-bold text-base leading-tight"
+              style={{
+                fontFamily: 'var(--font-display)',
+                color: '#F5F3EE',
+                letterSpacing: '0.02em',
+              }}
+            >
+              Inmo<span style={{ color: 'var(--color-gold)' }}>Gest</span>
             </div>
-            <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+            <div
+              className="text-xs"
+              style={{
+                color: 'rgba(200,168,75,0.6)',
+                letterSpacing: '0.15em',
+                textTransform: 'uppercase',
+                fontSize: '0.6rem',
+                fontWeight: 600,
+              }}
+            >
               Pro · v1.0
             </div>
           </div>
@@ -93,13 +125,19 @@ const Layout = () => {
             to={`${prefix}/${item.path}`}
             onClick={() => mobile && setMobileOpen(false)}
             className={({ isActive }) => `
-              flex items-center gap-3 px-3 py-2.5 rounded-lg mb-0.5
+              flex items-center gap-3 px-3 py-2.5 rounded mb-0.5
               text-sm font-medium transition-all duration-150
               ${isActive
-                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 border border-transparent'
+                ? 'border border-transparent'
+                : 'border border-transparent'
               }
             `}
+            style={({ isActive }) => ({
+              background: isActive ? 'rgba(13,27,62,0.08)' : 'transparent',
+              color: isActive ? 'var(--color-navy)' : 'var(--color-text-secondary)',
+              borderLeft: isActive ? '3px solid var(--color-gold)' : '3px solid transparent',
+              fontWeight: isActive ? 600 : 400,
+            })}
             title={!sidebarOpen && !mobile ? item.label : undefined}
           >
             <item.icon size={18} className="flex-shrink-0" />
@@ -112,7 +150,16 @@ const Layout = () => {
       <div className="border-t p-3" style={{ borderColor: 'var(--color-border)' }}>
         {(sidebarOpen || mobile) ? (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-600/30 flex items-center justify-center text-blue-400 font-bold text-sm flex-shrink-0">
+            <div
+              className="w-8 h-8 flex items-center justify-center font-bold text-sm flex-shrink-0"
+              style={{
+                background: 'var(--color-navy)',
+                color: 'var(--color-gold)',
+                borderRadius: '2px',
+                border: '1px solid var(--color-gold)',
+                fontFamily: 'var(--font-display)',
+              }}
+            >
               {user?.fullName?.charAt(0) || 'U'}
             </div>
             <div className="flex-1 min-w-0">
@@ -125,19 +172,23 @@ const Layout = () => {
             </div>
             <button
               onClick={handleLogout}
-              className="p-1.5 rounded hover:bg-slate-700 transition-colors"
+              className="p-1.5 rounded transition-colors"
+              style={{ color: 'var(--color-text-muted)' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--color-navy-subtle)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               title="Cerrar sesión"
             >
-              <LogOut size={16} className="text-slate-400" />
+              <LogOut size={16} />
             </button>
           </div>
         ) : (
           <button
             onClick={handleLogout}
-            className="w-full p-2 rounded hover:bg-slate-700 transition-colors flex justify-center"
+            className="w-full p-2 rounded transition-colors flex justify-center"
+            style={{ color: 'var(--color-text-muted)' }}
             title="Cerrar sesión"
           >
-            <LogOut size={18} className="text-slate-400" />
+            <LogOut size={18} />
           </button>
         )}
       </div>
@@ -155,7 +206,7 @@ const Layout = () => {
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div
-            className="fixed inset-0 bg-black/60"
+            className="fixed inset-0 bg-black/40"
             onClick={() => setMobileOpen(false)}
           />
           <div className="relative z-50">
@@ -168,23 +219,28 @@ const Layout = () => {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
         <header
-          className="flex items-center gap-4 px-4 md:px-6 h-14 flex-shrink-0 border-b"
-          style={{ background: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)' }}
+          className="flex items-center gap-4 px-4 md:px-6 h-14 flex-shrink-0"
+          style={{
+            background: 'var(--color-bg-card)',
+            borderBottom: '1px solid var(--color-border)',
+          }}
         >
           {/* Mobile menu button */}
           <button
-            className="md:hidden p-2 rounded hover:bg-slate-700 transition-colors"
+            className="md:hidden p-2 rounded transition-colors"
+            style={{ color: 'var(--color-text-secondary)' }}
             onClick={() => setMobileOpen(true)}
           >
-            <Menu size={20} style={{ color: 'var(--color-text-secondary)' }} />
+            <Menu size={20} />
           </button>
 
           {/* Desktop collapse button */}
           <button
-            className="hidden md:flex p-2 rounded hover:bg-slate-700 transition-colors"
+            className="hidden md:flex p-2 rounded transition-colors"
+            style={{ color: 'var(--color-text-secondary)' }}
             onClick={() => setSidebarOpen(!sidebarOpen)}
           >
-            <Menu size={18} style={{ color: 'var(--color-text-secondary)' }} />
+            <Menu size={18} />
           </button>
 
           <div className="flex-1" />
@@ -195,25 +251,38 @@ const Layout = () => {
             <button
               onClick={toggleTheme}
               title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-              className="btn btn-ghost btn-sm flex items-center gap-1.5 transition-all"
+              className="btn btn-ghost btn-sm flex items-center gap-1.5"
               style={{
-                color: theme === 'dark' ? '#f59e0b' : '#6366f1',
-                background: theme === 'dark' ? 'rgba(245,158,11,0.1)' : 'rgba(99,102,241,0.1)',
-                border: `1px solid ${theme === 'dark' ? 'rgba(245,158,11,0.2)' : 'rgba(99,102,241,0.2)'}`,
-                borderRadius: '10px',
-                padding: '6px 12px',
-              }}>
+                color: 'var(--color-text-secondary)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '5px 10px',
+              }}
+            >
               {theme === 'dark'
-                ? <><Sun size={15}/><span className="text-xs font-medium hidden sm:block">Claro</span></>
-                : <><Moon size={15}/><span className="text-xs font-medium hidden sm:block">Oscuro</span></>}
+                ? <><Sun size={14}/><span className="text-xs font-medium hidden sm:block">Claro</span></>
+                : <><Moon size={14}/><span className="text-xs font-medium hidden sm:block">Oscuro</span></>
+              }
             </button>
+
             <NotificationBell />
 
             <button
               onClick={() => navigate(`${prefix}/profile`)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-slate-700 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 rounded transition-colors"
+              style={{ color: 'var(--color-text-secondary)' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--color-navy-subtle)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
-              <div className="w-7 h-7 rounded-full bg-blue-600/30 flex items-center justify-center text-blue-400 font-bold text-sm">
+              <div
+                className="w-7 h-7 flex items-center justify-center font-bold text-sm flex-shrink-0"
+                style={{
+                  background: 'var(--color-navy)',
+                  color: 'var(--color-gold)',
+                  borderRadius: '2px',
+                  fontFamily: 'var(--font-display)',
+                }}
+              >
                 {user?.fullName?.charAt(0) || 'U'}
               </div>
               <span className="hidden sm:block text-sm" style={{ color: 'var(--color-text-secondary)' }}>

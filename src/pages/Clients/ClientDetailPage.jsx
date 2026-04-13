@@ -39,8 +39,8 @@ const Field = ({ label, required, children }) => (
 const InfoItem = ({ icon:Icon, label, value }) => (
   <div className="flex items-start gap-3">
     <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-      style={{ background:'rgba(59,130,246,0.1)' }}>
-      <Icon size={14} className="text-blue-400"/>
+      style={{ background:'rgba(13,27,62,0.07)' }}>
+      <Icon size={14} style={{ color:'var(--color-navy)' }}/>
     </div>
     <div>
       <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>{label}</p>
@@ -298,7 +298,7 @@ const ClientDetailPage = () => {
           <h3 className="font-semibold text-sm" style={{ color:'var(--color-text-primary)' }}>
             Contratos del Cliente
             <span className="ml-2 px-2 py-0.5 rounded-full text-xs"
-              style={{ background:'rgba(59,130,246,0.1)', color:'#60a5fa' }}>
+              style={{ background:'rgba(13,27,62,0.07)', color:'var(--color-navy)' }}>
               {contracts.length}
             </span>
           </h3>
@@ -371,7 +371,7 @@ const ClientDetailPage = () => {
                             style={{ background:'var(--color-bg-primary)' }}>
                             <div className="h-1.5 rounded-full"
                               style={{ width:`${Math.min(pct,100)}%`,
-                                       background: pct>=100?'#10b981':'#3b82f6' }}/>
+                                       background: pct>=100?'var(--color-gold)':'var(--color-navy)' }}/>
                           </div>
                           <span className="text-xs" style={{ color:'var(--color-text-muted)', whiteSpace:'nowrap' }}>
                             {pct}%
@@ -404,11 +404,11 @@ const ClientDetailPage = () => {
 
 // ── Componente de evaluación + interacciones ──────────────────
 const INTERACTION_TYPES = {
-  llamada:  { label:'Llamada',  Icon:Phone,          color:'#3b82f6' },
-  whatsapp: { label:'WhatsApp', Icon:MessageSquare,  color:'#10b981' },
-  email:    { label:'Email',    Icon:Mail,           color:'#f59e0b' },
-  visita:   { label:'Visita',   Icon:User,           color:'#a855f7' },
-  otro:     { label:'Otro',     Icon:MessageSquare,  color:'#94a3b8' },
+  llamada:  { label:'Llamada',  Icon:Phone,         color:'#0D1B3E' }, // navy
+  whatsapp: { label:'WhatsApp', Icon:MessageSquare, color:'#0D1B3E' }, // navy
+  email:    { label:'Email',    Icon:Mail,          color:'#C8A84B' }, // gold
+  visita:   { label:'Visita',   Icon:User,          color:'#0D1B3E' }, // navy
+  otro:     { label:'Otro',     Icon:MessageSquare, color:'#0D1B3E' }, // navy
 };
 
 const OUTCOMES = {
@@ -505,19 +505,19 @@ const ClientEvaluation = ({ clientId, contracts, clientData }) => {
 
     let label, color, bg, icon, description;
     if (score >= 80) {
-      label = 'Excelente cliente'; color = '#10b981'; bg = 'rgba(16,185,129,0.08)';
+      label = 'Excelente cliente'; color = '#2D7A3A'; bg = '#f0f8f0';
       icon  = '⭐';
       description = 'Historial de pagos impecable. Prioridad alta para nuevas ofertas.';
     } else if (score >= 60) {
-      label = 'Buen cliente'; color = '#3b82f6'; bg = 'rgba(59,130,246,0.08)';
+      label = 'Buen cliente'; color = '#1A2F5E'; bg = 'rgba(13,27,62,0.05)';
       icon  = '👍';
       description = 'Buen comportamiento de pago. Seguimiento normal recomendado.';
     } else if (score >= 40) {
-      label = 'Cliente regular'; color = '#f59e0b'; bg = 'rgba(245,158,11,0.08)';
+      label = 'Cliente regular'; color = '#92660A'; bg = '#fef9ec';
       icon  = '⚠️';
       description = 'Presenta irregularidades en pagos. Se recomienda seguimiento cercano antes de nuevos contratos.';
     } else {
-      label = 'Cliente de riesgo'; color = '#ef4444'; bg = 'rgba(239,68,68,0.08)';
+      label = 'Cliente de riesgo'; color = '#C0392B'; bg = '#fdf0f0';
       icon  = '🚨';
       description = 'Alto nivel de mora o incumplimiento. Evalúa cuidadosamente antes de firmar nuevos contratos.';
     }
@@ -535,13 +535,14 @@ const ClientEvaluation = ({ clientId, contracts, clientData }) => {
       {/* Evaluación automática */}
       {eval_ && (
         <div className="card"
-          style={{ background: eval_.bg, border:`1px solid ${eval_.color}30` }}>
+          style={{ background: eval_.bg, border:`1px solid ${eval_.color}40`, borderLeft:`4px solid ${eval_.color}` }}>
           <div className="flex items-start justify-between flex-wrap gap-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-2xl">{eval_.icon}</span>
                 <div>
-                  <h3 className="font-bold text-lg" style={{ color: eval_.color }}>
+                  <h3 className="font-bold text-lg"
+                    style={{ color: eval_.color, fontFamily:'var(--font-display)' }}>
                     {eval_.label}
                   </h3>
                   <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>
@@ -579,15 +580,15 @@ const ClientEvaluation = ({ clientId, contracts, clientData }) => {
 
           {/* Métricas de evaluación */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 pt-4"
-            style={{ borderTop:`1px solid ${eval_.color}20` }}>
+            style={{ borderTop:`1px solid ${eval_.color}25` }}>
             {[
-              ['Contratos activos', eval_.activeContracts, eval_.activeContracts>0?'#10b981':'var(--color-text-muted)'],
-              ['Cuotas en mora',    eval_.totalOverdue,    eval_.totalOverdue>0?'#ef4444':'#10b981'],
-              ['% Pagado promedio', `${Math.round(eval_.avgPaid)}%`, eval_.avgPaid>=70?'#10b981':eval_.avgPaid>=40?'#f59e0b':'#ef4444'],
+              ['Contratos activos', eval_.activeContracts, eval_.activeContracts>0?'var(--color-navy)':'var(--color-text-muted)'],
+              ['Cuotas en mora',    eval_.totalOverdue,    eval_.totalOverdue>0?'var(--color-danger)':'var(--color-success)'],
+              ['% Pagado promedio', `${Math.round(eval_.avgPaid)}%`, eval_.avgPaid>=70?'var(--color-success)':eval_.avgPaid>=40?'var(--color-warning)':'var(--color-danger)'],
               ['Interacciones',     interactions.length,  'var(--color-text-secondary)'],
             ].map(([lbl, val, color]) => (
-              <div key={lbl} className="text-center p-2 rounded-lg"
-                style={{ background:'rgba(0,0,0,0.15)' }}>
+              <div key={lbl} className="text-center p-2 rounded"
+                style={{ background:'rgba(255,255,255,0.6)', border:'1px solid rgba(0,0,0,0.06)' }}>
                 <p className="text-lg font-bold" style={{ color }}>{val}</p>
                 <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>{lbl}</p>
               </div>
@@ -615,7 +616,7 @@ const ClientEvaluation = ({ clientId, contracts, clientData }) => {
           <h3 className="font-semibold text-sm" style={{ color:'var(--color-text-primary)' }}>
             Historial de Interacciones
             <span className="ml-2 px-2 py-0.5 rounded-full text-xs"
-              style={{ background:'rgba(59,130,246,0.1)', color:'#60a5fa' }}>
+              style={{ background:'rgba(13,27,62,0.07)', color:'var(--color-navy)' }}>
               {interactions.length}
             </span>
           </h3>
@@ -645,20 +646,20 @@ const ClientEvaluation = ({ clientId, contracts, clientData }) => {
                   className="flex items-start gap-3 p-3 rounded-xl"
                   style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)' }}>
 
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background:`${t.color}18` }}>
+                  <div className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0"
+                    style={{ background:`${t.color}20`, border:`1.5px solid ${t.color}40` }}>
                     <t.Icon size={14} style={{ color:t.color }}/>
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
                       <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                        style={{ background:`${t.color}18`, color:t.color }}>
+                        style={{ background:`${t.color}18`, color:t.color, border:`1px solid ${t.color}35` }}>
                         {t.label}
                       </span>
                       {i.outcome && (
                         <span className="text-xs px-2 py-0.5 rounded-full"
-                          style={{ background:'rgba(0,0,0,0.15)', color:'var(--color-text-muted)' }}>
+                          style={{ background:'var(--color-bg-primary)', color:'var(--color-text-muted)', border:'1px solid var(--color-border)' }}>
                           {OUTCOMES[i.outcome] || i.outcome}
                         </span>
                       )}
@@ -673,7 +674,7 @@ const ClientEvaluation = ({ clientId, contracts, clientData }) => {
                       style={{ color:'var(--color-text-muted)' }}>
                       <span>👤 {i.user_name || 'Sistema'}</span>
                       {i.next_contact && (
-                        <span style={{ color:'#f59e0b' }}>
+                        <span style={{ color:'var(--color-warning)' }}>
                           📅 Próx: {format(new Date(i.next_contact), 'dd/MM/yyyy')}
                         </span>
                       )}
@@ -726,8 +727,7 @@ const ClientEvaluation = ({ clientId, contracts, clientData }) => {
                 XLSX.utils.book_append_sheet(wb, ws, 'Comisiones');
                 XLSX.writeFile(wb, `Comisiones_${clientData?.full_name?.replace(/ /g,'_')}_${format(new Date(),'yyyyMMdd')}.xlsx`);
               }}
-              className="btn btn-secondary btn-sm text-xs flex items-center gap-1"
-              style={{ color:'#10b981', borderColor:'rgba(16,185,129,0.3)' }}>
+              className="btn btn-secondary btn-sm text-xs flex items-center gap-1">
               ⬇ Exportar Excel
             </button>
           </div>
@@ -742,28 +742,29 @@ const ClientEvaluation = ({ clientId, contracts, clientData }) => {
               return (
                 <div key={comm.id} className="flex items-center gap-3 p-3 rounded-xl"
                   style={{
-                    background: allPaid ? 'rgba(16,185,129,0.06)' : pending > 0 ? 'rgba(245,158,11,0.06)' : 'var(--color-bg-secondary)',
-                    border: `1px solid ${allPaid ? 'rgba(16,185,129,0.2)' : pending > 0 ? 'rgba(245,158,11,0.2)' : 'var(--color-border)'}`,
+                  background: allPaid ? 'rgba(200,168,75,0.07)' : pending > 0 ? 'var(--color-warning-bg)' : 'var(--color-bg-secondary)',
+                    border: `1px solid ${allPaid ? 'rgba(200,168,75,0.3)' : pending > 0 ? 'var(--color-warning-border)' : 'var(--color-border)'}`,
                   }}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold" style={{ color:'var(--color-text-primary)' }}>
                         {comm.advisor_name}
                       </span>
-                      <span className="text-xs font-mono" style={{ color:'#60a5fa' }}>
+                      <span className="text-xs font-mono" style={{ color:'var(--color-gold)' }}>
                         {comm.contract_number}
                       </span>
                       <span className="text-xs px-2 py-0.5 rounded-full"
                         style={{
-                          background: allPaid ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
-                          color:      allPaid ? '#10b981' : '#f59e0b',
+                          background: allPaid ? 'rgba(200,168,75,0.12)' : 'var(--color-warning-bg)',
+                          color:      allPaid ? 'var(--color-gold)'      : 'var(--color-warning)',
+                          border:     `1px solid ${allPaid ? 'rgba(200,168,75,0.3)' : 'var(--color-warning-border)'}`,
                         }}>
                         {allPaid ? '✓ Pagada' : `⏳ Pendiente ${fm(pending)}`}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 mt-1.5">
                       <div className="flex-1 h-1.5 rounded-full" style={{ background:'var(--color-bg-primary)', maxWidth:'120px' }}>
-                        <div className="h-1.5 rounded-full" style={{ width:`${pct}%`, background: allPaid ? '#10b981' : '#f59e0b' }}/>
+                        <div className="h-1.5 rounded-full" style={{ width:`${pct}%`, background: allPaid ? 'var(--color-gold)' : 'var(--color-navy)' }}/>
                       </div>
                       <span className="text-xs" style={{ color:'var(--color-text-muted)' }}>
                         {fm(paid)} / {fm(total)}
@@ -784,12 +785,12 @@ const ClientEvaluation = ({ clientId, contracts, clientData }) => {
                 <span className="text-xs font-semibold" style={{ color:'var(--color-text-muted)' }}>
                   Total pendiente por pagar a asesores:
                 </span>
-                <span className="font-bold text-sm" style={{ color:'#f59e0b' }}>
+                <span className="font-bold text-sm" style={{ color:'var(--color-warning)' }}>
                   {fm(totalPend)}
                 </span>
               </div>
             ) : (
-              <p className="mt-3 text-xs text-center" style={{ color:'#10b981' }}>
+              <p className="mt-3 text-xs text-center" style={{ color:'var(--color-success)' }}>
                 ✅ Todas las comisiones de este cliente están pagadas
               </p>
             );

@@ -2,17 +2,18 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Home, Search, RefreshCw, Plus, Building, Tag, Edit, X, Save } from 'lucide-react';
+import { Search, RefreshCw, Plus, Building, Edit, X, Save } from 'lucide-react';
 import { propertiesService } from '../../services/api.service';
 import useAuthStore from '../../store/authStore';
 import toast from 'react-hot-toast';
 
+// Colores semánticos de estado — justificados (semáforo funcional)
 const STATUS_CFG = {
-  disponible:  { label:'Disponible',  class:'badge-disponible',  color:'#10b981' },
-  reservado:   { label:'Reservado',   class:'badge-reservado',   color:'#f59e0b' },
-  prometido:   { label:'Prometido',   class:'badge-prometido',   color:'#a855f7' },
-  escriturado: { label:'Escriturado', class:'badge-escriturado', color:'#3b82f6' },
-  cancelado:   { label:'Cancelado',   class:'badge-cancelado',   color:'#ef4444' },
+  disponible:  { label:'Disponible',  class:'badge-disponible',  color:'var(--color-success)' },
+  reservado:   { label:'Reservado',   class:'badge-reservado',   color:'var(--color-warning)' },
+  prometido:   { label:'Prometido',   class:'badge-prometido',   color:'var(--color-gold)'    },
+  escriturado: { label:'Escriturado', class:'badge-escriturado', color:'var(--color-navy)'    },
+  cancelado:   { label:'Cancelado',   class:'badge-cancelado',   color:'var(--color-danger)'  },
 };
 
 const CHANGE_TO = {
@@ -23,10 +24,89 @@ const CHANGE_TO = {
   cancelado:   ['disponible'],
 };
 
+// Configuración visual completa para botones de cambio de estado
+// Fondo claro semántico + texto oscuro + hover con fondo sólido
+const STATUS_BTN_CFG = {
+  disponible:  {
+    label: 'Disponible',
+    bg:       '#e8f5ee',
+    color:    '#1a5c35',
+    border:   '#a3d4b8',
+    hoverBg:  '#2D7A3A',
+    hoverColor: '#ffffff',
+  },
+  reservado: {
+    label: 'Reservado',
+    bg:       '#fef6e4',
+    color:    '#7a4f0a',
+    border:   '#e8c97a',
+    hoverBg:  '#92660A',
+    hoverColor: '#ffffff',
+  },
+  prometido: {
+    label: 'Prometido',
+    bg:       'rgba(200,168,75,0.12)',
+    color:    '#7a5a10',
+    border:   'rgba(200,168,75,0.4)',
+    hoverBg:  '#C8A84B',
+    hoverColor: '#0D1B3E',
+  },
+  escriturado: {
+    label: 'Escriturado',
+    bg:       'rgba(13,27,62,0.07)',
+    color:    '#0D1B3E',
+    border:   'rgba(13,27,62,0.25)',
+    hoverBg:  '#0D1B3E',
+    hoverColor: '#F5F3EE',
+  },
+  cancelado: {
+    label: 'Cancelado',
+    bg:       '#fdf0f0',
+    color:    '#8B2020',
+    border:   '#e8a3a3',
+    hoverBg:  '#C0392B',
+    hoverColor: '#ffffff',
+  },
+};
+
+const StatusButton = ({ newStatus, onClick, disabled, loading }) => {
+  const [hovered, setHovered] = useState(false);
+  const cfg = STATUS_BTN_CFG[newStatus];
+  if (!cfg) return null;
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        flex: 1,
+        height: '30px',
+        padding: '0 10px',
+        fontSize: '0.75rem',
+        fontWeight: 600,
+        fontFamily: 'var(--font-sans)',
+        borderRadius: 'var(--radius-sm)',
+        border: `1.5px solid ${hovered ? cfg.hoverBg : cfg.border}`,
+        background: hovered ? cfg.hoverBg : cfg.bg,
+        color: hovered ? cfg.hoverColor : cfg.color,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.6 : 1,
+        transition: 'all 0.15s ease',
+        whiteSpace: 'nowrap',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '4px',
+      }}>
+      {loading ? '...' : `→ ${cfg.label}`}
+    </button>
+  );
+};
 const PURPOSE_CFG = {
-  venta:          { label:'Venta',          color:'#3b82f6', bg:'rgba(59,130,246,0.1)' },
-  arriendo:       { label:'Arriendo',       color:'#10b981', bg:'rgba(16,185,129,0.1)' },
-  venta_arriendo: { label:'Venta/Arriendo', color:'#f59e0b', bg:'rgba(245,158,11,0.1)' },
+  venta:          { label:'Venta',          color:'var(--color-navy)', bg:'rgba(13,27,62,0.07)'   },
+  arriendo:       { label:'Arriendo',       color:'var(--color-gold)', bg:'rgba(200,168,75,0.10)' },
+  venta_arriendo: { label:'Venta/Arriendo', color:'var(--color-navy)', bg:'rgba(13,27,62,0.05)'   },
 };
 
 const formatCurrency = v =>
@@ -96,28 +176,30 @@ const EditPropertyModal = ({ property, onClose, onSaved }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background:'rgba(0,0,0,0.7)' }}>
-      <div className="w-full max-w-lg rounded-2xl shadow-2xl flex flex-col"
+      style={{ background:'rgba(13,27,62,0.55)' }}>
+      <div className="w-full max-w-lg rounded-xl shadow-2xl flex flex-col"
         style={{ background:'var(--color-bg-card)', border:'1px solid var(--color-border)', maxHeight:'90vh' }}>
 
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b flex-shrink-0"
-          style={{ borderColor:'var(--color-border)' }}>
+        {/* Header — navy + gold */}
+        <div className="flex items-center justify-between p-5 flex-shrink-0"
+          style={{ background:'var(--color-navy)', borderBottom:'3px solid var(--color-gold)' }}>
           <div>
-            <h2 className="font-bold" style={{ color:'var(--color-text-primary)' }}>
+            <h2 className="font-bold" style={{ color:'#F5F3EE', fontFamily:'var(--font-display)' }}>
               Editar Inmueble
             </h2>
-            <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
+            <p className="text-xs mt-0.5" style={{ color:'rgba(200,168,75,0.7)' }}>
               {property.project_name} · {property.unit_number}
             </p>
           </div>
-          <button onClick={onClose} className="btn btn-ghost btn-sm"><X size={16}/></button>
+          <button onClick={onClose} className="btn btn-ghost btn-sm"
+            style={{ color:'rgba(245,243,238,0.7)' }}>
+            <X size={16}/>
+          </button>
         </div>
 
-        {/* Body scrollable */}
+        {/* Body */}
         <div className="p-5 overflow-y-auto flex-1 space-y-4">
 
-          {/* Identificación */}
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <Field label="Número / identificación de unidad">
@@ -146,7 +228,6 @@ const EditPropertyModal = ({ property, onClose, onSaved }) => {
             </Field>
           </div>
 
-          {/* Características */}
           <div className="grid grid-cols-3 gap-3">
             <Field label="Área construida (m²)">
               <input type="number" value={form.m2_construction}
@@ -176,7 +257,7 @@ const EditPropertyModal = ({ property, onClose, onSaved }) => {
             <div className="flex items-center gap-2 pt-4">
               <input type="checkbox" id="storage_edit" checked={form.storage_room}
                 onChange={e => set('storage_room', e.target.checked)}
-                className="w-4 h-4 accent-blue-500"/>
+                className="w-4 h-4"/>
               <label htmlFor="storage_edit" className="text-xs"
                 style={{ color:'var(--color-text-secondary)' }}>
                 Con depósito
@@ -184,10 +265,9 @@ const EditPropertyModal = ({ property, onClose, onSaved }) => {
             </div>
           </div>
 
-          {/* Precios */}
           <div className="pt-2 pb-1">
             <p className="text-xs font-semibold uppercase tracking-wide mb-3"
-              style={{ color:'var(--color-text-muted)' }}>Precios</p>
+              style={{ color:'var(--color-gold)', letterSpacing:'0.08em' }}>Precios</p>
             <div className="grid grid-cols-2 gap-3">
               <Field label={form.purpose === 'arriendo' ? 'Valor comercial (COP)' : 'Precio de venta (COP)'}
                 hint="Requerido">
@@ -205,7 +285,6 @@ const EditPropertyModal = ({ property, onClose, onSaved }) => {
             </div>
           </div>
 
-          {/* Notas */}
           <Field label="Observaciones del inmueble">
             <textarea value={form.notes} onChange={e => set('notes', e.target.value)}
               className="input text-sm resize-none w-full" rows={2}
@@ -216,7 +295,7 @@ const EditPropertyModal = ({ property, onClose, onSaved }) => {
         {/* Footer */}
         <div className="p-5 border-t flex gap-3 flex-shrink-0"
           style={{ borderColor:'var(--color-border)' }}>
-          <button onClick={onClose} className="btn btn-secondary flex-1">Cancelar</button>
+          <button onClick={onClose} className="btn btn-outline flex-1">Cancelar</button>
           <button onClick={handleSave} disabled={saving} className="btn btn-primary flex-1">
             <Save size={14}/> {saving ? 'Guardando...' : 'Guardar Cambios'}
           </button>
@@ -231,10 +310,10 @@ const PropertiesPage = () => {
   const navigate = useNavigate();
   const { tenant } = useParams();
   const to = (path) => `/${tenant}/${path}`;
-  const queryClient   = useQueryClient();
-  const { hasRole }   = useAuthStore();
-  const canCreate     = hasRole('admin','gerente','contador');
-  const canEdit       = hasRole('admin','gerente','contador');
+  const queryClient     = useQueryClient();
+  const { hasRole }     = useAuthStore();
+  const canCreate       = hasRole('admin','gerente','contador');
+  const canEdit         = hasRole('admin','gerente','contador');
   const canChangeStatus = hasRole('admin','gerente');
 
   const [search,        setSearch]        = useState('');
@@ -274,7 +353,6 @@ const PropertiesPage = () => {
   return (
     <div className="space-y-5 animate-fade-in">
 
-      {/* Modal editar */}
       {editTarget && (
         <EditPropertyModal
           property={editTarget}
@@ -286,7 +364,8 @@ const PropertiesPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color:'var(--color-text-primary)' }}>
+          <h1 className="text-2xl font-bold"
+            style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
             Inmuebles
           </h1>
           <p className="text-sm" style={{ color:'var(--color-text-muted)' }}>
@@ -294,7 +373,7 @@ const PropertiesPage = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => refetch()} className="btn btn-secondary btn-sm">
+          <button onClick={() => refetch()} className="btn btn-outline btn-sm">
             <RefreshCw size={14} className={isFetching ? 'animate-spin':''}/>
           </button>
           {canCreate && (
@@ -360,153 +439,177 @@ const PropertiesPage = () => {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {props.map(p => {
-            const s       = STATUS_CFG[p.status]  || { label:p.status, class:'badge-pendiente', color:'#94a3b8' };
-            const purpose = p.features?.purpose   || 'venta';
-            const purpCfg = PURPOSE_CFG[purpose]  || PURPOSE_CFG.venta;
-            const canChange = canChangeStatus && CHANGE_TO[p.status]?.length > 0;
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Unidad</th>
+                <th>Proyecto</th>
+                <th>Tipo</th>
+                <th>Área · Hab · Baños</th>
+                <th>Propósito</th>
+                <th>Estado</th>
+                <th>Precio</th>
+                <th>Comprador / Arrendatario</th>
+                <th>Avance</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {props.map(p => {
+                const s         = STATUS_CFG[p.status] || { label:p.status, class:'badge-pendiente', color:'var(--color-text-muted)' };
+                const purpose   = p.features?.purpose || 'venta';
+                const purpCfg   = PURPOSE_CFG[purpose] || PURPOSE_CFG.venta;
+                const canChange = canChangeStatus && CHANGE_TO[p.status]?.length > 0;
+                const paidPct   = p.contract_value > 0
+                  ? Math.min(Math.round((parseFloat(p.total_paid||0)/parseFloat(p.contract_value))*100),100)
+                  : 0;
 
-            return (
-              <div key={p.id} className="card hover:shadow-lg transition-all">
+                return (
+                  <tr key={p.id}>
 
-                {/* Header tarjeta */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center"
-                    style={{ background:'rgba(59,130,246,0.1)' }}>
-                    <Home size={18} className="text-blue-400"/>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className={`badge ${s.class}`}>{s.label}</span>
-                    <span className="text-xs px-1.5 py-0.5 rounded"
-                      style={{ background:purpCfg.bg, color:purpCfg.color }}>
-                      <Tag size={9} className="inline mr-0.5"/>
-                      {purpCfg.label}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Nombre */}
-                <p className="font-semibold" style={{ color:'var(--color-text-primary)' }}>
-                  {p.project_name}
-                </p>
-                <p className="text-sm mb-3" style={{ color:'var(--color-text-muted)' }}>
-                  Unidad {p.unit_number} · {p.property_type}
-                </p>
-
-                {/* Características */}
-                <div className="grid grid-cols-3 gap-1.5 text-xs text-center mb-3">
-                  {[
-                    [p.m2_construction ? `${p.m2_construction}m²` : '—', 'Área'],
-                    [p.bedrooms ?? '—', 'Alcobas'],
-                    [p.bathrooms ?? '—', 'Baños'],
-                  ].map(([val, lbl]) => (
-                    <div key={lbl} className="rounded p-1.5"
-                      style={{ background:'var(--color-bg-primary)' }}>
-                      <p className="font-bold" style={{ color:'var(--color-text-primary)' }}>{val}</p>
-                      <p style={{ color:'var(--color-text-muted)' }}>{lbl}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Precios */}
-                <p className="text-sm font-bold font-mono mb-1"
-                  style={{ color:'var(--color-text-accent)' }}>
-                  {formatCurrency(p.base_price)}
-                  {purpose !== 'venta' && (
-                    <span className="text-xs font-normal ml-1">(valor comercial)</span>
-                  )}
-                </p>
-                {p.features?.rental_price && (
-                  <p className="text-xs font-mono mb-2" style={{ color:'#10b981' }}>
-                    Arriendo: {formatCurrency(p.features.rental_price)}/mes
-                  </p>
-                )}
-
-                {/* Ocupante */}
-                {p.occupant_name && (
-                  <div className="mt-2 pt-2 space-y-0.5"
-                    style={{ borderTop:'1px solid var(--color-border)' }}>
-                    <p className="text-xs font-semibold"
-                      style={{ color:'var(--color-text-muted)' }}>
-                      {p.payment_type === 'arriendo' ? '👤 Arrendatario' : '👤 Comprador'}
-                    </p>
-                    <p className="text-sm font-medium" style={{ color:'var(--color-text-primary)' }}>
-                      {p.occupant_name}
-                    </p>
-                    {p.occupant_phone && (
-                      <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>
-                        📞 {p.occupant_phone}
+                    {/* Unidad */}
+                    <td>
+                      <p className="text-sm font-bold font-mono"
+                        style={{ color:'var(--color-navy)', whiteSpace:'nowrap' }}>
+                        {p.unit_number || '—'}
                       </p>
-                    )}
-                    {p.occupant_contract && (
-                      <p className="text-xs font-mono mt-0.5"
-                        style={{ color:'#60a5fa' }}>
-                        📄 {p.occupant_contract}
+                      {p.floor_number && (
+                        <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>
+                          Piso {p.floor_number}
+                        </p>
+                      )}
+                    </td>
+
+                    {/* Proyecto */}
+                    <td>
+                      <p className="text-sm font-medium"
+                        style={{ color:'var(--color-navy)', whiteSpace:'nowrap' }}>
+                        {p.project_name || '—'}
                       </p>
-                    )}
-                    {p.contract_value > 0 && (
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <div className="flex-1 h-1.5 rounded-full"
-                          style={{ background:'var(--color-bg-primary)' }}>
-                          <div className="h-1.5 rounded-full"
-                            style={{
-                              width:`${Math.min(Math.round((parseFloat(p.total_paid||0)/parseFloat(p.contract_value))*100),100)}%`,
-                              background:'#10b981',
-                            }}/>
+                    </td>
+
+                    {/* Tipo */}
+                    <td className="text-sm" style={{ color:'var(--color-text-secondary)', whiteSpace:'nowrap' }}>
+                      {p.property_type || '—'}
+                    </td>
+
+                    {/* Área · Hab · Baños */}
+                    <td>
+                      <span className="text-xs"
+                        style={{ color:'var(--color-text-secondary)', whiteSpace:'nowrap' }}>
+                        {p.m2_construction ? `${p.m2_construction}m²` : '—'}
+                        {' · '}
+                        {p.bedrooms ?? '—'} hab
+                        {' · '}
+                        {p.bathrooms ?? '—'} baños
+                        {p.parking_spots > 0 && ` · ${p.parking_spots} 🅿`}
+                      </span>
+                    </td>
+
+                    {/* Propósito */}
+                    <td>
+                      <span className="text-xs px-2 py-0.5 rounded"
+                        style={{ background:purpCfg.bg, color:purpCfg.color, border:`1px solid ${purpCfg.color}25`, whiteSpace:'nowrap' }}>
+                        {purpCfg.label}
+                      </span>
+                    </td>
+
+                    {/* Estado */}
+                    <td>
+                      <span className={`badge ${s.class}`}>{s.label}</span>
+                    </td>
+
+                    {/* Precio */}
+                    <td style={{ whiteSpace:'nowrap' }}>
+                      <p className="text-sm font-mono font-bold"
+                        style={{ color:'var(--color-navy)' }}>
+                        {formatCurrency(p.base_price)}
+                      </p>
+                      {p.features?.rental_price && (
+                        <p className="text-xs font-mono"
+                          style={{ color:'var(--color-gold)' }}>
+                          {formatCurrency(p.features.rental_price)}/mes
+                        </p>
+                      )}
+                    </td>
+
+                    {/* Comprador / Arrendatario */}
+                    <td>
+                      {p.occupant_name ? (
+                        <div style={{ minWidth:'120px' }}>
+                          <p className="text-sm font-medium"
+                            style={{ color:'var(--color-navy)' }}>
+                            {p.occupant_name}
+                          </p>
+                          {p.occupant_contract && (
+                            <p className="text-xs font-mono"
+                              style={{ color:'var(--color-gold)' }}>
+                              {p.occupant_contract}
+                            </p>
+                          )}
+                          {p.occupant_phone && (
+                            <p className="text-xs"
+                              style={{ color:'var(--color-text-muted)' }}>
+                              {p.occupant_phone}
+                            </p>
+                          )}
                         </div>
-                        <span className="text-xs" style={{ color:'#10b981' }}>
-                          {Math.min(Math.round((parseFloat(p.total_paid||0)/parseFloat(p.contract_value))*100),100)}%
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      ) : (
+                        <span className="text-xs" style={{ color:'var(--color-text-muted)' }}>—</span>
+                      )}
+                    </td>
 
-                {/* Botones de acción */}
-                <div className="mt-3 pt-3 flex flex-col gap-2"
-                  style={{ borderTop:'1px solid var(--color-border)' }}>
+                    {/* Avance del contrato */}
+                    <td style={{ minWidth:'90px' }}>
+                      {p.contract_value > 0 ? (
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1.5 rounded-full"
+                            style={{ background:'var(--color-bg-secondary)', minWidth:'50px' }}>
+                            <div className="h-1.5 rounded-full transition-all"
+                              style={{
+                                width:`${paidPct}%`,
+                                background: paidPct >= 100 ? 'var(--color-gold)' : 'var(--color-navy)',
+                              }}/>
+                          </div>
+                          <span className="text-xs font-mono flex-shrink-0"
+                            style={{ color: paidPct >= 100 ? 'var(--color-gold)' : 'var(--color-navy)' }}>
+                            {paidPct}%
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs" style={{ color:'var(--color-text-muted)' }}>—</span>
+                      )}
+                    </td>
 
-                  {/* Botón editar */}
-                  {canEdit && (
-                    <button
-                      onClick={() => setEditTarget(p)}
-                      className="btn btn-secondary btn-sm w-full text-xs">
-                      <Edit size={12}/> Editar inmueble
-                    </button>
-                  )}
-
-                  {/* Cambiar estado */}
-                  {canChange && (
-                    <div>
-                      <p className="text-xs mb-1" style={{ color:'var(--color-text-muted)' }}>
-                        Cambiar estado:
-                      </p>
-                      <div className="flex gap-1.5 flex-wrap">
-                        {CHANGE_TO[p.status].map(newStatus => (
-                          <button key={newStatus}
+                    {/* Acciones */}
+                    <td onClick={e => e.stopPropagation()}>
+                      <div className="flex items-center gap-1.5 flex-wrap" style={{ minWidth:'120px' }}>
+                        {canEdit && (
+                          <button
+                            onClick={() => setEditTarget(p)}
+                            className="btn btn-outline btn-sm text-xs"
+                            style={{ height:'26px', padding:'0 8px', whiteSpace:'nowrap' }}>
+                            <Edit size={11}/> Editar
+                          </button>
+                        )}
+                        {canChange && CHANGE_TO[p.status].map(newStatus => (
+                          <StatusButton
+                            key={newStatus}
+                            newStatus={newStatus}
                             onClick={() => handleStatusChange(p, newStatus)}
                             disabled={changingId === p.id}
-                            className="btn btn-secondary btn-sm text-xs flex-1"
-                            style={{ height:'26px', padding:'0 8px', color:STATUS_CFG[newStatus]?.color }}>
-                            {changingId === p.id ? '...' : `→ ${STATUS_CFG[newStatus]?.label}`}
-                          </button>
+                            loading={changingId === p.id}
+                          />
                         ))}
                       </div>
-                    </div>
-                  )}
-                </div>
+                    </td>
 
-                {/* Notas */}
-                {p.features?.notes && (
-                  <p className="text-xs mt-2 truncate" style={{ color:'var(--color-text-muted)' }}
-                    title={p.features.notes}>
-                    📝 {p.features.notes}
-                  </p>
-                )}
-              </div>
-            );
-          })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

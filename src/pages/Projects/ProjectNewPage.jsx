@@ -10,30 +10,29 @@ const Field = ({ label, required, hint, children }) => (
   <div>
     <label className="block text-sm font-medium mb-1.5"
       style={{ color:'var(--color-text-secondary)' }}>
-      {label} {required && <span className="text-red-400">*</span>}
+      {label} {required && <span style={{ color:'var(--color-danger)' }}>*</span>}
     </label>
     {children}
     {hint && <p className="text-xs mt-1" style={{ color:'var(--color-text-muted)' }}>{hint}</p>}
   </div>
 );
 
-// Lote de inmuebles vacío
 const emptyLote = () => ({
-  _id:             Date.now() + Math.random(),
-  quantity:        '1',
-  base_unit_name:  'Apto',
+  _id:              Date.now() + Math.random(),
+  quantity:         '1',
+  base_unit_name:   'Apto',
   unit_start_number:'101',
-  property_type:   'apartamento',
-  purpose:         'venta',
-  m2_construction: '',
-  m2_terrain:      '',
-  floor_number:    '',
-  bedrooms:        '2',
-  bathrooms:       '1',
-  parking_spots:   '1',
-  storage_room:    false,
-  base_price:      '',
-  rental_price:    '',
+  property_type:    'apartamento',
+  purpose:          'venta',
+  m2_construction:  '',
+  m2_terrain:       '',
+  floor_number:     '',
+  bedrooms:         '2',
+  bathrooms:        '1',
+  parking_spots:    '1',
+  storage_room:     false,
+  base_price:       '',
+  rental_price:     '',
 });
 
 const PROP_TYPES = [
@@ -50,34 +49,24 @@ const formatCurrency = v =>
 
 const ProjectNewPage = () => {
   const navigate = useNavigate();
-  const { tenant } = useParams();         
+  const { tenant } = useParams();
   const to = (path) => `/${tenant}/${path}`;
-  const [step,    setStep]    = useState(1); // 1=proyecto, 2=inmuebles
+  const [step,    setStep]    = useState(1);
   const [saving,  setSaving]  = useState(false);
-  const [project, setProject] = useState(null); // proyecto creado
-  const [lotes,   setLotes]   = useState([emptyLote()]); // grupos de inmuebles
+  const [project, setProject] = useState(null);
+  const [lotes,   setLotes]   = useState([emptyLote()]);
   const [savingLotes, setSavingLotes] = useState(false);
 
   const [form, setForm] = useState({
-    code:        '',
-    name:        '',
-    description: '',
-    location:    '',
-    city:        '',
-    department:  '',
-    total_units: '',
-    price_per_m2:'',
+    code:'', name:'', description:'', location:'', city:'', department:'', total_units:'', price_per_m2:'',
   });
   const set = (k,v) => setForm(f => ({...f,[k]:v}));
 
-  // Actualizar un campo de un lote
   const setLote = (idx, k, v) =>
     setLotes(ls => ls.map((l,i) => i===idx ? {...l,[k]:v} : l));
-
-  const addLote = () => setLotes(ls => [...ls, emptyLote()]);
+  const addLote    = () => setLotes(ls => [...ls, emptyLote()]);
   const removeLote = (idx) => setLotes(ls => ls.filter((_,i) => i!==idx));
 
-  // ── PASO 1: Crear proyecto ────────────────────────────────
   const handleCreateProject = async () => {
     if (!form.code || !form.name || !form.city)
       return toast.error('Código, nombre y ciudad son requeridos');
@@ -85,11 +74,10 @@ const ProjectNewPage = () => {
     try {
       const res = await projectsService.create({
         ...form,
-        total_units: form.total_units ? parseInt(form.total_units) : undefined,
-        price_per_m2:form.price_per_m2 ? parseFloat(form.price_per_m2) : undefined,
+        total_units:  form.total_units  ? parseInt(form.total_units)    : undefined,
+        price_per_m2: form.price_per_m2 ? parseFloat(form.price_per_m2) : undefined,
       });
-      const newProject = res.data?.data;
-      setProject(newProject);
+      setProject(res.data?.data);
       toast.success(`Proyecto "${form.name}" creado. Ahora agrega los inmuebles.`);
       setStep(2);
     } catch (err) {
@@ -99,51 +87,42 @@ const ProjectNewPage = () => {
     }
   };
 
-  // ── PASO 2: Crear inmuebles en lote ──────────────────────
   const handleCreateProperties = async () => {
     const valid = lotes.every(l => l.base_price && parseFloat(l.base_price) > 0 && parseInt(l.quantity) >= 1);
     if (!valid) return toast.error('Cada grupo debe tener precio base y cantidad válidos');
-
     setSavingLotes(true);
     let totalCreated = 0;
     const errors = [];
-
     for (const lote of lotes) {
       try {
         const res = await propertiesService.createBulk({
-          project_id:       project.id,
-          quantity:         parseInt(lote.quantity),
-          base_unit_name:   lote.base_unit_name || 'Unidad',
-          unit_start_number:parseInt(lote.unit_start_number) || 1,
-          property_type:    lote.property_type,
-          m2_construction:  lote.m2_construction ? parseFloat(lote.m2_construction) : null,
-          m2_terrain:       lote.m2_terrain      ? parseFloat(lote.m2_terrain)      : null,
-          floor_number:     lote.floor_number    ? parseInt(lote.floor_number)       : null,
-          bedrooms:         lote.bedrooms        ? parseInt(lote.bedrooms)           : null,
-          bathrooms:        lote.bathrooms       ? parseInt(lote.bathrooms)          : null,
-          parking_spots:    lote.parking_spots   ? parseInt(lote.parking_spots)      : 0,
-          storage_room:     lote.storage_room,
-          base_price:       parseFloat(lote.base_price),
-          status:           'disponible',
-          features: {
-            purpose:      lote.purpose,
-            rental_price: lote.rental_price ? parseFloat(lote.rental_price) : null,
-          },
+          project_id:        project.id,
+          quantity:          parseInt(lote.quantity),
+          base_unit_name:    lote.base_unit_name || 'Unidad',
+          unit_start_number: parseInt(lote.unit_start_number) || 1,
+          property_type:     lote.property_type,
+          m2_construction:   lote.m2_construction ? parseFloat(lote.m2_construction) : null,
+          m2_terrain:        lote.m2_terrain      ? parseFloat(lote.m2_terrain)      : null,
+          floor_number:      lote.floor_number    ? parseInt(lote.floor_number)       : null,
+          bedrooms:          lote.bedrooms        ? parseInt(lote.bedrooms)           : null,
+          bathrooms:         lote.bathrooms       ? parseInt(lote.bathrooms)          : null,
+          parking_spots:     lote.parking_spots   ? parseInt(lote.parking_spots)      : 0,
+          storage_room:      lote.storage_room,
+          base_price:        parseFloat(lote.base_price),
+          status:            'disponible',
+          features: { purpose: lote.purpose, rental_price: lote.rental_price ? parseFloat(lote.rental_price) : null },
         });
         totalCreated += res.data?.data?.length || 0;
       } catch (err) {
         errors.push(err.response?.data?.message || 'Error en un grupo');
       }
     }
-
     setSavingLotes(false);
     if (totalCreated > 0) {
       toast.success(`¡${totalCreated} inmueble${totalCreated!==1?'s':''} creado${totalCreated!==1?'s':''} exitosamente!`, { duration:5000 });
       navigate(to('projects'));
     }
-    if (errors.length > 0) {
-      errors.forEach(e => toast.error(e));
-    }
+    if (errors.length > 0) errors.forEach(e => toast.error(e));
   };
 
   const totalInmuebles = lotes.reduce((s,l) => s + (parseInt(l.quantity)||0), 0);
@@ -162,7 +141,8 @@ const ProjectNewPage = () => {
             <ArrowLeft size={16}/>
           </button>
           <div>
-            <h1 className="text-xl font-bold" style={{ color:'var(--color-text-primary)' }}>
+            <h1 className="text-xl font-bold"
+              style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
               {step===1 ? 'Nuevo Proyecto' : `Inmuebles de: ${form.name}`}
             </h1>
             <p className="text-sm" style={{ color:'var(--color-text-muted)' }}>
@@ -170,18 +150,23 @@ const ProjectNewPage = () => {
             </p>
           </div>
         </div>
-        {/* Indicador de pasos */}
+
+        {/* Indicador de pasos — navy + dorado */}
         <div className="flex items-center gap-2">
           {[1,2].map(n => (
             <div key={n} className="flex items-center gap-1">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+              <div className="w-7 h-7 flex items-center justify-center text-xs font-bold"
                 style={{
-                  background: n === step ? 'var(--color-brand-600)' : n < step ? '#10b981' : 'var(--color-bg-secondary)',
-                  color: n <= step ? 'white' : 'var(--color-text-muted)',
+                  background: n === step ? 'var(--color-navy)' : n < step ? 'var(--color-gold)' : 'var(--color-bg-secondary)',
+                  color:      n <= step ? '#F5F3EE' : 'var(--color-text-muted)',
+                  border:     n === step ? '2px solid var(--color-gold)' : '1px solid var(--color-border)',
                 }}>
                 {n < step ? '✓' : n}
               </div>
-              {n < 2 && <div className="w-8 h-px" style={{ background: step>1?'#10b981':'var(--color-border)' }}/>}
+              {n < 2 && (
+                <div className="w-8 h-px"
+                  style={{ background: step>1 ? 'var(--color-gold)' : 'var(--color-border)' }}/>
+              )}
             </div>
           ))}
         </div>
@@ -192,7 +177,7 @@ const ProjectNewPage = () => {
         <>
           <div className="card">
             <h3 className="font-semibold text-sm mb-4 pb-3"
-              style={{ color:'var(--color-text-primary)', borderBottom:'1px solid var(--color-border)' }}>
+              style={{ color:'var(--color-navy)', borderBottom:'2px solid var(--color-gold)' }}>
               <Building size={14} className="inline mr-2"/>
               Información del Proyecto
             </h3>
@@ -203,9 +188,9 @@ const ProjectNewPage = () => {
               </Field>
               <Field label="Nombre del proyecto" required>
                 <input value={form.name} onChange={e=>set('name',e.target.value)}
-                  className="input text-sm" placeholder="URBANIZACIÓN, PARCELACIÓN, CONJUNTO, PROYECTO..."/>
+                  className="input text-sm" placeholder="URBANIZACIÓN, PARCELACIÓN, CONJUNTO..."/>
               </Field>
-              <Field label="Ciudad o Municipio o Cantón" required>
+              <Field label="Ciudad o Municipio" required>
                 <input value={form.city} onChange={e=>set('city',e.target.value)}
                   className="input text-sm" placeholder="Cali"/>
               </Field>
@@ -238,9 +223,7 @@ const ProjectNewPage = () => {
           </div>
 
           <div className="flex justify-end gap-3">
-            <button onClick={() => navigate(to('projects'))} className="btn btn-secondary">
-              Cancelar
-            </button>
+            <button onClick={() => navigate(to('projects'))} className="btn btn-outline">Cancelar</button>
             <button onClick={handleCreateProject} disabled={saving} className="btn btn-primary">
               <Save size={15}/> {saving ? 'Guardando...' : 'Crear Proyecto y Continuar →'}
             </button>
@@ -251,8 +234,14 @@ const ProjectNewPage = () => {
       {/* ── PASO 2: Grupos de inmuebles ── */}
       {step === 2 && project && (
         <>
-          <div className="p-4 rounded-xl text-sm"
-            style={{ background:'rgba(59,130,246,0.07)', border:'1px solid rgba(59,130,246,0.2)', color:'var(--color-text-secondary)' }}>
+          {/* Tip info — con branding navy */}
+          <div className="p-4 rounded text-sm"
+            style={{
+              background:'rgba(13,27,62,0.04)',
+              border:'1px solid var(--color-border)',
+              borderLeft:'4px solid var(--color-gold)',
+              color:'var(--color-text-secondary)',
+            }}>
             💡 Puedes crear múltiples grupos de inmuebles con características diferentes.
             Por ejemplo: <strong>4 aptos esquineros de 90m²</strong> y luego <strong>8 aptos estándar de 70m²</strong>.
             Cada grupo genera los inmuebles con nombres consecutivos automáticamente.
@@ -261,20 +250,21 @@ const ProjectNewPage = () => {
           {lotes.map((lote, idx) => (
             <div key={lote._id} className="card">
               <div className="flex items-center justify-between mb-4 pb-3"
-                style={{ borderBottom:'1px solid var(--color-border)' }}>
+                style={{ borderBottom:'2px solid var(--color-gold)' }}>
                 <div className="flex items-center gap-2">
-                  <Home size={16} style={{ color:'var(--color-text-accent)' }}/>
-                  <h3 className="font-semibold text-sm" style={{ color:'var(--color-text-primary)' }}>
+                  <Home size={16} style={{ color:'var(--color-gold)' }}/>
+                  <h3 className="font-semibold text-sm" style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
                     Grupo {idx+1} de Inmuebles
                   </h3>
-                  <span className="text-xs px-2 py-0.5 rounded-full"
-                    style={{ background:'rgba(59,130,246,0.1)', color:'#60a5fa' }}>
-                    {parseInt(lote.quantity)||0} unidad{(parseInt(lote.quantity)||0)!==1?'es':''}
+                  <span className="text-xs px-2 py-0.5 rounded"
+                    style={{ background:'rgba(13,27,62,0.07)', color:'var(--color-navy)', border:'1px solid var(--color-border)', fontFamily:'var(--font-mono)' }}>
+                    {parseInt(lote.quantity)||0} ud.
                   </span>
                 </div>
                 {lotes.length > 1 && (
                   <button onClick={() => removeLote(idx)}
-                    className="btn btn-ghost btn-sm text-red-400 hover:text-red-300">
+                    className="btn btn-ghost btn-sm"
+                    style={{ color:'var(--color-danger)' }}>
                     <Trash2 size={14}/>
                   </button>
                 )}
@@ -282,7 +272,7 @@ const ProjectNewPage = () => {
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <Field label="¿Cuántos inmuebles?" required
-                  hint={maxUnits ? `Máx disponible: ${Math.max(0, maxUnits - (totalInmuebles - (parseInt(lote.quantity)||0)))}` : "Número de unidades a crear"}>
+                  hint={maxUnits ? `Máx: ${Math.max(0, maxUnits - (totalInmuebles - (parseInt(lote.quantity)||0)))}` : "Número de unidades"}>
                   <input type="number" value={lote.quantity}
                     onChange={e => {
                       const val = parseInt(e.target.value) || 0;
@@ -297,23 +287,21 @@ const ProjectNewPage = () => {
                     className="input text-sm font-bold text-center" min="1"
                     max={maxUnits ? Math.max(0, maxUnits - (totalInmuebles - (parseInt(lote.quantity)||0))) : 100}/>
                 </Field>
-                <Field label="Nombre base" required
-                  hint='Ej: "Apto", "Lote", "Casa", "Local"'>
+                <Field label="Nombre base" required hint='Ej: "Apto", "Lote", "Casa"'>
                   <input value={lote.base_unit_name}
                     onChange={e=>setLote(idx,'base_unit_name',e.target.value)}
                     className="input text-sm" placeholder="Apto"/>
                 </Field>
-                <Field label="Número inicial"
-                  hint='Primera unidad generada'>
+                <Field label="Número inicial" hint="Primera unidad generada">
                   <input type="number" value={lote.unit_start_number}
                     onChange={e=>setLote(idx,'unit_start_number',e.target.value)}
                     className="input text-sm" placeholder="101" min="1"/>
                 </Field>
                 <div className="flex items-end pb-0.5">
-                  <div className="p-3 rounded-lg text-xs w-full"
+                  <div className="p-3 rounded text-xs w-full"
                     style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)' }}>
                     <p style={{ color:'var(--color-text-muted)' }}>Se crearán:</p>
-                    <p className="font-mono font-bold" style={{ color:'#10b981' }}>
+                    <p className="font-mono font-bold" style={{ color:'var(--color-navy)' }}>
                       {lote.base_unit_name} {lote.unit_start_number}
                       {parseInt(lote.quantity)>1 && ` → ${lote.base_unit_name} ${parseInt(lote.unit_start_number)+parseInt(lote.quantity)-1}`}
                     </p>
@@ -373,7 +361,7 @@ const ProjectNewPage = () => {
                 <div className="flex items-center gap-2 pt-5">
                   <input type="checkbox" id={`storage_${idx}`} checked={lote.storage_room}
                     onChange={e=>setLote(idx,'storage_room',e.target.checked)}
-                    className="w-4 h-4 accent-blue-500"/>
+                    className="w-4 h-4"/>
                   <label htmlFor={`storage_${idx}`} className="text-sm"
                     style={{ color:'var(--color-text-secondary)' }}>
                     Incluye depósito
@@ -381,7 +369,7 @@ const ProjectNewPage = () => {
                 </div>
               </div>
 
-              {/* Preview de los nombres que se crearán */}
+              {/* Preview nombres */}
               {parseInt(lote.quantity) > 0 && lote.base_unit_name && lote.base_price && (
                 <div className="mt-4 pt-3" style={{ borderTop:'1px solid var(--color-border)' }}>
                   <p className="text-xs font-medium mb-2" style={{ color:'var(--color-text-muted)' }}>
@@ -390,7 +378,7 @@ const ProjectNewPage = () => {
                   <div className="flex flex-wrap gap-1.5">
                     {Array.from({ length:Math.min(parseInt(lote.quantity)||0, 12) }, (_,i) => (
                       <span key={i} className="text-xs px-2 py-1 rounded font-mono"
-                        style={{ background:'var(--color-bg-secondary)', color:'var(--color-text-secondary)', border:'1px solid var(--color-border)' }}>
+                        style={{ background:'var(--color-bg-secondary)', color:'var(--color-navy)', border:'1px solid var(--color-border)' }}>
                         {lote.base_unit_name} {parseInt(lote.unit_start_number||1)+i}
                       </span>
                     ))}
@@ -411,50 +399,55 @@ const ProjectNewPage = () => {
             </div>
           ))}
 
-          {/* Botón agregar grupo */}
+          {/* Agregar grupo */}
           <button onClick={addLote}
-            className="w-full py-4 border-2 border-dashed rounded-xl transition-colors hover:bg-slate-800 flex items-center justify-center gap-2 text-sm"
-            style={{ borderColor:'var(--color-border)', color:'var(--color-text-muted)' }}>
+            className="w-full py-4 border-2 border-dashed rounded transition-all flex items-center justify-center gap-2 text-sm"
+            style={{ borderColor:'var(--color-gold)', color:'var(--color-gold)', background:'transparent' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(200,168,75,0.06)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
             <Plus size={16}/> Agregar otro grupo de inmuebles con características diferentes
           </button>
 
-          {/* Resumen total con validación de tope */}
+          {/* Resumen total */}
           <div className="card p-4"
             style={{
-              background: overLimit ? 'rgba(239,68,68,0.06)' : 'rgba(16,185,129,0.06)',
-              border: `1px solid ${overLimit ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.2)'}`,
+              background: overLimit ? 'var(--color-danger-bg)' : 'rgba(13,27,62,0.03)',
+              border: `1px solid ${overLimit ? 'var(--color-danger-border)' : 'var(--color-border)'}`,
+              borderLeft: `4px solid ${overLimit ? 'var(--color-danger)' : 'var(--color-gold)'}`,
             }}>
-            {/* Alerta de tope excedido */}
+            {/* Alerta tope excedido */}
             {overLimit && (
-              <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg"
-                style={{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)' }}>
-                <span style={{ color:'#ef4444', fontSize:'18px' }}>⚠️</span>
-                <p className="text-sm font-semibold" style={{ color:'#ef4444' }}>
+              <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded"
+                style={{ background:'var(--color-danger-bg)', border:'1px solid var(--color-danger-border)' }}>
+                <span style={{ color:'var(--color-danger)', fontSize:'18px' }}>⚠️</span>
+                <p className="text-sm font-semibold" style={{ color:'var(--color-danger)' }}>
                   Excedes el tope: quieres crear {totalInmuebles} pero el proyecto solo permite {maxUnits}.
-                  Reduce la cantidad en {totalInmuebles - maxUnits} unidad{totalInmuebles - maxUnits !== 1 ? 'es' : ''}.
+                  Reduce {totalInmuebles - maxUnits} unidad{totalInmuebles - maxUnits !== 1 ? 'es' : ''}.
                 </p>
               </div>
             )}
-            {/* Indicador de capacidad */}
+
+            {/* Indicador capacidad */}
             {maxUnits !== null && !overLimit && (
               <div className="mb-3">
                 <div className="flex justify-between text-xs mb-1">
                   <span style={{ color:'var(--color-text-muted)' }}>
                     {totalInmuebles} de {maxUnits} unidades
                   </span>
-                  <span style={{ color: remaining === 0 ? '#10b981' : remaining <= 3 ? '#f59e0b' : 'var(--color-text-muted)' }}>
-                    {remaining === 0 ? '✅ Proyecto completo' : `Quedan ${remaining} cupo${remaining!==1?'s':''}`}
+                  <span style={{ color: remaining === 0 ? 'var(--color-success)' : remaining <= 3 ? 'var(--color-warning)' : 'var(--color-text-muted)' }}>
+                    {remaining === 0 ? '✓ Proyecto completo' : `Quedan ${remaining} cupo${remaining!==1?'s':''}`}
                   </span>
                 </div>
-                <div className="h-2 rounded-full" style={{ background:'var(--color-bg-primary)' }}>
+                <div className="h-2 rounded-full" style={{ background:'var(--color-bg-secondary)' }}>
                   <div className="h-2 rounded-full transition-all"
-                    style={{ width:`${Math.min((totalInmuebles/maxUnits)*100,100)}%`, background:'#10b981' }}/>
+                    style={{ width:`${Math.min((totalInmuebles/maxUnits)*100,100)}%`, background:'var(--color-gold)' }}/>
                 </div>
               </div>
             )}
-            <div className="flex items-center justify-between">
+
+            <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
-                <p className="font-semibold" style={{ color: overLimit ? '#ef4444' : '#10b981' }}>
+                <p className="font-semibold" style={{ color: overLimit ? 'var(--color-danger)' : 'var(--color-navy)', fontFamily:'var(--font-display)' }}>
                   Total a crear: {totalInmuebles} inmueble{totalInmuebles!==1?'s':''}
                   {maxUnits && ` (tope: ${maxUnits})`}
                 </p>
@@ -463,7 +456,7 @@ const ProjectNewPage = () => {
                 </p>
               </div>
               <div className="flex gap-3">
-                <button onClick={() => navigate(to('projects'))} className="btn btn-secondary btn-sm">
+                <button onClick={() => navigate(to('projects'))} className="btn btn-outline btn-sm">
                   Omitir → Ir a proyectos
                 </button>
                 <button onClick={handleCreateProperties}
