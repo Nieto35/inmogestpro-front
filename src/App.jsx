@@ -93,7 +93,7 @@ const App = () => (
 
             {/* Contratos */}
             <Route path="contracts"          element={<S><ContractsPage/></S>}/>
-            <Route path="contracts/new"      element={<ProtectedRoute roles={['gerente','asesor','abogado']}><S><ContractNewPage/></S></ProtectedRoute>}/>
+            <Route path="contracts/new"      element={<ProtectedRoute roles={['gerente','abogado']}><S><ContractNewPage/></S></ProtectedRoute>}/>
             <Route path="contracts/:id"      element={<S><ContractDetailPage/></S>}/>
             <Route path="contracts/:id/edit" element={<ProtectedRoute roles={['gerente','contador','abogado']}><S><ContractEditPage/></S></ProtectedRoute>}/>
 
@@ -103,10 +103,10 @@ const App = () => (
             <Route path="clients/:id" element={<S><ClientDetailPage/></S>}/>
 
             {/* CRM */}
-            <Route path="interactions" element={<ProtectedRoute roles={['gerente','contador','asesor','abogado']}><S><ClientInteractionsPage/></S></ProtectedRoute>}/>
+            <Route path="interactions" element={<ProtectedRoute roles={['gerente','contador','abogado']}><S><ClientInteractionsPage/></S></ProtectedRoute>}/>
 
             {/* Proyectos */}
-            <Route path="projects"     element={<ProtectedRoute roles={['gerente','contador','readonly']}><S><ProjectsPage/></S></ProtectedRoute>}/>
+            <Route path="projects"     element={<ProtectedRoute roles={['gerente','contador','readonly','abogado','supervisor']}><S><ProjectsPage/></S></ProtectedRoute>}/>
             <Route path="projects/new" element={<ProtectedRoute roles={['gerente']}><S><ProjectNewPage/></S></ProtectedRoute>}/>
 
             {/* Inmuebles */}
@@ -118,18 +118,18 @@ const App = () => (
             <Route path="payments" element={<ProtectedRoute roles={['gerente','contador']}><S><PaymentsPage/></S></ProtectedRoute>}/>
 
             {/* Asesores y comisiones */}
-            <Route path="advisors"     element={<ProtectedRoute roles={['gerente','readonly']}><S><AdvisorsPage/></S></ProtectedRoute>}/>
+            <Route path="advisors"     element={<ProtectedRoute roles={['gerente','readonly','abogado','supervisor']}><S><AdvisorsPage/></S></ProtectedRoute>}/>
             <Route path="advisors/new" element={<ProtectedRoute roles={['gerente']}><S><AdvisorNewPage/></S></ProtectedRoute>}/>
             <Route path="commissions"  element={<ProtectedRoute roles={['gerente','contador']}><S><CommissionsPage/></S></ProtectedRoute>}/>
 
             {/* Reportes */}
-            <Route path="reports" element={<ProtectedRoute roles={['gerente','contador','readonly']}><S><ReportsPage/></S></ProtectedRoute>}/>
+            <Route path="reports" element={<ProtectedRoute roles={['gerente','contador','readonly','abogado','supervisor']}><S><ReportsPage/></S></ProtectedRoute>}/>
 
             {/* Auditoría */}
             <Route path="audit" element={<ProtectedRoute roles={['gerente']}><S><AuditPage/></S></ProtectedRoute>}/>
 
-            {/* Configuración */}
-            <Route path="settings/currency" element={<ProtectedRoute roles={['gerente']}><S><CurrencySettingsPage/></S></ProtectedRoute>}/>
+            {/* Configuración 
+            <Route path="settings/currency" element={<ProtectedRoute roles={['gerente']}><S><CurrencySettingsPage/></S></ProtectedRoute>}/>*/}
 
             {/* Usuarios */}
             <Route path="users" element={<ProtectedRoute roles={['gerente']}><S><UsersPage/></S></ProtectedRoute>}/>

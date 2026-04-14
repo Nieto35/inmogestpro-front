@@ -7,7 +7,7 @@ import {
   Calendar, DollarSign, CheckCircle, Clock, AlertTriangle,
   RefreshCw, Plus, X, Save, Paperclip, Info, Upload, ExternalLink, Edit, Download
 } from 'lucide-react';
-import { contractsService } from '../../services/api.service';
+import { contractsService, usersService } from '../../services/api.service';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
@@ -554,11 +554,12 @@ const ContractDetailPage = () => {
   const { id, tenant }         = useParams();
   const navigate       = useNavigate();
   const queryClient    = useQueryClient();
-  const { hasRole }    = useAuthStore();
+  const { hasRole, user }    = useAuthStore();
   const to = (path) => `/${tenant}/${path}`;
   const apiBase = () => `${API_URL}/api/v1/${tenant}`;
   const canPay         = hasRole('admin','gerente','contador');
   const canUpload      = hasRole('admin','gerente','contador','asesor');
+  const isAsesor       = user?.role === 'asesor';
   const [showPayModal, setShowPayModal] = useState(false);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
@@ -571,6 +572,23 @@ const ContractDetailPage = () => {
   const payment_schedule = d?.payment_schedule || [];
   const allProperties    = d?.all_properties  || [];
   const payments         = d?.payments         || [];
+
+  // Cargar usuarios para resolver nombres de abogado y supervisor
+  // Solo roles con permiso de ver usuarios (asesores no tienen acceso)
+  const { data: usersData } = useQuery({
+    queryKey: ['users'],
+    queryFn:  () => usersService.getAll(),
+    enabled:  !isAsesor,
+  });
+  const allUsers = usersData?.data?.data || [];
+
+  // Resolver nombre de abogado y supervisor desde el ID
+  const abogadoName = contract?.abogado_name
+    || allUsers.find(u => String(u.id) === String(contract?.abogado_id))?.full_name
+    || null;
+  const supervisorName = contract?.supervisor_name
+    || allUsers.find(u => String(u.id) === String(contract?.supervisor_id))?.full_name
+    || null;
 
   const handlePaymentSaved = () => {
     queryClient.invalidateQueries({ queryKey:['contract', id] });
@@ -759,7 +777,9 @@ const ContractDetailPage = () => {
         <SectionCard title="Asesor y Fechas" icon={Calendar}>
           {/* Info grid */}
           <div className="grid grid-cols-2 gap-3 mb-4">
-            <InfoBlock label="Asesor"          value={contract.advisor_name}/>
+            <InfoBlock label="Asesor"          value={contract.advisor_name || '—'}/>
+            <InfoBlock label="Abogado"         value={abogadoName || '—'}/>
+            <InfoBlock label="Supervisor"      value={supervisorName || '—'}/>
             <InfoBlock label="Fecha firma"     value={contract.signing_date?format(new Date(contract.signing_date),'dd/MM/yyyy'):'—'}/>
             <InfoBlock label="Registrado por"  value={contract.created_by_name}/>
             <InfoBlock label="Estado"          value={statusCfg.label}/>

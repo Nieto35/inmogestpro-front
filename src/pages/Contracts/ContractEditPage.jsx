@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Save, RefreshCw, AlertTriangle } from 'lucide-react';
-import { contractsService, advisorsService } from '../../services/api.service';
+import { contractsService, advisorsService, usersService } from '../../services/api.service';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/authStore';
 
@@ -51,11 +51,12 @@ const CONTRACT_TYPES = [
 ];
 
 const ContractEditPage = () => {
-  const { id }        = useParams();
-  const navigate      = useNavigate();
-  const queryClient   = useQueryClient();
-  const { hasRole }   = useAuthStore();
-  const canEdit       = hasRole('admin','gerente','contador');
+  const { id, tenant } = useParams();
+  const navigate        = useNavigate();
+  const queryClient     = useQueryClient();
+  const { hasRole }     = useAuthStore();
+  const canEdit         = hasRole('admin','gerente','contador');
+  const to = (path) => `/${tenant}/${path.replace(/^\//, '')}`;
 
   const [saving,  setSaving]  = useState(false);
   const [form,    setForm]    = useState(null);
@@ -73,6 +74,15 @@ const ContractEditPage = () => {
     queryFn:  () => advisorsService.getAll(),
   });
   const advisors = advisorsData?.data?.data || [];
+
+  // Cargar usuarios para abogados y supervisores
+  const { data: usersData } = useQuery({
+    queryKey: ['users'],
+    queryFn:  () => usersService.getAll(),
+  });
+  const allUsers    = usersData?.data?.data || [];
+  const abogados    = allUsers.filter(u => u.role === 'abogado'    && u.is_active);
+  const supervisores = allUsers.filter(u => u.role === 'supervisor' && u.is_active);
 
   const contract = data?.data?.data?.contract;
 
@@ -95,7 +105,9 @@ const ContractEditPage = () => {
         bank_name:          contract.bank_name          || '',
         bank_credit_number: contract.bank_credit_number || '',
         interest_rate:      String(contract.interest_rate || ''),
-        advisor_id:         contract.advisor_id         || '',
+        advisor_id:         String(contract.advisor_id    || ''),
+        abogado_id:         String(contract.abogado_id    || ''),
+        supervisor_id:      String(contract.supervisor_id || ''),
         notes:              contract.notes              || '',
       });
     }
@@ -132,14 +144,16 @@ const ContractEditPage = () => {
         installment_amount: form.installment_amount ? parseFloat(form.installment_amount) : null,
         installment_day:    parseInt(form.installment_day)      || 1,
         interest_rate:      form.interest_rate ? parseFloat(form.interest_rate) : null,
-        advisor_id:         form.advisor_id || null,
+        advisor_id:         form.advisor_id    || null,
+        abogado_id:         form.abogado_id    || null,
+        supervisor_id:      form.supervisor_id || null,
         promise_date:       form.promise_date   || null,
         delivery_date:      form.delivery_date  || null,
       });
       toast.success('Contrato actualizado correctamente');
       queryClient.invalidateQueries({ queryKey:['contract', id] });
       queryClient.invalidateQueries({ queryKey:['contracts'] });
-      navigate(`/contracts/${id}`);
+      navigate(to(`contracts/${id}`));
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error al actualizar el contrato');
     } finally {
@@ -161,7 +175,7 @@ const ContractEditPage = () => {
       <p style={{ color:'var(--color-text-secondary)' }}>
         No tienes permisos para editar contratos
       </p>
-      <button onClick={() => navigate(`/contracts/${id}`)} className="btn btn-secondary btn-sm">
+      <button onClick={() => navigate(to(`contracts/${id}`))} className="btn btn-secondary btn-sm">
         <ArrowLeft size={14}/> Volver
       </button>
     </div>
@@ -173,7 +187,7 @@ const ContractEditPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(`/contracts/${id}`)} className="btn btn-ghost btn-sm">
+          <button onClick={() => navigate(to(`contracts/${id}`))} className="btn btn-ghost btn-sm">
             <ArrowLeft size={16}/>
           </button>
           <div>
@@ -190,7 +204,7 @@ const ContractEditPage = () => {
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => navigate(`/contracts/${id}`)} className="btn btn-secondary btn-sm">
+          <button onClick={() => navigate(to(`contracts/${id}`))} className="btn btn-secondary btn-sm">
             Cancelar
           </button>
           <button onClick={handleSubmit} disabled={saving} className="btn btn-primary">
@@ -283,6 +297,24 @@ const ContractEditPage = () => {
             ))}
           </select>
         </Field>
+        <Field label="Abogado">
+          <select value={form.abogado_id}
+            onChange={e => set('abogado_id', e.target.value)} className="input text-sm">
+            <option value="">Sin abogado asignado</option>
+            {abogados.map(u => (
+              <option key={u.id} value={String(u.id)}>{u.full_name}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Supervisor">
+          <select value={form.supervisor_id}
+            onChange={e => set('supervisor_id', e.target.value)} className="input text-sm">
+            <option value="">Sin supervisor asignado</option>
+            {supervisores.map(u => (
+              <option key={u.id} value={String(u.id)}>{u.full_name}</option>
+            ))}
+          </select>
+        </Field>
       </Section>
 
       {/* Sección 2: Valores */}
@@ -371,7 +403,7 @@ const ContractEditPage = () => {
 
       {/* Botones */}
       <div className="flex justify-end gap-3 pb-6">
-        <button onClick={() => navigate(`/contracts/${id}`)} className="btn btn-secondary">
+        <button onClick={() => navigate(to(`contracts/${id}`))} className="btn btn-secondary">
           Cancelar
         </button>
         <button onClick={handleSubmit} disabled={saving} className="btn btn-primary">

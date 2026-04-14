@@ -37,19 +37,37 @@ const NewCommissionModal = ({ onClose, onSaved }) => {
   const { data: usersData }    = useQuery({ queryKey:['users-all'], queryFn:()=>usersService.getAll() });
   const advisors = advisorsData?.data?.data || [];
   const allUsers = usersData?.data?.data    || [];
-  const beneficiaries = [
+
+  // Lista completa de beneficiarios (sin filtrar por búsqueda — el filtro va en el render)
+  const allBeneficiaries = [
     ...advisors,
     ...allUsers
       .filter(u => !advisors.some(a => a.user_id===u.id || a.email===u.email))
       .map(u => ({ id:`user-${u.id}`, full_name:u.full_name, email:u.email, advisor_type:u.role, _isUser:true, _userId:u.id }))
-  ].filter(b =>
+  ];
+
+  // Filtrado solo para mostrar en el select (no afecta el estado del input)
+  const beneficiaries = allBeneficiaries.filter(b =>
     !benefSearch ||
     b.full_name.toLowerCase().includes(benefSearch.toLowerCase()) ||
     (b.email||'').toLowerCase().includes(benefSearch.toLowerCase())
   );
 
-  const selectedBenef = beneficiaries.find(b => b.id === form.advisor_id);
-  const isAdvisorType = selectedBenef && ['planta','freelance','referido','externo','asesor'].includes(selectedBenef.advisor_type);
+  const selectedBenef = allBeneficiaries.find(b => b.id === form.advisor_id);
+  const isAdvisorType  = selectedBenef && ['planta','freelance','referido','externo','asesor'].includes(selectedBenef.advisor_type);
+  const isAbogado      = selectedBenef?.advisor_type === 'abogado';
+  const isSupervisor   = selectedBenef?.advisor_type === 'supervisor';
+
+  // Determinar el campo de filtro correcto para la API según el tipo de beneficiario
+  // Para asesores → advisor_id, para abogado → abogado_user_id, para supervisor → supervisor_user_id
+  const contractQueryKey = ['contracts-comm-search', contractSearch, form.advisor_id, isAdvisorType, isAbogado, isSupervisor];
+  const contractQueryParams = () => {
+    const base = { search: contractSearch || undefined, limit: 50 };
+    if (isAdvisorType) return { ...base, advisor_id: form.advisor_id };
+    if (isAbogado)     return { ...base, abogado_user_id: selectedBenef?._userId || form.advisor_id };
+    if (isSupervisor)  return { ...base, supervisor_user_id: selectedBenef?._userId || form.advisor_id };
+    return base; // gerente, contador, admin → ven todos los contratos
+  };
 
   const { data: existingComms } = useQuery({
     queryKey: ['existing-comms', form.advisor_id],
@@ -59,12 +77,8 @@ const NewCommissionModal = ({ onClose, onSaved }) => {
   const paidContractIds = new Set((existingComms?.data?.data||[]).map(c=>c.contract_id));
 
   const { data: contractsData } = useQuery({
-    queryKey: ['contracts-comm-search', contractSearch, form.advisor_id, isAdvisorType],
-    queryFn:  () => contractsService.getAll({
-      search:     contractSearch || undefined,
-      advisor_id: isAdvisorType ? form.advisor_id : undefined,
-      limit:      50,
-    }),
+    queryKey: contractQueryKey,
+    queryFn:  () => contractsService.getAll(contractQueryParams()),
     enabled: !!form.advisor_id,
   });
   const allContracts = contractsData?.data?.data || [];
@@ -91,7 +105,7 @@ const NewCommissionModal = ({ onClose, onSaved }) => {
       if (advisorId.startsWith('user-')) {
         const benef = beneficiaries.find(b => b.id === advisorId);
         if (!benef) return toast.error('Beneficiario no encontrado');
-        const roleToType = { admin:'gerente', gerente:'gerente', contador:'externo', asesor:'planta', abogado:'abogado', readonly:'externo' };
+        const roleToType = { admin:'gerente', gerente:'gerente', contador:'externo', asesor:'planta', abogado:'abogado', supervisor:'externo', readonly:'externo' };
         const res = await advisorsService.create({
           full_name:       benef.full_name, email:benef.email||null,
           advisor_type:    roleToType[benef.advisor_type]||'externo',
@@ -143,17 +157,23 @@ const NewCommissionModal = ({ onClose, onSaved }) => {
               style={{ color:'var(--color-text-primary)' }}>
               Beneficiario (asesor, gerente, abogado...) *
             </label>
-            <input type="text" value={benefSearch} onChange={e=>setBenefSearch(e.target.value)}
-              className="input text-sm mb-1.5" placeholder="🔍 Buscar por nombre o email..."/>
-            <select value={form.advisor_id}
-              onChange={e => { set('advisor_id',e.target.value); setSelectedContract(null); setContractSearch(''); }}
-              className="input text-sm"
-              size={beneficiaries.length>0&&benefSearch ? Math.min(beneficiaries.length+1,6) : 1}>
+            <input
+              type="text"
+              value={benefSearch}
+              onChange={e => setBenefSearch(e.target.value)}
+              className="input text-sm mb-1.5"
+              placeholder="🔍 Buscar por nombre o email..."
+              autoComplete="off"
+            />
+            <select
+              value={form.advisor_id}
+              onChange={e => { set('advisor_id', e.target.value); setSelectedContract(null); setContractSearch(''); }}
+              className="input text-sm">
               <option value="">Seleccionar beneficiario...</option>
               {beneficiaries.map(a => {
                 const typeLabel = {
                   planta:'Planta', freelance:'Freelance', referido:'Referido',
-                  gerente:'Gerente', abogado:'Abogado', externo:'Externo',
+                  gerente:'Gerente', abogado:'Abogado', supervisor:'Supervisor', externo:'Externo',
                   admin:'Administrador', contador:'Contador', asesor:'Asesor', readonly:'Solo lectura'
                 }[a.advisor_type]||a.advisor_type;
                 return (
@@ -187,7 +207,13 @@ const NewCommissionModal = ({ onClose, onSaved }) => {
                 ) : contracts.length === 0 ? (
                   <div className="p-3 rounded text-sm text-center"
                     style={{ background:'var(--color-bg-secondary)', color:'var(--color-text-muted)', border:'1px solid var(--color-border)' }}>
-                    {isAdvisorType ? 'Este asesor no tiene contratos activos' : 'No se encontraron contratos. Busca por número o cliente.'}
+                    {isAdvisorType
+                      ? 'Este asesor no tiene contratos activos'
+                      : isAbogado
+                      ? 'Este abogado no tiene contratos asignados'
+                      : isSupervisor
+                      ? 'Este supervisor no tiene contratos asignados'
+                      : 'No se encontraron contratos. Busca por número o cliente.'}
                   </div>
                 ) : (
                   <div>
@@ -196,9 +222,15 @@ const NewCommissionModal = ({ onClose, onSaved }) => {
                         style={{ color:'var(--color-text-muted)' }}/>
                       <input value={contractSearch} onChange={e=>setContractSearch(e.target.value)}
                         className="input pl-9 text-sm"
-                        placeholder={isAdvisorType
-                          ? `Filtrar entre ${contracts.length} contrato${contracts.length!==1?'s':''} del asesor...`
-                          : `Buscar en todos los contratos...`}/>
+                        placeholder={
+                          isAdvisorType
+                            ? `Filtrar entre ${contracts.length} contrato${contracts.length!==1?'s':''} del asesor...`
+                            : isAbogado
+                            ? `Filtrar entre ${contracts.length} contrato${contracts.length!==1?'s':''} del abogado...`
+                            : isSupervisor
+                            ? `Filtrar entre ${contracts.length} contrato${contracts.length!==1?'s':''} del supervisor...`
+                            : `Buscar en todos los contratos...`
+                        }/>
                     </div>
                     <div className="rounded overflow-hidden" style={{ border:'1px solid var(--color-border)' }}>
                       {contracts
@@ -683,15 +715,17 @@ const CommissionRow = ({ comm, canEdit, onRefresh, compact=false }) => {
 
 // ── Página principal ──────────────────────────────────────────
 const CommissionsPage = () => {
-  const { hasRole }         = useAuthStore();
+  const { hasRole, user }   = useAuthStore();
   const queryClient         = useQueryClient();
   const canEdit             = hasRole('admin','gerente','contador');
+  const isAsesor            = user?.role === 'asesor';
   const { formatCurrency }  = useCurrencyFormat();
   const [showModal,     setShowModal]     = useState(false);
   const [activeTab,     setActiveTab]     = useState('todas');
   const [filterAdvisor, setFilterAdvisor] = useState('');
   const [filterSearch,  setFilterSearch]  = useState('');
 
+  // El backend filtra automáticamente por asesor según el token (igual que contratos)
   const { data, refetch, isFetching } = useQuery({
     queryKey: ['commissions', filterAdvisor],
     queryFn:  () => commissionsService.getAll(filterAdvisor?{advisor_id:filterAdvisor}:{}),
@@ -701,7 +735,11 @@ const CommissionsPage = () => {
     queryFn:  () => commissionsService.getOverdue(),
     staleTime: 0,
   });
-  const { data:advisorsData } = useQuery({ queryKey:['advisors'], queryFn:()=>advisorsService.getAll() });
+  const { data:advisorsData } = useQuery({
+    queryKey: ['advisors'],
+    queryFn:  () => advisorsService.getAll(),
+    enabled:  !isAsesor,
+  });
 
   const advisors    = advisorsData?.data?.data || [];
   const commissions = data?.data?.data         || [];
@@ -725,10 +763,12 @@ const CommissionsPage = () => {
         <div>
           <h1 className="text-2xl font-bold"
             style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
-            Comisiones de Asesores
+            {isAsesor ? 'Mis Comisiones' : 'Comisiones de Asesores'}
           </h1>
           <p className="text-sm" style={{ color:'var(--color-text-muted)' }}>
-            Comisiones para asesores, gerentes, abogados y más
+            {isAsesor
+              ? 'Historial de tus comisiones por ventas realizadas'
+              : 'Comisiones para asesores, gerentes, abogados y más'}
           </p>
         </div>
         <div className="flex gap-2">
@@ -894,7 +934,8 @@ const CommissionsPage = () => {
             </div>
           </div>
 
-          {/* Filtro por beneficiario */}
+          {/* Filtro por beneficiario — oculto para asesores */}
+          {!isAsesor && (
           <div className="card p-4 flex items-center gap-3 flex-wrap">
             <div className="relative flex-1" style={{ minWidth:'200px', maxWidth:'350px' }}>
               <input type="text" value={filterSearch}
@@ -931,6 +972,7 @@ const CommissionsPage = () => {
               </button>
             )}
           </div>
+          )} {/* fin !isAsesor */}
 
           {/* Lista */}
           {commissions.length===0 ? (

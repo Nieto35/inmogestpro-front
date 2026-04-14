@@ -188,6 +188,15 @@ export const projectsService = {
   getAvailability: ()  => api.get('/projects/availability'),
 };
 
+export const blocksService = {
+  getAll:        (p)     => api.get('/blocks',              { params:p }),
+  getByProject:  (pid)   => api.get('/blocks',              { params:{ project_id:pid } }),
+  getById:       (id)    => api.get(`/blocks/${id}`),
+  create:        (d)     => api.post('/blocks', d),
+  update:        (id,d)  => api.put(`/blocks/${id}`, d),
+  delete:        (id)    => api.delete(`/blocks/${id}`),
+};
+
 export const propertiesService = {
   getAll:       (p)     => api.get('/properties',            { params:p }),
   getById:      (id)    => api.get(`/properties/${id}`),

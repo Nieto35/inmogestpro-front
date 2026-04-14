@@ -20,13 +20,13 @@ const NAV_ITEMS = [
   { path: 'projects',          label: 'Proyectos',      icon: Building,        roles: ['admin','gerente','contador','readonly'] },
   { path: 'properties',        label: 'Inmuebles',      icon: Home,            roles: ['admin','gerente','contador','asesor','abogado','readonly'] },
   { path: 'payments',          label: 'Pagos',          icon: CreditCard,      roles: ['admin','gerente','contador'] },
-  { path: 'interactions',      label: 'Interacciones',  icon: Phone,           roles: ['admin','gerente','contador','asesor','abogado'] },
+  { path: 'interactions',      label: 'Interacciones',  icon: Phone,           roles: ['admin','gerente','contador','abogado'] },
   { path: 'advisors',          label: 'Asesores',       icon: UserCheck,       roles: ['admin','gerente','readonly'] },
-  { path: 'commissions',       label: 'Comisiones',     icon: DollarSign,      roles: ['admin','gerente','contador'] },
+  { path: 'commissions',       label: 'Comisiones',     icon: DollarSign,      roles: ['admin','gerente','contador','asesor'] },
   { path: 'reports',           label: 'Reportes',       icon: BarChart3,       roles: ['admin','gerente','contador','readonly'] },
   { path: 'audit',             label: 'Auditoría',      icon: Shield,          roles: ['admin','gerente','abogado'] },
   { path: 'users',             label: 'Usuarios',       icon: Settings,        roles: ['admin','gerente'] },
-  { path: 'settings/currency', label: 'Moneda',         icon: Globe,           roles: ['admin','gerente'] },
+
 ];
 
 const roleLabels = {
@@ -248,7 +248,7 @@ const Layout = () => {
           {/* Actions */}
           <div className="flex items-center gap-2">
             {/* Toggle tema claro/oscuro */}
-            <button
+             {/*<button
               onClick={toggleTheme}
               title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
               className="btn btn-ghost btn-sm flex items-center gap-1.5"
@@ -263,7 +263,7 @@ const Layout = () => {
                 ? <><Sun size={14}/><span className="text-xs font-medium hidden sm:block">Claro</span></>
                 : <><Moon size={14}/><span className="text-xs font-medium hidden sm:block">Oscuro</span></>
               }
-            </button>
+            </button>*/}
 
             <NotificationBell />
 
