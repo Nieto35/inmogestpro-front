@@ -2,8 +2,9 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search, RefreshCw, Plus, Building, Edit, X, Save } from 'lucide-react';
-import { propertiesService } from '../../services/api.service';
+import { Search, RefreshCw, Plus, Building, Edit, X, Save, LayoutGrid, List, Layers } from 'lucide-react';
+import { propertiesService, projectsService, blocksService } from '../../services/api.service';
+import { useSearchParams } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import toast from 'react-hot-toast';
 
@@ -316,15 +317,46 @@ const PropertiesPage = () => {
   const canEdit         = hasRole('admin','gerente','contador');
   const canChangeStatus = hasRole('admin','gerente');
 
+  const [searchParams] = useSearchParams();
+  // Si venimos desde una manzana (ej: /properties?block_id=xxx), pre-seleccionamos
+  const [projectFilter, setProjectFilter] = useState('');
+  const [blockFilter,   setBlockFilter]   = useState(() => searchParams.get('block_id') || '');
   const [search,        setSearch]        = useState('');
   const [statusFilter,  setStatusFilter]  = useState('');
   const [purposeFilter, setPurposeFilter] = useState('');
   const [changingId,    setChangingId]    = useState(null);
   const [editTarget,    setEditTarget]    = useState(null);
+  const [viewMode,      setViewMode]      = useState(
+    () => localStorage.getItem('properties_view') || 'table'
+  );
+  const changeView = (mode) => {
+    setViewMode(mode);
+    localStorage.setItem('properties_view', mode);
+  };
+
+  // Proyectos y manzanas para los filtros en cascada
+  const { data: projData } = useQuery({
+    queryKey: ['projects'],
+    queryFn:  () => projectsService.getAll(),
+  });
+  const filterProjects = projData?.data?.data || [];
+
+  const { data: blocksData } = useQuery({
+    queryKey: ['blocks', projectFilter],
+    queryFn:  () => blocksService.getByProject(projectFilter),
+    enabled:  !!projectFilter,
+  });
+  const filterBlocks = blocksData?.data?.data || [];
+
+  // Limpiar bloque al cambiar proyecto
+  const handleProjectFilterChange = (pid) => {
+    setProjectFilter(pid);
+    setBlockFilter('');
+  };
 
   const { data, refetch, isFetching } = useQuery({
-    queryKey: ['properties', search, statusFilter],
-    queryFn:  () => propertiesService.getAll({ search, status: statusFilter }),
+    queryKey: ['properties', search, statusFilter, blockFilter],
+    queryFn:  () => propertiesService.getAll({ search, status: statusFilter, block_id: blockFilter || undefined }),
   });
 
   const allProps = data?.data?.data || [];
@@ -376,6 +408,31 @@ const PropertiesPage = () => {
           <button onClick={() => refetch()} className="btn btn-outline btn-sm">
             <RefreshCw size={14} className={isFetching ? 'animate-spin':''}/>
           </button>
+          <div className="flex rounded overflow-hidden"
+            style={{ border:'1px solid var(--color-border)' }}>
+            <button
+              onClick={() => changeView('table')}
+              title="Vista tabla"
+              style={{
+                height:'32px', width:'32px', display:'flex', alignItems:'center', justifyContent:'center',
+                background: viewMode === 'table' ? 'var(--color-navy)' : 'transparent',
+                color:      viewMode === 'table' ? 'var(--color-gold)' : 'var(--color-text-muted)',
+                border:'none', cursor:'pointer', transition:'all 0.15s',
+              }}>
+              <List size={14}/>
+            </button>
+            <button
+              onClick={() => changeView('grid')}
+              title="Vista cuadrícula"
+              style={{
+                height:'32px', width:'32px', display:'flex', alignItems:'center', justifyContent:'center',
+                background: viewMode === 'grid' ? 'var(--color-navy)' : 'transparent',
+                color:      viewMode === 'grid' ? 'var(--color-gold)' : 'var(--color-text-muted)',
+                border:'none', borderLeft:'1px solid var(--color-border)', cursor:'pointer', transition:'all 0.15s',
+              }}>
+              <LayoutGrid size={14}/>
+            </button>
+          </div>
           {canCreate && (
             <>
               <button onClick={() => navigate(to('properties/bulk'))} className="btn btn-secondary btn-sm">
@@ -390,28 +447,81 @@ const PropertiesPage = () => {
       </div>
 
       {/* Filtros */}
-      <div className="card p-4 flex gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[180px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2"
-            style={{ color:'var(--color-text-muted)' }}/>
-          <input type="text" placeholder="Buscar proyecto o unidad..."
-            value={search} onChange={e => setSearch(e.target.value)}
-            className="input pl-9 text-sm" style={{ height:'36px' }}/>
-        </div>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-          className="input text-sm" style={{ height:'36px', width:'auto' }}>
-          <option value="">Todos los estados</option>
-          {Object.entries(STATUS_CFG).map(([k,v]) =>
-            <option key={k} value={k}>{v.label}</option>
+      <div className="card p-4 space-y-3">
+        {/* Fila 1: Cascada Proyecto → Manzana */}
+        <div className="flex gap-3 flex-wrap">
+          <select value={projectFilter} onChange={e => handleProjectFilterChange(e.target.value)}
+            className="input text-sm" style={{ height:'36px', minWidth:'200px', flex:'1' }}>
+            <option value="">Todos los proyectos</option>
+            {filterProjects.map(p => (
+              <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
+            ))}
+          </select>
+
+          <select
+            value={blockFilter}
+            onChange={e => setBlockFilter(e.target.value)}
+            disabled={!projectFilter}
+            className="input text-sm"
+            style={{ height:'36px', minWidth:'200px', flex:'1', opacity: projectFilter ? 1 : 0.5 }}>
+            <option value="">
+              {projectFilter ? 'Todas las manzanas' : 'Selecciona un proyecto primero'}
+            </option>
+            {filterBlocks.map(b => (
+              <option key={b.id} value={b.id}>
+                <Layers size={12}/> {b.name}{b.code ? ` (${b.code})` : ''}
+              </option>
+            ))}
+          </select>
+
+          {(projectFilter || blockFilter) && (
+            <button
+              onClick={() => { setProjectFilter(''); setBlockFilter(''); }}
+              className="btn btn-ghost btn-sm text-xs"
+              style={{ height:'36px', color:'var(--color-text-muted)', whiteSpace:'nowrap' }}>
+              ✕ Limpiar filtro
+            </button>
           )}
-        </select>
-        <select value={purposeFilter} onChange={e => setPurposeFilter(e.target.value)}
-          className="input text-sm" style={{ height:'36px', width:'auto' }}>
-          <option value="">Venta y Arriendo</option>
-          <option value="venta">Solo Venta</option>
-          <option value="arriendo">Solo Arriendo</option>
-          <option value="venta_arriendo">Venta o Arriendo</option>
-        </select>
+        </div>
+
+        {/* Fila 2: Búsqueda + Estado + Propósito */}
+        <div className="flex gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-[180px]">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2"
+              style={{ color:'var(--color-text-muted)' }}/>
+            <input type="text" placeholder="Buscar unidad..."
+              value={search} onChange={e => setSearch(e.target.value)}
+              className="input pl-9 text-sm" style={{ height:'36px' }}/>
+          </div>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+            className="input text-sm" style={{ height:'36px', width:'auto' }}>
+            <option value="">Todos los estados</option>
+            {Object.entries(STATUS_CFG).map(([k,v]) =>
+              <option key={k} value={k}>{v.label}</option>
+            )}
+          </select>
+          <select value={purposeFilter} onChange={e => setPurposeFilter(e.target.value)}
+            className="input text-sm" style={{ height:'36px', width:'auto' }}>
+            <option value="">Venta y Arriendo</option>
+            <option value="venta">Solo Venta</option>
+            <option value="arriendo">Solo Arriendo</option>
+            <option value="venta_arriendo">Venta o Arriendo</option>
+          </select>
+        </div>
+
+        {/* Manzana activa como badge */}
+        {blockFilter && filterBlocks.length > 0 && (
+          <div className="flex items-center gap-2 text-xs"
+            style={{ color:'var(--color-navy)' }}>
+            <Layers size={12} style={{ color:'var(--color-gold)' }}/>
+            <span>
+              Filtrando por manzana:
+              <strong className="ml-1">
+                {filterBlocks.find(b => b.id === blockFilter)?.name || blockFilter}
+              </strong>
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Contenido */}
@@ -438,15 +548,15 @@ const PropertiesPage = () => {
             </button>
           )}
         </div>
-      ) : (
+      ) : viewMode === 'table' ? (
+        // ── Vista tabla ───────────────────────────────────────────
         <div className="table-container">
           <table>
             <thead>
               <tr>
                 <th>Unidad</th>
-                <th>Proyecto</th>
+                <th>Proyecto / Manzana</th>
                 <th>Tipo</th>
-                <th>Área · Hab · Baños</th>
                 <th>Propósito</th>
                 <th>Estado</th>
                 <th>Precio</th>
@@ -457,120 +567,79 @@ const PropertiesPage = () => {
             </thead>
             <tbody>
               {props.map(p => {
-                const s         = STATUS_CFG[p.status] || { label:p.status, class:'badge-pendiente', color:'var(--color-text-muted)' };
-                const purpose   = p.features?.purpose || 'venta';
-                const purpCfg   = PURPOSE_CFG[purpose] || PURPOSE_CFG.venta;
-                const canChange = canChangeStatus && CHANGE_TO[p.status]?.length > 0;
-                const paidPct   = p.contract_value > 0
+                const s               = STATUS_CFG[p.status] || { label:p.status, class:'badge-pendiente', color:'var(--color-text-muted)' };
+                const purpose         = p.features?.purpose || 'venta';
+                const purpCfg         = PURPOSE_CFG[purpose] || PURPOSE_CFG.venta;
+                const hasActiveContract = !!p.occupant_contract;
+                const canChange       = canChangeStatus && CHANGE_TO[p.status]?.length > 0;
+                const paidPct         = p.contract_value > 0
                   ? Math.min(Math.round((parseFloat(p.total_paid||0)/parseFloat(p.contract_value))*100),100)
                   : 0;
 
                 return (
                   <tr key={p.id}>
-
-                    {/* Unidad */}
                     <td>
-                      <p className="text-sm font-bold font-mono"
-                        style={{ color:'var(--color-navy)', whiteSpace:'nowrap' }}>
+                      <p className="text-sm font-bold font-mono" style={{ color:'var(--color-navy)', whiteSpace:'nowrap' }}>
                         {p.unit_number || '—'}
                       </p>
                       {p.floor_number && (
-                        <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>
-                          Piso {p.floor_number}
+                        <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>Piso {p.floor_number}</p>
+                      )}
+                    </td>
+                    <td>
+                      <p className="text-sm font-medium" style={{ color:'var(--color-navy)', whiteSpace:'nowrap' }}>
+                        {p.project_name || '—'}
+                      </p>
+                      {p.block_name && (
+                        <p className="text-xs flex items-center gap-1 mt-0.5" style={{ color:'var(--color-text-muted)' }}>
+                          <Layers size={10} style={{ color:'var(--color-gold)' }}/> {p.block_name}
                         </p>
                       )}
                     </td>
-
-                    {/* Proyecto */}
-                    <td>
-                      <p className="text-sm font-medium"
-                        style={{ color:'var(--color-navy)', whiteSpace:'nowrap' }}>
-                        {p.project_name || '—'}
-                      </p>
-                    </td>
-
-                    {/* Tipo */}
                     <td className="text-sm" style={{ color:'var(--color-text-secondary)', whiteSpace:'nowrap' }}>
                       {p.property_type || '—'}
                     </td>
-
-                    {/* Área · Hab · Baños */}
-                    <td>
-                      <span className="text-xs"
-                        style={{ color:'var(--color-text-secondary)', whiteSpace:'nowrap' }}>
-                        {p.m2_construction ? `${p.m2_construction}m²` : '—'}
-                        {' · '}
-                        {p.bedrooms ?? '—'} hab
-                        {' · '}
-                        {p.bathrooms ?? '—'} baños
-                        {p.parking_spots > 0 && ` · ${p.parking_spots} 🅿`}
-                      </span>
-                    </td>
-
-                    {/* Propósito */}
                     <td>
                       <span className="text-xs px-2 py-0.5 rounded"
                         style={{ background:purpCfg.bg, color:purpCfg.color, border:`1px solid ${purpCfg.color}25`, whiteSpace:'nowrap' }}>
                         {purpCfg.label}
                       </span>
                     </td>
-
-                    {/* Estado */}
                     <td>
                       <span className={`badge ${s.class}`}>{s.label}</span>
                     </td>
-
-                    {/* Precio */}
                     <td style={{ whiteSpace:'nowrap' }}>
-                      <p className="text-sm font-mono font-bold"
-                        style={{ color:'var(--color-navy)' }}>
+                      <p className="text-sm font-mono font-bold" style={{ color:'var(--color-navy)' }}>
                         {formatCurrency(p.base_price)}
                       </p>
                       {p.features?.rental_price && (
-                        <p className="text-xs font-mono"
-                          style={{ color:'var(--color-gold)' }}>
+                        <p className="text-xs font-mono" style={{ color:'var(--color-gold)' }}>
                           {formatCurrency(p.features.rental_price)}/mes
                         </p>
                       )}
                     </td>
-
-                    {/* Comprador / Arrendatario */}
                     <td>
                       {p.occupant_name ? (
                         <div style={{ minWidth:'120px' }}>
-                          <p className="text-sm font-medium"
-                            style={{ color:'var(--color-navy)' }}>
-                            {p.occupant_name}
-                          </p>
+                          <p className="text-sm font-medium" style={{ color:'var(--color-navy)' }}>{p.occupant_name}</p>
                           {p.occupant_contract && (
-                            <p className="text-xs font-mono"
-                              style={{ color:'var(--color-gold)' }}>
-                              {p.occupant_contract}
-                            </p>
+                            <p className="text-xs font-mono" style={{ color:'var(--color-gold)' }}>{p.occupant_contract}</p>
                           )}
                           {p.occupant_phone && (
-                            <p className="text-xs"
-                              style={{ color:'var(--color-text-muted)' }}>
-                              {p.occupant_phone}
-                            </p>
+                            <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>{p.occupant_phone}</p>
                           )}
                         </div>
                       ) : (
                         <span className="text-xs" style={{ color:'var(--color-text-muted)' }}>—</span>
                       )}
                     </td>
-
-                    {/* Avance del contrato */}
                     <td style={{ minWidth:'90px' }}>
                       {p.contract_value > 0 ? (
                         <div className="flex items-center gap-2">
                           <div className="flex-1 h-1.5 rounded-full"
                             style={{ background:'var(--color-bg-secondary)', minWidth:'50px' }}>
                             <div className="h-1.5 rounded-full transition-all"
-                              style={{
-                                width:`${paidPct}%`,
-                                background: paidPct >= 100 ? 'var(--color-gold)' : 'var(--color-navy)',
-                              }}/>
+                              style={{ width:`${paidPct}%`, background: paidPct >= 100 ? 'var(--color-gold)' : 'var(--color-navy)' }}/>
                           </div>
                           <span className="text-xs font-mono flex-shrink-0"
                             style={{ color: paidPct >= 100 ? 'var(--color-gold)' : 'var(--color-navy)' }}>
@@ -581,35 +650,153 @@ const PropertiesPage = () => {
                         <span className="text-xs" style={{ color:'var(--color-text-muted)' }}>—</span>
                       )}
                     </td>
-
-                    {/* Acciones */}
                     <td onClick={e => e.stopPropagation()}>
                       <div className="flex items-center gap-1.5 flex-wrap" style={{ minWidth:'120px' }}>
                         {canEdit && (
-                          <button
-                            onClick={() => setEditTarget(p)}
+                          <button onClick={() => setEditTarget(p)}
                             className="btn btn-outline btn-sm text-xs"
                             style={{ height:'26px', padding:'0 8px', whiteSpace:'nowrap' }}>
                             <Edit size={11}/> Editar
                           </button>
                         )}
-                        {canChange && CHANGE_TO[p.status].map(newStatus => (
-                          <StatusButton
-                            key={newStatus}
-                            newStatus={newStatus}
-                            onClick={() => handleStatusChange(p, newStatus)}
-                            disabled={changingId === p.id}
-                            loading={changingId === p.id}
-                          />
-                        ))}
+                        {canChange && CHANGE_TO[p.status]
+                          .filter(newStatus => !(newStatus === 'disponible' && hasActiveContract))
+                          .map(newStatus => (
+                            <StatusButton
+                              key={newStatus}
+                              newStatus={newStatus}
+                              onClick={() => handleStatusChange(p, newStatus)}
+                              disabled={changingId === p.id}
+                              loading={changingId === p.id}
+                            />
+                          ))}
                       </div>
                     </td>
-
                   </tr>
                 );
               })}
             </tbody>
           </table>
+        </div>
+      ) : (
+        // ── Vista cuadrícula ──────────────────────────────────────
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {props.map(p => {
+            const s               = STATUS_CFG[p.status] || { label:p.status, class:'badge-pendiente', color:'var(--color-text-muted)' };
+            const purpose         = p.features?.purpose || 'venta';
+            const purpCfg         = PURPOSE_CFG[purpose] || PURPOSE_CFG.venta;
+            const hasActiveContract = !!p.occupant_contract;
+            const canChange       = canChangeStatus && CHANGE_TO[p.status]?.length > 0;
+            const paidPct         = p.contract_value > 0
+              ? Math.min(Math.round((parseFloat(p.total_paid||0)/parseFloat(p.contract_value))*100),100)
+              : 0;
+
+            return (
+              <div key={p.id} className="card hover:shadow-lg transition-all flex flex-col gap-3"
+                style={{ borderTop:`3px solid ${s.color}` }}>
+
+                {/* Header tarjeta */}
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-bold font-mono text-sm" style={{ color:'var(--color-navy)' }}>
+                      {p.unit_number || '—'}
+                    </p>
+                    {p.floor_number && (
+                      <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>Piso {p.floor_number}</p>
+                    )}
+                  </div>
+                  <span className={`badge ${s.class}`} style={{ fontSize:'11px' }}>{s.label}</span>
+                </div>
+
+                {/* Proyecto + Manzana + Tipo */}
+                <div>
+                  <p className="text-xs font-medium" style={{ color:'var(--color-navy)' }}>
+                    {p.project_name || '—'}
+                  </p>
+                  {p.block_name && (
+                    <p className="text-xs flex items-center gap-1 mt-0.5" style={{ color:'var(--color-text-muted)' }}>
+                      <Layers size={10} style={{ color:'var(--color-gold)' }}/>{p.block_name}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs" style={{ color:'var(--color-text-muted)' }}>
+                      {p.property_type || '—'}
+                    </span>
+                    <span className="text-xs px-1.5 py-0.5 rounded"
+                      style={{ background:purpCfg.bg, color:purpCfg.color, border:`1px solid ${purpCfg.color}25` }}>
+                      {purpCfg.label}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Precio */}
+                <div>
+                  <p className="text-sm font-mono font-bold" style={{ color:'var(--color-navy)' }}>
+                    {formatCurrency(p.base_price)}
+                  </p>
+                  {p.features?.rental_price && (
+                    <p className="text-xs font-mono" style={{ color:'var(--color-gold)' }}>
+                      {formatCurrency(p.features.rental_price)}/mes
+                    </p>
+                  )}
+                </div>
+
+                {/* Comprador */}
+                {p.occupant_name ? (
+                  <div className="rounded p-2" style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)' }}>
+                    <p className="text-xs font-medium" style={{ color:'var(--color-navy)' }}>{p.occupant_name}</p>
+                    {p.occupant_contract && (
+                      <p className="text-xs font-mono" style={{ color:'var(--color-gold)' }}>{p.occupant_contract}</p>
+                    )}
+                    {p.occupant_phone && (
+                      <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>{p.occupant_phone}</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>Sin comprador asignado</p>
+                )}
+
+                {/* Avance */}
+                {p.contract_value > 0 && (
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span style={{ color:'var(--color-text-muted)' }}>Avance</span>
+                      <span style={{ color: paidPct >= 100 ? 'var(--color-gold)' : 'var(--color-navy)', fontWeight:600 }}>
+                        {paidPct}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full" style={{ background:'var(--color-bg-secondary)' }}>
+                      <div className="h-1.5 rounded-full transition-all"
+                        style={{ width:`${paidPct}%`, background: paidPct >= 100 ? 'var(--color-gold)' : 'var(--color-navy)' }}/>
+                    </div>
+                  </div>
+                )}
+
+                {/* Acciones */}
+                <div className="flex flex-col gap-1.5 pt-2" style={{ borderTop:'1px solid var(--color-border)' }}
+                  onClick={e => e.stopPropagation()}>
+                  {canEdit && (
+                    <button onClick={() => setEditTarget(p)}
+                      className="btn btn-outline btn-sm text-xs w-full"
+                      style={{ height:'28px' }}>
+                      <Edit size={11}/> Editar
+                    </button>
+                  )}
+                  {canChange && CHANGE_TO[p.status]
+                    .filter(newStatus => !(newStatus === 'disponible' && hasActiveContract))
+                    .map(newStatus => (
+                      <StatusButton
+                        key={newStatus}
+                        newStatus={newStatus}
+                        onClick={() => handleStatusChange(p, newStatus)}
+                        disabled={changingId === p.id}
+                        loading={changingId === p.id}
+                      />
+                    ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

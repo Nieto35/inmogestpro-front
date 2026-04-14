@@ -52,13 +52,12 @@ const InfoItem = ({ icon:Icon, label, value }) => (
 );
 
 const ClientDetailPage = () => {
-  const { id }       = useParams();
+  const { id, tenant } = useParams();
   const navigate     = useNavigate();
-  const { tenant } = useParams();
   const to = (path) => `/${tenant}/${path.replace(/^\//, '')}`;
   const queryClient  = useQueryClient();
   const { hasRole }  = useAuthStore();
-  const canEdit      = hasRole('admin','gerente','asesor');
+  const canEdit      = hasRole('admin','gerente');
 
   const [editing, setEditing] = useState(false);
   const [saving,  setSaving]  = useState(false);
@@ -120,7 +119,7 @@ const ClientDetailPage = () => {
     <div className="card flex flex-col items-center py-16 gap-3">
       <User size={40} style={{ color:'var(--color-text-muted)' }}/>
       <p style={{ color:'var(--color-text-secondary)' }}>Cliente no encontrado</p>
-      <button onClick={() => navigate('/clients')} className="btn btn-secondary btn-sm">
+      <button onClick={() => navigate(to('clients'))} className="btn btn-secondary btn-sm">
         <ArrowLeft size={14}/> Volver
       </button>
     </div>
@@ -132,7 +131,7 @@ const ClientDetailPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/clients')} className="btn btn-ghost btn-sm">
+          <button onClick={() => navigate(to('clients'))} className="btn btn-ghost btn-sm">
             <ArrowLeft size={16}/>
           </button>
           <div>
@@ -302,7 +301,7 @@ const ClientDetailPage = () => {
               {contracts.length}
             </span>
           </h3>
-          {hasRole('admin','gerente','asesor') && (
+          {hasRole('admin','gerente') && (
             <button onClick={() => navigate(to('contracts/new'))} className="btn btn-primary btn-sm">
               <Plus size={13}/> Nuevo Contrato
             </button>
@@ -340,7 +339,7 @@ const ClientDetailPage = () => {
                     : 0;
                   return (
                     <tr key={c.id} style={{ cursor:'pointer' }}
-                      onClick={() => navigate(`/contracts/${c.id}`)}>
+                      onClick={() => navigate(to(`contracts/${c.id}`))}>
                       <td className="font-mono text-sm" style={{ color:'var(--color-text-accent)' }}>
                         {c.contract_number}
                       </td>
@@ -382,7 +381,7 @@ const ClientDetailPage = () => {
                         </p>
                       </td>
                       <td onClick={e=>e.stopPropagation()}>
-                        <button onClick={()=>navigate(`/contracts/${c.id}`)}
+                        <button onClick={()=>navigate(to(`contracts/${c.id}`))}
                           className="btn btn-ghost btn-sm text-xs">
                           Ver →
                         </button>
@@ -423,7 +422,9 @@ const ClientEvaluation = ({ clientId, contracts, clientData }) => {
   const navigate    = useNavigate();
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
-  const { tenant }     = useParams();
+  const { tenant }  = useParams();
+  const { hasRole } = useAuthStore();
+  const canInteract = hasRole('admin','gerente','contador','abogado');
 
   const { data: intData } = useQuery({
     queryKey: ['client-interactions', clientId],
@@ -598,7 +599,7 @@ const ClientEvaluation = ({ clientId, contracts, clientData }) => {
       )}
 
       {/* Modal nueva interacción con datos prellenados */}
-      {showModal && (
+      {showModal && canInteract && (
         <NewInteractionModal
           tenant={tenant}
           preselectedClient={clientData}
@@ -620,10 +621,12 @@ const ClientEvaluation = ({ clientId, contracts, clientData }) => {
               {interactions.length}
             </span>
           </h3>
+          {canInteract && (
           <button onClick={() => setShowModal(true)}
             className="btn btn-primary btn-sm text-xs">
             <Plus size={12}/> Nueva interacción
           </button>
+          )}
         </div>
 
         {interactions.length === 0 ? (
@@ -632,10 +635,12 @@ const ClientEvaluation = ({ clientId, contracts, clientData }) => {
             <p className="text-sm" style={{ color:'var(--color-text-muted)' }}>
               Sin interacciones registradas con este cliente
             </p>
+            {canInteract && (
             <button onClick={() => setShowModal(true)}
               className="btn btn-primary btn-sm mt-3 text-xs">
               Registrar primera interacción
             </button>
+            )}
           </div>
         ) : (
           <div className="space-y-3 max-h-96 overflow-y-auto pr-1">

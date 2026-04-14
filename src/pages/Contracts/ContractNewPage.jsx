@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Save, Search, CheckCircle } from 'lucide-react';
-import { contractsService, clientsService, propertiesService, advisorsService } from '../../services/api.service';
+import { contractsService, clientsService, propertiesService, advisorsService, usersService } from '../../services/api.service';
 import { useCurrencyFormat } from '../../utils/currency';
 import toast from 'react-hot-toast';
 
@@ -101,6 +101,8 @@ const ContractNewPage = () => {
 
   const [form, setForm] = useState({
     advisor_id:         '',
+    abogado_id:         '',
+    supervisor_id:      '',
     signing_date:       new Date().toISOString().split('T')[0],
     promise_date:       '',
     delivery_date:      '',
@@ -140,6 +142,14 @@ const ContractNewPage = () => {
     queryFn:  () => advisorsService.getAll(),
   });
   const advisors = advisorsData?.data?.data || [];
+
+  const { data: usersData } = useQuery({
+    queryKey: ['users'],
+    queryFn:  () => usersService.getAll(),
+  });
+  const allUsers   = usersData?.data?.data || [];
+  const abogados   = allUsers.filter(u => u.role === 'abogado'   && u.is_active);
+  const supervisores = allUsers.filter(u => u.role === 'supervisor' && u.is_active);
 
   // Al agregar/quitar propiedad del selector múltiple
   const handleAddProp = (propId) => {
@@ -222,6 +232,8 @@ const ContractNewPage = () => {
         property_id:        selectedProp.id,
         property_ids:       selectedProps.map(p => p.id),
         advisor_id:         form.advisor_id   || null,
+        abogado_id:         form.abogado_id   || null,
+        supervisor_id:      form.supervisor_id || null,
         signing_date:       form.signing_date,
         promise_date:       form.promise_date || null,
         delivery_date:      form.delivery_date|| null,
@@ -250,6 +262,8 @@ const ContractNewPage = () => {
         property_id:        selectedProp.id,
         property_ids:       selectedProps.map(p => p.id),
         advisor_id:         form.advisor_id   || null,
+        abogado_id:         form.abogado_id   || null,
+        supervisor_id:      form.supervisor_id || null,
         signing_date:       form.signing_date,
         promise_date:       form.promise_date || null,
         delivery_date:      form.delivery_date|| null,
@@ -398,6 +412,26 @@ const ContractNewPage = () => {
               <option key={a.id} value={a.id}>
                 {a.full_name} ({a.advisor_type})
               </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Abogado">
+          <select value={form.abogado_id} onChange={e => set('abogado_id', e.target.value)}
+            className="input text-sm">
+            <option value="">Sin abogado asignado</option>
+            {abogados.map(u => (
+              <option key={u.id} value={u.id}>{u.full_name}</option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Supervisor">
+          <select value={form.supervisor_id} onChange={e => set('supervisor_id', e.target.value)}
+            className="input text-sm">
+            <option value="">Sin supervisor asignado</option>
+            {supervisores.map(u => (
+              <option key={u.id} value={u.id}>{u.full_name}</option>
             ))}
           </select>
         </Field>

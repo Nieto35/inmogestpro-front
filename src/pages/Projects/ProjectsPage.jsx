@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building, RefreshCw, Plus, Edit, X, Save, MapPin } from 'lucide-react';
+import { Building, RefreshCw, Plus, Edit, X, Save, MapPin, LayoutGrid, List, Layers } from 'lucide-react';
 import { projectsService } from '../../services/api.service';
 import useAuthStore from '../../store/authStore';
 import toast from 'react-hot-toast';
@@ -28,7 +28,8 @@ const EditProjectModal = ({ project, onClose, onSaved }) => {
     location:    project.location    || '',
     city:        project.city        || '',
     department:  project.department  || '',
-    total_units: String(project.total_units || ''),
+    total_units:  String(project.total_units  || ''),
+    total_blocks: String(project.total_blocks || ''),
     price_per_m2:String(project.price_per_m2|| ''),
   });
   const set = (k, v) => setForm(f => ({...f,[k]:v}));
@@ -46,6 +47,7 @@ const EditProjectModal = ({ project, onClose, onSaved }) => {
         city:         form.city,
         department:   form.department   || null,
         total_units:  form.total_units  ? parseInt(form.total_units)    : null,
+        total_blocks: form.total_blocks ? parseInt(form.total_blocks)    : null,
         price_per_m2: form.price_per_m2 ? parseFloat(form.price_per_m2) : null,
       });
       toast.success(`Proyecto "${form.name}" actualizado`);
@@ -105,8 +107,14 @@ const EditProjectModal = ({ project, onClose, onSaved }) => {
                   className="input text-sm w-full" placeholder="Av. 6N # 23-45"/>
               </Field>
             </div>
+            <Field label="Nº de manzanas / edificios"
+              hint="Cuántas manzanas o edificios tendrá este proyecto">
+              <input type="number" value={form.total_blocks}
+                onChange={e => set('total_blocks', e.target.value)}
+                className="input text-sm" min="1" placeholder="5"/>
+            </Field>
             <Field label="Total de unidades"
-              hint="Tope máximo de inmuebles que puede tener este proyecto">
+              hint="Tope máximo de inmuebles en todo el proyecto">
               <input type="number" value={form.total_units}
                 onChange={e => set('total_units', e.target.value)}
                 className="input text-sm" min="1" placeholder="50"/>
@@ -150,7 +158,13 @@ const ProjectsPage = () => {
   const canEdit     = hasRole('admin','gerente');
 
   const [editTarget, setEditTarget] = useState(null);
-
+  const [viewMode, setViewMode] = useState(
+    () => localStorage.getItem('projects_view') || 'list'
+  );
+  const changeView = (mode) => {
+    setViewMode(mode);
+    localStorage.setItem('projects_view', mode);
+  };
   const { data, refetch, isFetching } = useQuery({
     queryKey: ['projects'],
     queryFn:  () => projectsService.getAll(),
@@ -188,6 +202,31 @@ const ProjectsPage = () => {
           <button onClick={() => refetch()} className="btn btn-outline btn-sm">
             <RefreshCw size={14} className={isFetching ? 'animate-spin':''}/>
           </button>
+          <div className="flex rounded overflow-hidden"
+            style={{ border:'1px solid var(--color-border)' }}>
+            <button
+              onClick={() => changeView('grid')}
+              title="Vista cuadrícula"
+              style={{
+                height:'32px', width:'32px', display:'flex', alignItems:'center', justifyContent:'center',
+                background: viewMode === 'grid' ? 'var(--color-navy)' : 'transparent',
+                color:      viewMode === 'grid' ? 'var(--color-gold)' : 'var(--color-text-muted)',
+                border:'none', cursor:'pointer', transition:'all 0.15s',
+              }}>
+              <LayoutGrid size={14}/>
+            </button>
+            <button
+              onClick={() => changeView('list')}
+              title="Vista lista"
+              style={{
+                height:'32px', width:'32px', display:'flex', alignItems:'center', justifyContent:'center',
+                background: viewMode === 'list' ? 'var(--color-navy)' : 'transparent',
+                color:      viewMode === 'list' ? 'var(--color-gold)' : 'var(--color-text-muted)',
+                border:'none', borderLeft:'1px solid var(--color-border)', cursor:'pointer', transition:'all 0.15s',
+              }}>
+              <List size={14}/>
+            </button>
+          </div>
           {canCreate && (
             <button onClick={() => navigate(to('projects/new'))} className="btn btn-primary btn-sm">
               <Plus size={14}/> Nuevo Proyecto
@@ -215,7 +254,9 @@ const ProjectsPage = () => {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className={viewMode === 'grid'
+          ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'
+          : 'flex flex-col gap-2'}>
           {projects.map(p => {
             const total    = parseInt(p.total_units)     || 0;
             const props    = parseInt(p.total_properties)|| 0;
@@ -225,7 +266,8 @@ const ProjectsPage = () => {
             const sold     = promised + deeded;
             const pct      = props > 0 ? Math.round((sold/props)*100) : 0;
 
-            return (
+            return viewMode === 'grid' ? (
+              // ── Vista cuadrícula (tarjeta original) ──────────────
               <div key={p.id} className="card hover:shadow-lg transition-all"
                 style={{ borderTop:'3px solid var(--color-gold)' }}>
 
@@ -255,7 +297,18 @@ const ProjectsPage = () => {
                   </p>
                 )}
 
-                {/* Stats — colores semánticos ajustados */}
+                {/* Manzanas badge */}
+                {p.total_blocks > 0 && (
+                  <div className="flex items-center gap-1.5 mb-2 text-xs"
+                    style={{ color:'var(--color-text-muted)' }}>
+                    <Layers size={11} style={{ color:'var(--color-gold)' }}/>
+                    <span>
+                      {p.created_blocks || 0} de {p.total_blocks} manzana{p.total_blocks!==1?'s':''} creada{p.total_blocks!==1?'s':''}
+                    </span>
+                  </div>
+                )}
+
+                {/* Stats */}
                 <div className="grid grid-cols-4 gap-1.5 text-xs text-center mb-3">
                   {[
                     [avail,         'Disp.',     'var(--color-success)',  'var(--color-success-bg)'],
@@ -271,7 +324,7 @@ const ProjectsPage = () => {
                   ))}
                 </div>
 
-                {/* Progreso — barra dorada */}
+                {/* Progreso */}
                 <div className="mb-3">
                   <div className="flex justify-between text-xs mb-1">
                     <span style={{ color:'var(--color-text-muted)' }}>
@@ -299,9 +352,86 @@ const ProjectsPage = () => {
                 {/* Botones */}
                 <div className="flex gap-2 pt-3"
                   style={{ borderTop:'1px solid var(--color-border)' }}>
-                  <button onClick={() => navigate(to('properties'))}
+                  <button onClick={() => navigate(to('blocks'))}
                     className="btn btn-outline btn-sm flex-1 text-xs">
-                    Ver inmuebles
+                    <Layers size={12}/> Ver manzanas
+                  </button>
+                  {canEdit && (
+                    <button onClick={() => setEditTarget(p)}
+                      className="btn btn-secondary btn-sm text-xs">
+                      <Edit size={12}/> Editar
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              // ── Vista lista (fila compacta) ───────────────────────
+              <div key={p.id} className="card hover:shadow-md transition-all"
+                style={{
+                  borderLeft:'3px solid var(--color-gold)',
+                  padding:'12px 16px',
+                  display:'flex',
+                  alignItems:'center',
+                  gap:'16px',
+                }}>
+
+                {/* Icono */}
+                <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center"
+                  style={{ background:'var(--color-navy)', border:'1.5px solid var(--color-gold)' }}>
+                  <Building size={14} style={{ color:'var(--color-gold)' }}/>
+                </div>
+
+                {/* Código + Nombre + Ciudad */}
+                <div style={{ minWidth:'160px', flex:'1' }}>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs px-1.5 py-0.5 rounded"
+                      style={{ background:'var(--color-bg-secondary)', color:'var(--color-text-muted)', border:'1px solid var(--color-border)' }}>
+                      {p.code}
+                    </span>
+                    <p className="font-semibold text-sm" style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
+                      {p.name}
+                    </p>
+                  </div>
+                  {p.city && (
+                    <p className="text-xs flex items-center gap-1 mt-0.5"
+                      style={{ color:'var(--color-text-muted)' }}>
+                      <MapPin size={9}/> {p.city}{p.department ? `, ${p.department}` : ''}
+                    </p>
+                  )}
+                </div>
+
+                {/* Stats inline */}
+                <div className="hidden sm:flex items-center gap-3 text-xs flex-shrink-0">
+                  {[
+                    [avail,         'Disp.',     'var(--color-success)'],
+                    [p.reserved||0, 'Reserv.',   'var(--color-warning)'],
+                    [promised,      'Promet.',   'var(--color-gold)'],
+                    [deeded,        'Escritur.', 'var(--color-navy)'],
+                  ].map(([val, lbl, color]) => (
+                    <div key={lbl} className="text-center" style={{ minWidth:'38px' }}>
+                      <p className="font-bold" style={{ color }}>{val}</p>
+                      <p style={{ color:'var(--color-text-muted)', fontSize:'10px' }}>{lbl}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Barra progreso */}
+                <div className="hidden md:flex flex-col gap-1 flex-shrink-0" style={{ width:'100px' }}>
+                  <div className="flex justify-between text-xs">
+                    <span style={{ color:'var(--color-text-muted)' }}>{props} uds.</span>
+                    <span style={{ color:'var(--color-gold)', fontWeight:600 }}>{pct}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full" style={{ background:'var(--color-bg-secondary)' }}>
+                    <div className="h-1.5 rounded-full transition-all"
+                      style={{ width:`${pct}%`, background:'var(--color-gold)' }}/>
+                  </div>
+                </div>
+
+                {/* Acciones */}
+                <div className="flex gap-2 flex-shrink-0">
+                  <button onClick={() => navigate(to('blocks'))}
+                    className="btn btn-outline btn-sm text-xs">
+                    <Layers size={12}/> Ver manzanas
                   </button>
                   {canEdit && (
                     <button onClick={() => setEditTarget(p)}
