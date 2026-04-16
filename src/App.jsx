@@ -22,6 +22,8 @@ const ClientNewPage          = lazy(() => import('./pages/Clients/ClientNewPage'
 const ClientInteractionsPage = lazy(() => import('./pages/Clients/ClientInteractionsPage'));
 const ProjectsPage           = lazy(() => import('./pages/Projects/ProjectsPage'));
 const ProjectNewPage         = lazy(() => import('./pages/Projects/ProjectNewPage'));
+const BlocksPage             = lazy(() => import('./pages/Blocks/BlocksPage'));
+const BlockNewPage           = lazy(() => import('./pages/Blocks/BlockNewPage'));
 const PropertiesPage         = lazy(() => import('./pages/Properties/PropertiesPage'));
 const PropertyNewPage        = lazy(() => import('./pages/Properties/PropertyNewPage'));
 const PropertyBulkPage       = lazy(() => import('./pages/Properties/PropertyBulkPage'));
@@ -108,6 +110,10 @@ const App = () => (
             {/* Proyectos */}
             <Route path="projects"     element={<ProtectedRoute roles={['gerente','contador','readonly','abogado','supervisor']}><S><ProjectsPage/></S></ProtectedRoute>}/>
             <Route path="projects/new" element={<ProtectedRoute roles={['gerente']}><S><ProjectNewPage/></S></ProtectedRoute>}/>
+
+            {/* Manzanas / Edificios */}
+            <Route path="blocks"     element={<ProtectedRoute roles={['gerente','contador','readonly']}><S><BlocksPage/></S></ProtectedRoute>}/>
+            <Route path="blocks/new" element={<ProtectedRoute roles={['gerente','contador']}><S><BlockNewPage/></S></ProtectedRoute>}/>
 
             {/* Inmuebles */}
             <Route path="properties"      element={<S><PropertiesPage/></S>}/>

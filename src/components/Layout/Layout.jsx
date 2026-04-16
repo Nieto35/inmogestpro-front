@@ -7,7 +7,7 @@ import {
   CreditCard, UserCheck, BarChart3, Shield, Settings,
   LogOut, Menu, X, ChevronDown, Building,
   ClipboardList, AlertTriangle, Phone, DollarSign,
-  Sun, Moon, Globe,
+  Sun, Moon, Globe, Layers,
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import NotificationBell from '../UI/NotificationBell';
@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { path: 'contracts',         label: 'Contratos',      icon: FileText,        roles: ['admin','gerente','contador','asesor','abogado','readonly'] },
   { path: 'clients',           label: 'Clientes',       icon: Users,           roles: ['admin','gerente','contador','asesor','abogado','readonly'] },
   { path: 'projects',          label: 'Proyectos',      icon: Building,        roles: ['admin','gerente','contador','readonly'] },
+  { path: 'blocks',            label: 'Manzanas',       icon: Layers,          roles: ['admin','gerente','contador','readonly'] },
   { path: 'properties',        label: 'Inmuebles',      icon: Home,            roles: ['admin','gerente','contador','asesor','abogado','readonly'] },
   { path: 'payments',          label: 'Pagos',          icon: CreditCard,      roles: ['admin','gerente','contador'] },
   { path: 'interactions',      label: 'Interacciones',  icon: Phone,           roles: ['admin','gerente','contador','abogado'] },
