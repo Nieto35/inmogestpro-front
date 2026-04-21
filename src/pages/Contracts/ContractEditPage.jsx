@@ -242,7 +242,15 @@ const ContractEditPage = () => {
           <div>
             <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>Inmueble</p>
             <p className="font-medium" style={{ color:'var(--color-text-primary)' }}>
-              {contract?.project_name} · Unidad {contract?.property_unit}
+              {contract?.project_name}
+              {contract?.block_name && (
+                <span className="mx-1" style={{ color:'var(--color-text-muted)' }}>·</span>
+              )}
+              {contract?.block_name && (
+                <span style={{ color:'#c084fc' }}>{contract.block_name}</span>
+              )}
+              <span className="mx-1" style={{ color:'var(--color-text-muted)' }}>·</span>
+              Unidad {contract?.property_unit}
             </p>
           </div>
           <div>
@@ -382,8 +390,8 @@ const ContractEditPage = () => {
             onChange={e => set('bank_credit_number', e.target.value)}
             className="input text-sm" placeholder="CRE-12345"/>
         </Field>
-        <Field label="Tasa de interés mensual (%)"
-          hint="Solo informativo — no afecta el cálculo de cuotas automáticamente">
+        <Field label="Tasa del crédito bancario — referencia (%)"
+          hint="Solo se guarda como referencia del crédito aprobado por el banco. No afecta el cálculo de las cuotas, ya que el banco es quien cobra los intereses directamente al cliente.">
           <input type="number" value={form.interest_rate}
             onChange={e => set('interest_rate', e.target.value)}
             className="input text-sm" min="0" max="5" step="0.01" placeholder="1.2"/>
