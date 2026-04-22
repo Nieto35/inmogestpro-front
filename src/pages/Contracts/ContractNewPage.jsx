@@ -1,5 +1,5 @@
 // src/pages/Contracts/ContractNewPage.jsx
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Save, Search, CheckCircle } from 'lucide-react';
@@ -99,6 +99,10 @@ const ContractNewPage = () => {
   const [selectedProps,  setSelProps] = useState([]); // array de inmuebles
   const selectedProp = selectedProps[0] || null; // backward compat
 
+  // ── Estado de los filtros en cascada ───────────────────────
+  const [filterProjectId, setFilterProjectId] = useState('');
+  const [filterBlockId,   setFilterBlockId]   = useState('');
+
   const [form, setForm] = useState({
     advisor_id:         '',
     abogado_id:         '',
@@ -130,12 +134,49 @@ const ContractNewPage = () => {
   const { formatCurrency } = useCurrencyFormat();
   const isArriendo = form.payment_type === 'arriendo' || form.contract_type === 'arriendo';
 
-  // Datos de BD
+  // ── Datos: inmuebles disponibles (trae todos con project_id, block_id, project_name, block_name) ──
   const { data: propsData } = useQuery({
     queryKey: ['properties-available'],
     queryFn:  () => propertiesService.getAll({ status:'disponible' }),
   });
   const availableProps = propsData?.data?.data || [];
+
+  // ── Derivar lista de proyectos únicos desde los inmuebles disponibles ──
+  // (así solo mostramos proyectos que efectivamente TIENEN inmuebles disponibles)
+  const projectOptions = useMemo(() => {
+    const map = new Map();
+    for (const p of availableProps) {
+      if (!p.project_id) continue;
+      if (!map.has(p.project_id)) {
+        map.set(p.project_id, { id: p.project_id, name: p.project_name || 'Sin nombre' });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [availableProps]);
+
+  // ── Derivar manzanas del proyecto seleccionado ──
+  const blockOptions = useMemo(() => {
+    if (!filterProjectId) return [];
+    const map = new Map();
+    for (const p of availableProps) {
+      if (p.project_id !== filterProjectId) continue;
+      if (!p.block_id) continue; // ignora inmuebles sin manzana
+      if (!map.has(p.block_id)) {
+        map.set(p.block_id, { id: p.block_id, name: p.block_name || 'Sin manzana' });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [availableProps, filterProjectId]);
+
+  // ── Inmuebles filtrados por proyecto + manzana, excluyendo los ya seleccionados ──
+  const filteredProps = useMemo(() => {
+    if (!filterProjectId || !filterBlockId) return [];
+    return availableProps.filter(p =>
+      p.project_id === filterProjectId &&
+      p.block_id   === filterBlockId &&
+      !selectedProps.find(sp => sp.id === p.id)
+    );
+  }, [availableProps, filterProjectId, filterBlockId, selectedProps]);
 
   const { data: advisorsData } = useQuery({
     queryKey: ['advisors'],
@@ -151,7 +192,7 @@ const ContractNewPage = () => {
   const abogados   = allUsers.filter(u => u.role === 'abogado'   && u.is_active);
   const supervisores = allUsers.filter(u => u.role === 'supervisor' && u.is_active);
 
-  // Al agregar/quitar propiedad del selector múltiple
+  // Al agregar/quitar propiedad
   const handleAddProp = (propId) => {
     if (!propId || selectedProps.find(p => p.id === propId)) return;
     const prop = availableProps.find(p => p.id === propId);
@@ -170,11 +211,14 @@ const ContractNewPage = () => {
     set('total_value', total > 0 ? String(total) : '');
   };
 
-  // Compatibilidad con selector simple (primer inmueble)
-  const handlePropChange = (e) => {
-    const id   = e.target.value;
-    if (!id) return;
-    handleAddProp(id);
+  // ── Handlers de los filtros en cascada ──
+  const handleProjectChange = (projectId) => {
+    setFilterProjectId(projectId);
+    setFilterBlockId(''); // resetear manzana al cambiar proyecto
+  };
+
+  const handleBlockChange = (blockId) => {
+    setFilterBlockId(blockId);
   };
 
   // Calcular cuota venta
@@ -333,31 +377,86 @@ const ContractNewPage = () => {
 
       {/* 2. Inmuebles y Asesor */}
       <Section num="2" title="Inmuebles y Asesor">
-        <Field label="Agregar inmueble(s)" required
-          hint="Puedes agregar uno o varios inmuebles al mismo contrato. El valor total se calcula automáticamente.">
-          <select
-            value=""
-            onChange={e => handleAddProp(e.target.value)}
-            className="input text-sm">
-            <option value="">+ Seleccionar inmueble para agregar...</option>
-            {availableProps
-              .filter(p => !selectedProps.find(sp => sp.id === p.id))
-              .map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.project_name} · Unidad {p.unit_number} · {p.property_type} · {formatCurrency(p.base_price)}
+
+        {/* ─── FILTROS EN CASCADA: Proyecto → Manzana → Inmueble ─── */}
+        <div className="md:col-span-2 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wide"
+            style={{ color:'var(--color-text-muted)' }}>
+            Agregar inmueble(s) <span className="text-red-400">*</span>
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Filtro 1: Proyecto */}
+            <Field label="Proyecto">
+              <select
+                value={filterProjectId}
+                onChange={e => handleProjectChange(e.target.value)}
+                className="input text-sm">
+                <option value="">Seleccionar proyecto...</option>
+                {projectOptions.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </Field>
+
+            {/* Filtro 2: Manzana (depende del proyecto) */}
+            <Field label="Manzana">
+              <select
+                value={filterBlockId}
+                onChange={e => handleBlockChange(e.target.value)}
+                disabled={!filterProjectId}
+                className="input text-sm"
+                style={!filterProjectId ? { opacity: 0.5, cursor: 'not-allowed' } : {}}>
+                <option value="">
+                  {!filterProjectId
+                    ? 'Primero elige un proyecto'
+                    : blockOptions.length === 0
+                      ? 'No hay manzanas disponibles'
+                      : 'Seleccionar manzana...'}
                 </option>
-              ))
-            }
-          </select>
-        </Field>
+                {blockOptions.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </Field>
+
+            {/* Filtro 3: Inmueble (depende de la manzana) */}
+            <Field label="Inmueble">
+              <select
+                value=""
+                onChange={e => handleAddProp(e.target.value)}
+                disabled={!filterBlockId}
+                className="input text-sm"
+                style={!filterBlockId ? { opacity: 0.5, cursor: 'not-allowed' } : {}}>
+                <option value="">
+                  {!filterBlockId
+                    ? 'Primero elige una manzana'
+                    : filteredProps.length === 0
+                      ? 'No hay inmuebles disponibles'
+                      : '+ Agregar inmueble...'}
+                </option>
+                {filteredProps.map(p => (
+                  <option key={p.id} value={p.id}>
+                    Unidad {p.unit_number} · {p.property_type} · {formatCurrency(p.base_price)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>
+            Puedes agregar uno o varios inmuebles al mismo contrato.
+            El valor total se calcula automáticamente.
+          </p>
+        </div>
 
         {/* Inmuebles seleccionados */}
         {selectedProps.length > 0 && (
-          <div className="space-y-2">
+          <div className="md:col-span-2 space-y-2">
             <p className="text-xs font-semibold" style={{ color:'var(--color-text-muted)' }}>
               {selectedProps.length} inmueble{selectedProps.length !== 1 ? 's' : ''} seleccionado{selectedProps.length !== 1 ? 's' : ''}:
             </p>
-            {selectedProps.map((p, i) => (
+            {selectedProps.map((p) => (
               <div key={p.id}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
                 style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)' }}>
@@ -366,6 +465,12 @@ const ContractNewPage = () => {
                     <span className="text-xs font-semibold" style={{ color:'var(--color-text-primary)' }}>
                       {p.project_name}
                     </span>
+                    {p.block_name && (
+                      <span className="text-xs px-1.5 py-0.5 rounded font-mono"
+                        style={{ background:'rgba(168,85,247,0.1)', color:'#c084fc' }}>
+                        {p.block_name}
+                      </span>
+                    )}
                     <span className="text-xs px-1.5 py-0.5 rounded font-mono"
                       style={{ background:'rgba(59,130,246,0.1)', color:'#60a5fa' }}>
                       Unidad {p.unit_number}
@@ -651,8 +756,8 @@ const ContractNewPage = () => {
               onChange={e => set('bank_credit_number', e.target.value)}
               className="input text-sm" placeholder="CRE-123456"/>
           </Field>
-          <Field label="Tasa de interés mensual (%)"
-            hint="Solo informativo — referencia del crédito bancario">
+          <Field label="Tasa del crédito bancario — referencia (%)"
+            hint="Solo se guarda como referencia del crédito aprobado por el banco. No afecta el cálculo de las cuotas, ya que el banco es quien cobra los intereses directamente al cliente.">
             <input type="number" value={form.interest_rate}
               onChange={e => set('interest_rate', e.target.value)}
               className="input text-sm" placeholder="1.2" step="0.01" min="0" max="10"/>

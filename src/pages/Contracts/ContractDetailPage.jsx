@@ -1,5 +1,5 @@
 // src/pages/Contracts/ContractDetailPage.jsx
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -7,7 +7,7 @@ import {
   Calendar, DollarSign, CheckCircle, Clock, AlertTriangle,
   RefreshCw, Plus, X, Save, Paperclip, Info, Upload, ExternalLink, Edit, Download
 } from 'lucide-react';
-import { contractsService, usersService } from '../../services/api.service';
+import { contractsService, usersService, configService } from '../../services/api.service';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
@@ -547,6 +547,259 @@ const MilestonesPanel = ({ contractId, tenant, deliveryDate, canEdit, onRefresh,
   );
 };
 
+
+// ── Modal de exportación de Plan de Cuotas ────────────────────
+const ExportScheduleModal = ({
+  open, onClose, onExport, allUsers, contract, isLoading,
+}) => {
+  // Datos de empresa que vienen del backend (solo lectura)
+  const [company, setCompany] = useState(null);
+  const [loadingCompany, setLoadingCompany] = useState(false);
+
+  // Datos del firmante
+  const [signerRole, setSignerRole] = useState('gerente');
+  const [signerId,   setSignerId]   = useState('');
+  const [signerDoc,  setSignerDoc]  = useState('');
+
+  // Cargar datos de empresa desde /config al abrir el modal
+  useEffect(() => {
+    if (!open) return;
+    setLoadingCompany(true);
+    configService.get()
+      .then(res => {
+        setCompany(res.data?.data?.config || {});
+      })
+      .catch(() => {
+        setCompany({});
+      })
+      .finally(() => setLoadingCompany(false));
+  }, [open]);
+
+  // Filtrar usuarios por rol
+  const usersOfRole = useMemo(() => {
+    if (!signerRole) return [];
+    return (allUsers || []).filter(u => u.role === signerRole && u.is_active);
+  }, [allUsers, signerRole]);
+
+  // Al cambiar de rol, resetear el usuario seleccionado
+  useEffect(() => {
+    setSignerId('');
+    setSignerDoc('');
+  }, [signerRole]);
+
+  // Al seleccionar un usuario, auto-llenar documento si viene en sus datos
+  const selectedUser = useMemo(
+    () => usersOfRole.find(u => String(u.id) === String(signerId)),
+    [usersOfRole, signerId]
+  );
+  useEffect(() => {
+    if (selectedUser) {
+      setSignerDoc(
+        selectedUser.document_number || selectedUser.identification || selectedUser.cedula || ''
+      );
+    }
+  }, [selectedUser]);
+
+  if (!open) return null;
+
+  const handleExport = () => {
+    if (!signerId) {
+      return toast.error('Selecciona el usuario que firma por la empresa');
+    }
+    onExport({
+      company: company || {},
+      signer: {
+        role:     signerRole,
+        id:       signerId,
+        name:     selectedUser?.full_name || '',
+        document: signerDoc || '',
+      },
+    });
+  };
+
+  const ROLE_LABELS = {
+    admin:      'Administrador',
+    gerente:    'Gerente',
+    contador:   'Contador',
+    supervisor: 'Supervisor',
+    asesor:     'Asesor',
+    abogado:    'Abogado',
+  };
+
+  // Línea de info de la empresa para el preview
+  const companyInfoLine = company ? [
+    company.company_nit     && `NIT ${company.company_nit}`,
+    company.company_city,
+    company.company_phone,
+  ].filter(Boolean).join(' · ') : '';
+
+  // Nombre limpio de empresa (ignora residuos del backend viejo)
+  const MODAL_RESIDUOS = ['Mi Inmobiliaria', 'mi inmobiliaria', '—'];
+  const rawName = (company?.company_name || '').toString().trim();
+  const displayCompanyName = (!rawName || MODAL_RESIDUOS.includes(rawName))
+    ? (company?.company_slug || '')
+    : rawName;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background:'rgba(0,0,0,0.6)' }}
+      onClick={onClose}>
+      <div className="w-full max-w-lg rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto"
+        style={{ background:'var(--color-bg-primary)', border:'1px solid var(--color-border)' }}
+        onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="px-5 py-4 flex items-center justify-between sticky top-0"
+          style={{ background:'var(--color-bg-primary)', borderBottom:'1px solid var(--color-border)' }}>
+          <div className="flex items-center gap-2">
+            <Download size={16} style={{ color:'var(--color-text-accent)' }}/>
+            <h3 className="font-semibold text-sm" style={{ color:'var(--color-text-primary)' }}>
+              Exportar Plan de Cuotas
+            </h3>
+          </div>
+          <button onClick={onClose} className="btn btn-ghost btn-sm">
+            <X size={14}/>
+          </button>
+        </div>
+
+        <div className="p-5 space-y-5">
+
+          {/* Aviso */}
+          <div className="flex items-start gap-2 p-3 rounded-lg text-xs"
+            style={{ background:'rgba(59,130,246,0.06)', border:'1px solid rgba(59,130,246,0.2)' }}>
+            <Info size={13} className="flex-shrink-0 mt-0.5" style={{ color:'#60a5fa' }}/>
+            <p style={{ color:'var(--color-text-secondary)' }}>
+              El Excel incluirá el encabezado con los datos de la empresa y un espacio para
+              firmas al final del plan de cuotas.
+            </p>
+          </div>
+
+          {/* Preview datos empresa (solo lectura — vienen del registro) */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-2"
+              style={{ color:'var(--color-text-muted)' }}>
+              Datos de la empresa
+            </p>
+            {loadingCompany ? (
+              <div className="flex items-center gap-2 px-3 py-3 rounded-lg text-xs"
+                style={{ background:'var(--color-bg-secondary)', color:'var(--color-text-muted)' }}>
+                <RefreshCw size={12} className="animate-spin"/>
+                Cargando datos de la empresa...
+              </div>
+            ) : (
+              <div className="px-3 py-3 rounded-lg space-y-1"
+                style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)' }}>
+                <p className="text-sm font-semibold" style={{ color:'var(--color-text-primary)' }}>
+                  {displayCompanyName || (
+                    <span className="italic" style={{ color:'var(--color-text-muted)' }}>
+                      Sin nombre configurado
+                    </span>
+                  )}
+                </p>
+                {companyInfoLine && (
+                  <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>
+                    {companyInfoLine}
+                  </p>
+                )}
+                {!companyInfoLine && (
+                  <p className="text-xs italic" style={{ color:'var(--color-text-muted)' }}>
+                    Sin NIT, ciudad ni teléfono registrados
+                  </p>
+                )}
+                <p className="text-xs pt-1" style={{ color:'var(--color-text-muted)', fontStyle:'italic' }}>
+                  Para actualizar estos datos, contacta al administrador del sistema.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Firmante */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-3"
+              style={{ color:'var(--color-text-muted)' }}>
+              Firmante por la empresa
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs mb-1" style={{ color:'var(--color-text-secondary)' }}>
+                  Rol <span className="text-red-400">*</span>
+                </label>
+                <select value={signerRole}
+                  onChange={e => setSignerRole(e.target.value)}
+                  className="input text-sm w-full">
+                  {Object.entries(ROLE_LABELS).map(([v, l]) => (
+                    <option key={v} value={v}>{l}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs mb-1" style={{ color:'var(--color-text-secondary)' }}>
+                  Usuario <span className="text-red-400">*</span>
+                </label>
+                <select value={signerId}
+                  onChange={e => setSignerId(e.target.value)}
+                  className="input text-sm w-full">
+                  <option value="">
+                    {usersOfRole.length === 0
+                      ? `Sin usuarios con rol "${ROLE_LABELS[signerRole]}"`
+                      : 'Seleccionar...'}
+                  </option>
+                  {usersOfRole.map(u => (
+                    <option key={u.id} value={u.id}>{u.full_name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs mb-1" style={{ color:'var(--color-text-secondary)' }}>
+                  Documento de identidad del firmante
+                  <span className="ml-1 text-xs font-normal" style={{ color:'var(--color-text-muted)' }}>
+                    (opcional — se detecta del usuario si existe)
+                  </span>
+                </label>
+                <input type="text" value={signerDoc}
+                  onChange={e => setSignerDoc(e.target.value)}
+                  className="input text-sm w-full" placeholder="CC 1.000.000"/>
+              </div>
+            </div>
+          </div>
+
+          {/* Preview de quién firma por el cliente */}
+          {contract && (
+            <div className="p-3 rounded-lg text-xs"
+              style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)' }}>
+              <p className="font-semibold mb-1" style={{ color:'var(--color-text-muted)' }}>
+                Por el cliente firmará:
+              </p>
+              <p style={{ color:'var(--color-text-primary)' }}>
+                {contract.client_name}
+                {contract.document_number && (
+                  <span className="ml-2" style={{ color:'var(--color-text-muted)' }}>
+                    · {contract.document_type || 'CC'} {contract.document_number}
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
+
+        </div>
+
+        {/* Botones */}
+        <div className="px-5 py-4 flex justify-end gap-2 sticky bottom-0"
+          style={{ background:'var(--color-bg-primary)', borderTop:'1px solid var(--color-border)' }}>
+          <button onClick={onClose} className="btn btn-secondary btn-sm">
+            Cancelar
+          </button>
+          <button onClick={handleExport} disabled={isLoading || loadingCompany}
+            className="btn btn-primary btn-sm">
+            <Download size={13}/> {isLoading ? 'Generando...' : 'Generar Excel'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 // ── Página principal ──────────────────────────────────────────
 
 
@@ -560,7 +813,8 @@ const ContractDetailPage = () => {
   const canPay         = hasRole('admin','gerente','contador');
   const canUpload      = hasRole('admin','gerente','contador','asesor');
   const isAsesor       = user?.role === 'asesor';
-  const [showPayModal, setShowPayModal] = useState(false);
+  const [showPayModal, setShowPayModal]       = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['contract', id],
@@ -595,6 +849,215 @@ const ContractDetailPage = () => {
     queryClient.invalidateQueries({ queryKey:['payments'] });
     queryClient.invalidateQueries({ queryKey:['dashboard-kpis'] });
     refetch();
+  };
+
+  // ── Exportar Plan de Cuotas a Excel con encabezado + firmas ─
+  const handleExport = ({ company, signer }) => {
+    try {
+      const wb = XLSX.utils.book_new();
+
+      // ─────────────────────────────────────────────────────
+      // HOJA 1: Plan de Cuotas con encabezado y firmas
+      // ─────────────────────────────────────────────────────
+      const rows = [];
+      const merges = [];
+      const NCOLS = 7; // columnas totales (#, Vencimiento, Monto, Estado, Abonado, Saldo, Fecha Pago)
+
+      // ── Encabezado: empresa ──
+      // Limpiar posibles residuos del backend viejo
+      const RESIDUOS_EMPRESA = ['Mi Inmobiliaria', 'mi inmobiliaria', '—'];
+      const rawCompanyName = (company.company_name || '').toString().trim();
+      const companyName = (!rawCompanyName || RESIDUOS_EMPRESA.includes(rawCompanyName))
+        ? (company.company_slug || 'Empresa')
+        : rawCompanyName;
+
+      rows.push([companyName, '', '', '', '', '', '']);
+      merges.push({ s:{r:0,c:0}, e:{r:0,c:NCOLS-1} });
+
+      const infoLinea = [
+        company.company_nit     && `NIT ${company.company_nit}`,
+        company.company_city,
+        company.company_phone,
+        company.company_email,
+      ].filter(Boolean).join(' · ');
+      rows.push([infoLinea, '', '', '', '', '', '']);
+      merges.push({ s:{r:1,c:0}, e:{r:1,c:NCOLS-1} });
+
+      rows.push(['', '', '', '', '', '', '']); // línea en blanco
+
+      // ── Datos del contrato ──
+      rows.push([`CONTRATO N° ${contract.contract_number || ''}`, '', '', '', '', '', '']);
+      merges.push({ s:{r:3,c:0}, e:{r:3,c:NCOLS-1} });
+
+      const clienteLinea = contract.client_name +
+        (contract.document_number ? ` · ${contract.document_type || 'CC'} ${contract.document_number}` : '');
+      rows.push([`Cliente: ${clienteLinea}`, '', '', '', '', '', '']);
+      merges.push({ s:{r:4,c:0}, e:{r:4,c:NCOLS-1} });
+
+      const inmuebleLinea = [
+        contract.project_name,
+        contract.block_name,
+        contract.property_unit && `Unidad ${contract.property_unit}`,
+      ].filter(Boolean).join(' · ');
+      rows.push([`Inmueble: ${inmuebleLinea || '—'}`, '', '', '', '', '', '']);
+      merges.push({ s:{r:5,c:0}, e:{r:5,c:NCOLS-1} });
+
+      rows.push([
+        `Valor total: ${formatCurrency(contract.total_value)}` +
+        ` · Valor neto: ${formatCurrency(contract.net_value)}` +
+        ` · Cuotas: ${contract.installments_total || payment_schedule.length}`,
+        '', '', '', '', '', ''
+      ]);
+      merges.push({ s:{r:6,c:0}, e:{r:6,c:NCOLS-1} });
+
+      rows.push([
+        `Fecha firma: ${contract.signing_date ? format(new Date(contract.signing_date),'dd/MM/yyyy') : '—'}` +
+        ` · Fecha exportación: ${format(new Date(),'dd/MM/yyyy')}`,
+        '', '', '', '', '', ''
+      ]);
+      merges.push({ s:{r:7,c:0}, e:{r:7,c:NCOLS-1} });
+
+      rows.push(['', '', '', '', '', '', '']); // línea en blanco
+      rows.push(['PLAN DE AMORTIZACIÓN', '', '', '', '', '', '']);
+      merges.push({ s:{r:9,c:0}, e:{r:9,c:NCOLS-1} });
+      rows.push(['', '', '', '', '', '', '']);
+
+      // ── Tabla de cuotas ──
+      rows.push(['#','Vencimiento','Monto','Estado','Abonado','Saldo','Fecha Pago']);
+
+      payment_schedule.forEach(ps => {
+        const paid  = parseFloat(ps.paid_amount||0);
+        const total = parseFloat(ps.amount||0);
+        const isOverdue = (ps.status==='en_mora' || ps.status==='pendiente') &&
+          ps.due_date && new Date(ps.due_date) < new Date();
+        rows.push([
+          ps.installment_number,
+          ps.due_date ? format(new Date(ps.due_date),'dd/MM/yyyy') : '',
+          total,
+          ps.status==='pagado' ? 'Pagado'
+            : isOverdue ? 'En mora'
+            : ps.status==='condonado' ? 'Condonado'
+            : paid > 0 ? `Parcial (${Math.round(paid/total*100)}%)`
+            : 'Pendiente',
+          paid,
+          total - paid,
+          ps.paid_date ? format(new Date(ps.paid_date),'dd/MM/yyyy') : '',
+        ]);
+      });
+
+      // Totales
+      const totalPaidPS = payment_schedule.reduce((s,ps) => s+parseFloat(ps.paid_amount||0),0);
+      const totalAmtPS  = payment_schedule.reduce((s,ps) => s+parseFloat(ps.amount||0),0);
+      rows.push(['','','','TOTAL', totalPaidPS, totalAmtPS-totalPaidPS, '']);
+
+      // ── Espacio para firmas ──
+      rows.push(['', '', '', '', '', '', '']);
+      rows.push(['', '', '', '', '', '', '']);
+      rows.push(['', '', '', '', '', '', '']);
+      rows.push(['', '', '', '', '', '', '']);
+
+      // Líneas de firma (simuladas con guiones bajos ya que XLSX no soporta bordes sin estilos avanzados)
+      const firmaLine = '______________________________';
+      const firmaRowIdx = rows.length;
+      rows.push([firmaLine, '', '', '', firmaLine, '', '']);
+      merges.push({ s:{r:firmaRowIdx,c:0}, e:{r:firmaRowIdx,c:2} });
+      merges.push({ s:{r:firmaRowIdx,c:4}, e:{r:firmaRowIdx,c:6} });
+
+      const labelRowIdx = rows.length;
+      rows.push(['Firma del cliente', '', '', '', `Firma por ${companyName}`, '', '']);
+      merges.push({ s:{r:labelRowIdx,c:0}, e:{r:labelRowIdx,c:2} });
+      merges.push({ s:{r:labelRowIdx,c:4}, e:{r:labelRowIdx,c:6} });
+
+      const nameRowIdx = rows.length;
+      rows.push([
+        contract.client_name || '', '', '', '',
+        signer.name || '', '', ''
+      ]);
+      merges.push({ s:{r:nameRowIdx,c:0}, e:{r:nameRowIdx,c:2} });
+      merges.push({ s:{r:nameRowIdx,c:4}, e:{r:nameRowIdx,c:6} });
+
+      const docRowIdx = rows.length;
+      const clientDoc = contract.document_number
+        ? `${contract.document_type || 'CC'} ${contract.document_number}`
+        : '';
+      const signerDoc = signer.document ? `CC ${signer.document}` : '';
+      rows.push([clientDoc, '', '', '', signerDoc, '', '']);
+      merges.push({ s:{r:docRowIdx,c:0}, e:{r:docRowIdx,c:2} });
+      merges.push({ s:{r:docRowIdx,c:4}, e:{r:docRowIdx,c:6} });
+
+      const roleRowIdx = rows.length;
+      const ROLE_LABELS = {
+        admin:'Administrador', gerente:'Gerente', contador:'Contador',
+        supervisor:'Supervisor', asesor:'Asesor', abogado:'Abogado',
+      };
+      rows.push(['', '', '', '', ROLE_LABELS[signer.role] || signer.role, '', '']);
+      merges.push({ s:{r:roleRowIdx,c:4}, e:{r:roleRowIdx,c:6} });
+
+      // Crear la hoja
+      const ws1 = XLSX.utils.aoa_to_sheet(rows);
+      ws1['!cols']   = [6, 15, 18, 16, 15, 15, 15].map(w => ({ wch:w }));
+      ws1['!merges'] = merges;
+
+      XLSX.utils.book_append_sheet(wb, ws1, 'Plan de Cuotas');
+
+      // ─────────────────────────────────────────────────────
+      // HOJA 2: Pagos recibidos (sin encabezado, como estaba)
+      // ─────────────────────────────────────────────────────
+      const payRows = [
+        ['Recibo','Fecha','Monto','Método','Banco/Ref','Registrado por']
+      ];
+      payments.forEach(p => {
+        payRows.push([
+          p.receipt_number || '',
+          p.payment_date ? format(new Date(p.payment_date),'dd/MM/yyyy') : '',
+          parseFloat(p.amount||0),
+          p.payment_method || '',
+          p.bank_reference || p.bank_name || '',
+          p.recorded_by_name || '',
+        ]);
+      });
+      const totalPayments = payments.reduce((s,p) => s+parseFloat(p.amount||0),0);
+      payRows.push(['','','TOTAL RECAUDADO', totalPayments,'','']);
+
+      const ws2 = XLSX.utils.aoa_to_sheet(payRows);
+      ws2['!cols'] = [12,12,16,14,18,18].map(w => ({wch:w}));
+      XLSX.utils.book_append_sheet(wb, ws2, 'Pagos Recibidos');
+
+      // ─────────────────────────────────────────────────────
+      // HOJA 3: Resumen (sin encabezado, como estaba)
+      // ─────────────────────────────────────────────────────
+      const summary = [
+        ['Campo','Valor'],
+        ['Contrato',       contract.contract_number],
+        ['Cliente',        contract.client_name],
+        ['Proyecto',       contract.project_name],
+        ['Manzana',        contract.block_name || '—'],
+        ['Unidad',         contract.property_unit],
+        ['Asesor',         contract.advisor_name||'Sin asesor'],
+        ['Tipo pago',      contract.payment_type],
+        ['Estado',         contract.status],
+        ['Fecha firma',    contract.signing_date ? format(new Date(contract.signing_date),'dd/MM/yyyy') : ''],
+        ['Valor total',    parseFloat(contract.total_value||0)],
+        ['Valor neto',     parseFloat(contract.net_value||0)],
+        ['Total recaudado',payments.reduce((s,p)=>s+parseFloat(p.amount||0),0)],
+        ['Saldo pendiente',parseFloat(contract.net_value||0)-payments.reduce((s,p)=>s+parseFloat(p.amount||0),0)],
+        ['Cuotas pagadas', payment_schedule.filter(p=>p.status==='pagado').length],
+        ['Cuotas en mora', payment_schedule.filter(p=>p.status==='en_mora'||
+          (p.status==='pendiente'&&p.due_date&&new Date(p.due_date)<new Date())).length],
+      ];
+      const ws3 = XLSX.utils.aoa_to_sheet(summary);
+      ws3['!cols'] = [{wch:20},{wch:30}];
+      XLSX.utils.book_append_sheet(wb, ws3, 'Resumen');
+
+      // Guardar
+      XLSX.writeFile(wb, `Contrato_${contract.contract_number}_${format(new Date(),'yyyyMMdd')}.xlsx`);
+
+      toast.success('Plan de cuotas exportado');
+      setShowExportModal(false);
+    } catch (err) {
+      console.error('Error exportando:', err);
+      toast.error('Error al generar el archivo');
+    }
   };
 
   if (isLoading) return (
@@ -634,6 +1097,14 @@ const ContractDetailPage = () => {
           onSaved={handlePaymentSaved}
         />
       )}
+
+      <ExportScheduleModal
+        open={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        allUsers={allUsers}
+        contract={contract}
+      />
 
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -724,13 +1195,23 @@ const ContractDetailPage = () => {
               {allProperties.map((prop, i) => (
                 <div key={prop.id || i} className="p-3 rounded-xl"
                   style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)' }}>
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full"
                       style={{ background:'rgba(13,27,62,0.07)', color:'var(--color-navy)' }}>
                       Inmueble {i + 1}
                     </span>
                     <span className="text-sm font-semibold" style={{ color:'var(--color-text-primary)' }}>
-                      {prop.project_name} · {prop.unit_number}
+                      {prop.project_name}
+                    </span>
+                    {prop.block_name && (
+                      <span className="text-xs px-1.5 py-0.5 rounded font-mono"
+                        style={{ background:'rgba(168,85,247,0.1)', color:'#c084fc' }}>
+                        {prop.block_name}
+                      </span>
+                    )}
+                    <span className="text-xs px-1.5 py-0.5 rounded font-mono"
+                      style={{ background:'rgba(59,130,246,0.1)', color:'#60a5fa' }}>
+                      Unidad {prop.unit_number}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -745,6 +1226,9 @@ const ContractDetailPage = () => {
           ) : (
             <div className="grid grid-cols-2 gap-3">
               <InfoBlock label="Proyecto"  value={contract.project_name}/>
+              {contract.block_name && (
+                <InfoBlock label="Manzana" value={contract.block_name}/>
+              )}
               <InfoBlock label="Unidad"    value={contract.property_unit}/>
               <InfoBlock label="Tipo"      value={contract.property_type}/>
               <InfoBlock label="Área"      value={contract.m2_construction ? `${contract.m2_construction} m²` : '—'}/>
@@ -773,6 +1257,31 @@ const ContractDetailPage = () => {
             <InfoBlock label="Tipo de pago"  value={contract.payment_type}/>
             <InfoBlock label="Cuotas"        value={`${contract.installments_total} × ${formatCurrency(contract.installment_amount)}`} mono/>
           </div>
+
+          {/* Datos de financiación bancaria — solo si hay información */}
+          {(contract.bank_name || contract.bank_credit_number || contract.interest_rate) && (
+            <div className="mt-4 pt-4" style={{ borderTop:'1px solid var(--color-border)' }}>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-3"
+                style={{ color:'var(--color-text-muted)', letterSpacing:'0.08em' }}>
+                Financiación bancaria
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {contract.bank_name && (
+                  <InfoBlock label="Entidad bancaria" value={contract.bank_name}/>
+                )}
+                {contract.bank_credit_number && (
+                  <InfoBlock label="N° de crédito" value={contract.bank_credit_number} mono/>
+                )}
+                {contract.interest_rate && parseFloat(contract.interest_rate) > 0 && (
+                  <InfoBlock label="Tasa del banco (referencia)"
+                    value={`${parseFloat(contract.interest_rate).toFixed(2)}% mensual`} mono
+                    extra={<span style={{ color:'var(--color-text-muted)', fontSize:'11px' }}>
+                      Informativa — no afecta las cuotas
+                    </span>}/>
+                )}
+              </div>
+            </div>
+          )}
         </SectionCard>
         <SectionCard title="Asesor y Fechas" icon={Calendar}>
           {/* Info grid */}
@@ -919,87 +1428,7 @@ const ContractDetailPage = () => {
           <div className="flex items-center gap-2">
             {payment_schedule.length > 0 && (
               <button
-                onClick={() => {
-                  const wb = XLSX.utils.book_new();
-
-                  // Hoja 1: Plan de cuotas
-                  const scheduleRows = [
-                    ['#','Vencimiento','Monto','Estado','Abonado','Saldo','Fecha Pago']
-                  ];
-                  payment_schedule.forEach(ps => {
-                    const paid  = parseFloat(ps.paid_amount||0);
-                    const total = parseFloat(ps.amount||0);
-                    const isOverdue = (ps.status==='en_mora' || ps.status==='pendiente') &&
-                      ps.due_date && new Date(ps.due_date) < new Date();
-                    scheduleRows.push([
-                      ps.installment_number,
-                      ps.due_date ? format(new Date(ps.due_date),'dd/MM/yyyy') : '',
-                      total,
-                      ps.status==='pagado' ? 'Pagado'
-                        : isOverdue ? 'En mora'
-                        : ps.status==='condonado' ? 'Condonado'
-                        : paid > 0 ? `Parcial (${Math.round(paid/total*100)}%)`
-                        : 'Pendiente',
-                      paid,
-                      total - paid,
-                      ps.paid_date ? format(new Date(ps.paid_date),'dd/MM/yyyy') : '',
-                    ]);
-                  });
-                  // Totales
-                  const totalPaidPS = payment_schedule.reduce((s,ps) => s+parseFloat(ps.paid_amount||0),0);
-                  const totalAmtPS  = payment_schedule.reduce((s,ps) => s+parseFloat(ps.amount||0),0);
-                  scheduleRows.push(['','','','TOTAL', totalPaidPS, totalAmtPS-totalPaidPS, '']);
-
-                  const ws1 = XLSX.utils.aoa_to_sheet(scheduleRows);
-                  ws1['!cols'] = [4,14,18,14,14,14,14].map(w => ({wch:w}));
-                  XLSX.utils.book_append_sheet(wb, ws1, 'Plan de Cuotas');
-
-                  // Hoja 2: Pagos recibidos
-                  const payRows = [
-                    ['Recibo','Fecha','Monto','Método','Banco/Ref','Registrado por']
-                  ];
-                  payments.forEach(p => {
-                    payRows.push([
-                      p.receipt_number || '',
-                      p.payment_date ? format(new Date(p.payment_date),'dd/MM/yyyy') : '',
-                      parseFloat(p.amount||0),
-                      p.payment_method || '',
-                      p.bank_reference || p.bank_name || '',
-                      p.recorded_by_name || '',
-                    ]);
-                  });
-                  const totalPayments = payments.reduce((s,p) => s+parseFloat(p.amount||0),0);
-                  payRows.push(['','','TOTAL RECAUDADO', totalPayments,'','']);
-
-                  const ws2 = XLSX.utils.aoa_to_sheet(payRows);
-                  ws2['!cols'] = [12,12,16,14,18,18].map(w => ({wch:w}));
-                  XLSX.utils.book_append_sheet(wb, ws2, 'Pagos Recibidos');
-
-                  // Hoja 3: Resumen del contrato
-                  const summary = [
-                    ['Campo','Valor'],
-                    ['Contrato',       contract.contract_number],
-                    ['Cliente',        contract.client_name],
-                    ['Proyecto',       contract.project_name],
-                    ['Unidad',         contract.property_unit],
-                    ['Asesor',         contract.advisor_name||'Sin asesor'],
-                    ['Tipo pago',      contract.payment_type],
-                    ['Estado',         contract.status],
-                    ['Fecha firma',    contract.signing_date ? format(new Date(contract.signing_date),'dd/MM/yyyy') : ''],
-                    ['Valor total',    parseFloat(contract.total_value||0)],
-                    ['Valor neto',     parseFloat(contract.net_value||0)],
-                    ['Total recaudado',payments.reduce((s,p)=>s+parseFloat(p.amount||0),0)],
-                    ['Saldo pendiente',parseFloat(contract.net_value||0)-payments.reduce((s,p)=>s+parseFloat(p.amount||0),0)],
-                    ['Cuotas pagadas', payment_schedule.filter(p=>p.status==='pagado').length],
-                    ['Cuotas en mora', payment_schedule.filter(p=>p.status==='en_mora'||
-                      (p.status==='pendiente'&&p.due_date&&new Date(p.due_date)<new Date())).length],
-                  ];
-                  const ws3 = XLSX.utils.aoa_to_sheet(summary);
-                  ws3['!cols'] = [{wch:20},{wch:30}];
-                  XLSX.utils.book_append_sheet(wb, ws3, 'Resumen');
-
-                  XLSX.writeFile(wb, `Contrato_${contract.contract_number}_${format(new Date(),'yyyyMMdd')}.xlsx`);
-                }}
+                onClick={() => setShowExportModal(true)}
                 className="btn btn-secondary btn-sm text-xs flex items-center gap-1.5">
                 <Download size={12}/> Exportar
               </button>
