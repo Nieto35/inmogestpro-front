@@ -162,7 +162,9 @@ const BlocksPage = () => {
     queryFn:  () => blocksService.getByProject(projectId),
     enabled:  !!projectId,
   });
-  const blocks = data?.data?.data || [];
+  const blocks = (data?.data?.data || []).sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+  );
 
   const selectedProject = projects.find(p => p.id === projectId);
 

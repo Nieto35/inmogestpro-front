@@ -7,7 +7,7 @@ import {
   Calendar, DollarSign, CheckCircle, Clock, AlertTriangle,
   RefreshCw, Plus, X, Save, Paperclip, Info, Upload, ExternalLink, Edit, Download
 } from 'lucide-react';
-import { contractsService, usersService, configService } from '../../services/api.service';
+import { contractsService, usersService, configService, paymentsService } from '../../services/api.service';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
@@ -548,6 +548,138 @@ const MilestonesPanel = ({ contractId, tenant, deliveryDate, canEdit, onRefresh,
 };
 
 
+// ── Modal para editar el plan de pagos ───────────────────────
+const EditScheduleModal = ({ open, onClose, contract, paidCount, onSaved }) => {
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    installments_total:  '',
+    installment_amount:  '',
+    first_due_date:      '',
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    setForm({
+      installments_total: String(contract?.installments_total || ''),
+      installment_amount: String(Math.round(parseFloat(contract?.installment_amount || 0))),
+      first_due_date:     '',
+    });
+  }, [open, contract]);
+
+  if (!open) return null;
+
+  const pendingCount = (parseInt(form.installments_total) || 0) - paidCount;
+
+  const handleSave = async () => {
+    const total  = parseInt(form.installments_total);
+    const amount = parseFloat(form.installment_amount);
+    if (!total || total < 1) return toast.error('El total de cuotas debe ser al menos 1');
+    if (!amount || amount <= 0) return toast.error('El monto por cuota debe ser mayor a 0');
+    if (total <= paidCount) return toast.error(`El total (${total}) debe ser mayor que las cuotas pagadas (${paidCount})`);
+    setSaving(true);
+    try {
+      const payload = { installments_total: total, installment_amount: amount };
+      if (form.first_due_date) payload.first_due_date = form.first_due_date;
+      const res = await contractsService.updateSchedule(contract.id, payload);
+      toast.success(res.data?.message || 'Plan de pagos actualizado');
+      onSaved();
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error al actualizar el plan');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background:'rgba(0,0,0,0.6)' }} onClick={onClose}>
+      <div className="w-full max-w-md rounded-xl shadow-2xl"
+        style={{ background:'var(--color-bg-primary)', border:'1px solid var(--color-border)' }}
+        onClick={e => e.stopPropagation()}>
+
+        <div className="px-5 py-4 flex items-center justify-between"
+          style={{ borderBottom:'1px solid var(--color-border)' }}>
+          <div className="flex items-center gap-2">
+            <Edit size={15} style={{ color:'var(--color-text-accent)' }}/>
+            <h3 className="font-semibold text-sm" style={{ color:'var(--color-text-primary)' }}>
+              Editar Plan de Pagos
+            </h3>
+          </div>
+          <button onClick={onClose} className="btn btn-ghost btn-sm"><X size={14}/></button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div className="p-3 rounded-lg text-xs"
+            style={{ background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.25)', color:'var(--color-text-secondary)' }}>
+            <strong>Cuotas pagadas ({paidCount}):</strong> no se modifican. Solo se recalculan las cuotas pendientes.
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium mb-1.5"
+                style={{ color:'var(--color-text-secondary)' }}>
+                Total de cuotas <span className="text-red-400">*</span>
+              </label>
+              <input type="number" min={paidCount + 1} value={form.installments_total}
+                onChange={e => setForm(f => ({...f, installments_total: e.target.value}))}
+                className="input text-sm w-full"/>
+              {pendingCount > 0 && (
+                <p className="text-xs mt-1" style={{ color:'var(--color-text-muted)' }}>
+                  {pendingCount} cuotas pendientes
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1.5"
+                style={{ color:'var(--color-text-secondary)' }}>
+                Monto por cuota <span className="text-red-400">*</span>
+              </label>
+              <input type="number" min={1} value={form.installment_amount}
+                onChange={e => setForm(f => ({...f, installment_amount: e.target.value}))}
+                className="input text-sm w-full"/>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium mb-1.5"
+              style={{ color:'var(--color-text-secondary)' }}>
+              Vencimiento primera cuota pendiente
+              <span className="ml-1 font-normal" style={{ color:'var(--color-text-muted)' }}>
+                (opcional — si no se indica, se calcula desde la firma)
+              </span>
+            </label>
+            <input type="date" value={form.first_due_date}
+              onChange={e => setForm(f => ({...f, first_due_date: e.target.value}))}
+              className="input text-sm w-full"/>
+          </div>
+
+          {pendingCount > 0 && parseFloat(form.installment_amount) > 0 && (
+            <div className="p-3 rounded-lg text-xs"
+              style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)' }}>
+              <p style={{ color:'var(--color-text-muted)' }}>
+                Total pendiente estimado:{' '}
+                <strong style={{ color:'var(--color-text-primary)' }}>
+                  {formatCurrency(pendingCount * parseFloat(form.installment_amount))}
+                </strong>
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="px-5 py-4 flex justify-end gap-2"
+          style={{ borderTop:'1px solid var(--color-border)' }}>
+          <button onClick={onClose} className="btn btn-secondary btn-sm">Cancelar</button>
+          <button onClick={handleSave} disabled={saving} className="btn btn-primary btn-sm">
+            <Save size={13}/> {saving ? 'Guardando...' : 'Guardar cambios'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 // ── Modal de exportación de Plan de Cuotas ────────────────────
 const ExportScheduleModal = ({
   open, onClose, onExport, allUsers, contract, isLoading,
@@ -813,8 +945,9 @@ const ContractDetailPage = () => {
   const canPay         = hasRole('admin','gerente','contador');
   const canUpload      = hasRole('admin','gerente','contador','asesor');
   const isAsesor       = user?.role === 'asesor';
-  const [showPayModal, setShowPayModal]       = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
+  const [showPayModal, setShowPayModal]         = useState(false);
+  const [showExportModal, setShowExportModal]   = useState(false);
+  const [showEditSchedule, setShowEditSchedule] = useState(false);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['contract', id],
@@ -1106,6 +1239,17 @@ const ContractDetailPage = () => {
         contract={contract}
       />
 
+      <EditScheduleModal
+        open={showEditSchedule}
+        onClose={() => setShowEditSchedule(false)}
+        contract={contract}
+        paidCount={paidCount}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey:['contract', id] });
+          refetch();
+        }}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
@@ -1256,6 +1400,13 @@ const ContractDetailPage = () => {
             )}
             <InfoBlock label="Tipo de pago"  value={contract.payment_type}/>
             <InfoBlock label="Cuotas"        value={`${contract.installments_total} × ${formatCurrency(contract.installment_amount)}`} mono/>
+            {parseFloat(contract.notary_expenses || 0) > 0 && (
+              <InfoBlock label="Gastos notariales / papelería"
+                value={formatCurrency(contract.notary_expenses)} mono
+                extra={<span style={{ color:'var(--color-text-muted)', fontSize:'11px' }}>
+                  Informativo — no incluido en el valor del contrato
+                </span>}/>
+            )}
           </div>
 
           {/* Datos de financiación bancaria — solo si hay información */}
@@ -1431,6 +1582,13 @@ const ContractDetailPage = () => {
                 onClick={() => setShowExportModal(true)}
                 className="btn btn-secondary btn-sm text-xs flex items-center gap-1.5">
                 <Download size={12}/> Exportar
+              </button>
+            )}
+            {hasRole('admin','gerente','contador') && contract.status !== 'cancelado' && (
+              <button
+                onClick={() => setShowEditSchedule(true)}
+                className="btn btn-secondary btn-sm text-xs flex items-center gap-1.5">
+                <Edit size={12}/> Editar Plan
               </button>
             )}
             {canPay && contract.status==='activo' && (

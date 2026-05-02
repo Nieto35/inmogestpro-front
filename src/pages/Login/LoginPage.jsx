@@ -17,9 +17,14 @@ const LoginPage = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (isAuthenticated) { const s = tenant || getActiveTenantSlug(); navigate(s ? `/${s}/dashboard` : '/dashboard'); }
-    if (searchParams.get('reason') === 'session_expired') {
+    const reason = searchParams.get('reason');
+    if (reason === 'session_expired') {
       toast.error('Su sesión ha expirado. Por favor inicie sesión nuevamente.');
+      return;
+    }
+    if (isAuthenticated) {
+      const s = tenant || getActiveTenantSlug();
+      navigate(s ? `/${s}/dashboard` : '/dashboard');
     }
   }, [isAuthenticated]);
 

@@ -108,6 +108,7 @@ const ContractEditPage = () => {
         advisor_id:         String(contract.advisor_id    || ''),
         abogado_id:         String(contract.abogado_id    || ''),
         supervisor_id:      String(contract.supervisor_id || ''),
+        notary_expenses:    String(contract.notary_expenses || '0'),
         notes:              contract.notes              || '',
       });
     }
@@ -147,6 +148,7 @@ const ContractEditPage = () => {
         advisor_id:         form.advisor_id    || null,
         abogado_id:         form.abogado_id    || null,
         supervisor_id:      form.supervisor_id || null,
+        notary_expenses:    parseFloat(form.notary_expenses) || 0,
         promise_date:       form.promise_date   || null,
         delivery_date:      form.delivery_date  || null,
       });
@@ -397,6 +399,21 @@ const ContractEditPage = () => {
             className="input text-sm" min="0" max="5" step="0.01" placeholder="1.2"/>
         </Field>
       </Section>
+
+      {/* Gastos notariales */}
+      <div className="card">
+        <h3 className="font-semibold text-sm mb-1" style={{ color:'var(--color-text-primary)' }}>
+          Gastos notariales y papelería
+        </h3>
+        <p className="text-xs mb-3" style={{ color:'var(--color-text-muted)' }}>
+          Informativo — <strong>no afecta el valor del contrato</strong> ni los cálculos. Solo visible en el detalle.
+        </p>
+        <Field label="Monto gastos notariales / papelería">
+          <input type="number" value={form.notary_expenses}
+            onChange={e => set('notary_expenses', e.target.value)}
+            className="input text-sm" placeholder="0" min="0" step="1"/>
+        </Field>
+      </div>
 
       {/* Notas */}
       <div className="card">
