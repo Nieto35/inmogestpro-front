@@ -46,6 +46,8 @@ const handleSessionExpired = () => {
 
   localStorage.removeItem('inmogest_token');
   localStorage.removeItem('inmogest_refresh');
+  // Limpiar el estado persistido de Zustand para que isAuthenticated arranque en false
+  localStorage.removeItem('inmogest_auth');
 
   // Redirigir UNA SOLA VEZ — preservando el slug del tenant en la URL
   if (!window.location.pathname.includes('/login')) {
@@ -165,10 +167,11 @@ export default api;
 // ──────────────────────────────────────────────────────────────
 
 export const authService = {
-  login:   (d)  => api.post('/auth/login',  d),
-  logout:  ()   => api.post('/auth/logout'),
-  refresh: (rt) => api.post('/auth/refresh', { refreshToken:rt }),
-  me:      ()   => api.get('/auth/me'),
+  login:          (d)  => api.post('/auth/login',           d),
+  logout:         ()   => api.post('/auth/logout'),
+  refresh:        (rt) => api.post('/auth/refresh',         { refreshToken:rt }),
+  me:             ()   => api.get('/auth/me'),
+  changePassword: (d)  => api.post('/auth/change-password', d),
 };
 
 export const clientsService = {
@@ -215,7 +218,8 @@ export const contractsService = {
   addPayment:         (id,d)   => api.post(`/contracts/${id}/payments`, d),
   changeStatus:       (id,s,r) => api.patch(`/contracts/${id}/status`,     { status:s, reason:r }),
   markOverdue:        ()       => api.post('/contracts/mark-overdue'),
-  regenerateSchedule: (id)     => api.post(`/contracts/${id}/regenerate-schedule`),
+  regenerateSchedule:  (id)     => api.post(`/contracts/${id}/regenerate-schedule`),
+  updateSchedule:      (id,d)   => api.patch(`/contracts/${id}/payment-schedule`, d),
   uploadDocument:     (id,fd)  => api.post(`/contracts/${id}/upload`,      fd, { headers:{'Content-Type':'multipart/form-data'} }),
 };
 

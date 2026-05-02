@@ -17,7 +17,7 @@ const Field = ({ label, required, hint, children }) => (
   </div>
 );
 
-const TYPES = ['apartamento', 'casa', 'lote', 'local', 'bodega', 'oficina'];
+const TYPES = ['apartamento', 'casa', 'lote', 'solar', 'local', 'bodega', 'oficina'];
 
 const PropertyNewPage = () => {
   const navigate = useNavigate();

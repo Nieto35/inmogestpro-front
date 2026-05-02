@@ -214,6 +214,7 @@ const EditPropertyModal = ({ property, onClose, onSaved }) => {
                 <option value="apartamento">Apartamento</option>
                 <option value="casa">Casa</option>
                 <option value="lote">Lote</option>
+                <option value="solar">Solar</option>
                 <option value="local">Local comercial</option>
                 <option value="bodega">Bodega</option>
                 <option value="oficina">Oficina</option>
@@ -346,7 +347,9 @@ const PropertiesPage = () => {
     queryFn:  () => blocksService.getByProject(projectFilter),
     enabled:  !!projectFilter,
   });
-  const filterBlocks = blocksData?.data?.data || [];
+  const filterBlocks = (blocksData?.data?.data || []).sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+  );
 
   // Limpiar bloque al cambiar proyecto
   const handleProjectFilterChange = (pid) => {
@@ -355,12 +358,19 @@ const PropertiesPage = () => {
   };
 
   const { data, refetch, isFetching } = useQuery({
-    queryKey: ['properties', search, statusFilter, blockFilter],
-    queryFn:  () => propertiesService.getAll({ search, status: statusFilter, block_id: blockFilter || undefined }),
+    queryKey: ['properties', search, statusFilter, blockFilter, projectFilter],
+    queryFn:  () => propertiesService.getAll({
+      search,
+      status:     statusFilter     || undefined,
+      block_id:   blockFilter      || undefined,
+      project_id: projectFilter    || undefined,
+    }),
   });
 
-  const allProps = data?.data?.data || [];
-  const props    = purposeFilter
+  const allProps = (data?.data?.data || []).sort((a, b) =>
+    String(a.unit_number).localeCompare(String(b.unit_number), undefined, { numeric: true, sensitivity: 'base' })
+  );
+  const props = purposeFilter
     ? allProps.filter(p => (p.features?.purpose || 'venta') === purposeFilter)
     : allProps;
 

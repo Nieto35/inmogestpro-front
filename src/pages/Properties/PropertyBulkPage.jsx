@@ -6,7 +6,7 @@ import { ArrowLeft, Plus, Trash2, Home, Layers } from 'lucide-react';
 import { propertiesService, projectsService, blocksService } from '../../services/api.service';
 import toast from 'react-hot-toast';
 
-const PROPERTY_TYPES = ['apartamento', 'casa', 'lote', 'local', 'bodega', 'oficina'];
+const PROPERTY_TYPES = ['apartamento', 'casa', 'lote', 'solar', 'local', 'bodega', 'oficina'];
 
 const emptyLote = () => ({
   id:               Date.now() + Math.random(),

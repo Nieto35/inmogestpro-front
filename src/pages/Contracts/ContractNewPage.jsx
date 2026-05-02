@@ -126,6 +126,7 @@ const ContractNewPage = () => {
     // Arriendo (campos extra)
     rental_months:      '12',   // duración en meses
     rental_canon:       '',     // canon mensual
+    notary_expenses:    '0',
     notes:              '',
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -151,7 +152,9 @@ const ContractNewPage = () => {
         map.set(p.project_id, { id: p.project_id, name: p.project_name || 'Sin nombre' });
       }
     }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+    return Array.from(map.values()).sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+    );
   }, [availableProps]);
 
   // ── Derivar manzanas del proyecto seleccionado ──
@@ -165,17 +168,23 @@ const ContractNewPage = () => {
         map.set(p.block_id, { id: p.block_id, name: p.block_name || 'Sin manzana' });
       }
     }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+    return Array.from(map.values()).sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+    );
   }, [availableProps, filterProjectId]);
 
   // ── Inmuebles filtrados por proyecto + manzana, excluyendo los ya seleccionados ──
   const filteredProps = useMemo(() => {
     if (!filterProjectId || !filterBlockId) return [];
-    return availableProps.filter(p =>
-      p.project_id === filterProjectId &&
-      p.block_id   === filterBlockId &&
-      !selectedProps.find(sp => sp.id === p.id)
-    );
+    return availableProps
+      .filter(p =>
+        p.project_id === filterProjectId &&
+        p.block_id   === filterBlockId &&
+        !selectedProps.find(sp => sp.id === p.id)
+      )
+      .sort((a, b) =>
+        String(a.unit_number).localeCompare(String(b.unit_number), undefined, { numeric: true, sensitivity: 'base' })
+      );
   }, [availableProps, filterProjectId, filterBlockId, selectedProps]);
 
   const { data: advisorsData } = useQuery({
@@ -291,6 +300,7 @@ const ContractNewPage = () => {
         installments_total: months,
         installment_amount: canon,
         installment_day:    parseInt(form.installment_day) || 1,
+        notary_expenses:    parseFloat(form.notary_expenses) || 0,
         notes:              form.notes || null,
       };
     } else {
@@ -324,6 +334,7 @@ const ContractNewPage = () => {
         bank_name:          form.bank_name          || null,
         bank_credit_number: form.bank_credit_number || null,
         interest_rate:      form.interest_rate ? parseFloat(form.interest_rate) : null,
+        notary_expenses:    parseFloat(form.notary_expenses) || 0,
         notes:              form.notes              || null,
       };
     }
@@ -682,7 +693,7 @@ const ContractNewPage = () => {
           <Field label="Valor total " required>
             <input type="number" value={form.total_value}
               onChange={e => set('total_value', e.target.value)}
-              className="input text-sm" placeholder="250000000" min="0" step="1000"/>
+              className="input text-sm" placeholder="250000000" min="0" step="1"/>
           </Field>
 
           <Field label="Descuento ">
@@ -764,6 +775,22 @@ const ContractNewPage = () => {
           </Field>
         </Section>
       )}
+
+      {/* Gastos notariales / papelería */}
+      <div className="card">
+        <h3 className="font-semibold text-sm mb-1" style={{ color:'var(--color-text-primary)' }}>
+          Gastos notariales y papelería
+        </h3>
+        <p className="text-xs mb-3" style={{ color:'var(--color-text-muted)' }}>
+          Este monto es informativo y <strong>no afecta el valor del contrato</strong> ni los cálculos de cuotas o reportes.
+          Aparece solo en el detalle del contrato.
+        </p>
+        <Field label="Monto gastos notariales / papelería">
+          <input type="number" value={form.notary_expenses}
+            onChange={e => set('notary_expenses', e.target.value)}
+            className="input text-sm" placeholder="0" min="0" step="1"/>
+        </Field>
+      </div>
 
       {/* 5. Observaciones */}
       <div className="card">

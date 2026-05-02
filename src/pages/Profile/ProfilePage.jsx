@@ -5,7 +5,7 @@ import { authService } from '../../services/api.service';
 import useAuthStore from '../../store/authStore';
 import toast from 'react-hot-toast';
 
-const ROLE_LABELS = { admin:'Administrador', gerente:'Gerente', contador:'Contador', asesor:'Asesor Comercial', readonly:'Solo Lectura' };
+const ROLE_LABELS = { admin:'Administrador', gerente:'Gerente', contador:'Contador', asesor:'Asesor Comercial', abogado:'Abogado', supervisor:'Supervisor', readonly:'Solo Lectura' };
 
 const ProfilePage = () => {
   const { user } = useAuthStore();

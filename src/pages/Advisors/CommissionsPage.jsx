@@ -105,7 +105,7 @@ const NewCommissionModal = ({ onClose, onSaved }) => {
       if (advisorId.startsWith('user-')) {
         const benef = beneficiaries.find(b => b.id === advisorId);
         if (!benef) return toast.error('Beneficiario no encontrado');
-        const roleToType = { admin:'gerente', gerente:'gerente', contador:'externo', asesor:'planta', abogado:'abogado', supervisor:'externo', readonly:'externo' };
+        const roleToType = { admin:'gerente', gerente:'gerente', contador:'externo', asesor:'planta', abogado:'abogado', supervisor:'supervisor', readonly:'externo' };
         const res = await advisorsService.create({
           full_name:       benef.full_name, email:benef.email||null,
           advisor_type:    roleToType[benef.advisor_type]||'externo',

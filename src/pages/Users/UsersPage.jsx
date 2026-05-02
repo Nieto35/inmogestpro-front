@@ -129,7 +129,7 @@ const NewUserModal = ({ onClose, onCreated }) => {
               <div className="relative">
                 <input type={showPwd ? 'text' : 'password'} value={form.password}
                   onChange={e => set('password', e.target.value)}
-                  className="input text-sm pr-10" placeholder="Dejar vacío para usar Temporal@2024!" />
+                  className="input text-sm pr-10" placeholder="Dejar vacío — se usará Temporal@2026!" />
                 <button type="button" onClick={() => setShowPwd(s => !s)}
                   className="absolute right-3 top-1/2 -translate-y-1/2"
                   style={{ color: 'var(--color-text-muted)' }}>
@@ -148,7 +148,7 @@ const NewUserModal = ({ onClose, onCreated }) => {
 
           <div className="p-3 rounded text-xs"
             style={{ background: 'rgba(13,27,62,0.04)', border: '1px solid var(--color-border)', borderLeft: '3px solid var(--color-gold)', color: 'var(--color-text-muted)' }}>
-            💡 Si no ingresa contraseña, se asignará <strong style={{ color: 'var(--color-navy)' }}>Temporal@2024!</strong> — el usuario deberá cambiarla al ingresar.
+            💡 Si no ingresa contraseña, se asignará <strong style={{ color: 'var(--color-navy)' }}>Temporal@2026!</strong> — el usuario deberá cambiarla al ingresar.
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
