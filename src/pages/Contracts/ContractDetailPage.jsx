@@ -1401,11 +1401,77 @@ const ContractDetailPage = () => {
             <InfoBlock label="Tipo de pago"  value={contract.payment_type}/>
             <InfoBlock label="Cuotas"        value={`${contract.installments_total} × ${formatCurrency(contract.installment_amount)}`} mono/>
             {parseFloat(contract.notary_expenses || 0) > 0 && (
-              <InfoBlock label="Gastos notariales / papelería"
-                value={formatCurrency(contract.notary_expenses)} mono
-                extra={<span style={{ color:'var(--color-text-muted)', fontSize:'11px' }}>
-                  Informativo — no incluido en el valor del contrato
-                </span>}/>
+              <div className="col-span-2">
+                <div className="p-3 rounded-xl space-y-2"
+                  style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)' }}>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold" style={{ color:'var(--color-text-muted)' }}>
+                      Gastos notariales / papelería
+                    </p>
+                    {canPay && (
+                      <label className="btn btn-secondary btn-sm cursor-pointer text-xs">
+                        <Upload size={11}/> {contract.notary_document ? 'Reemplazar' : 'Subir evidencia'}
+                        <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={async e => {
+                            const file = e.target.files[0];
+                            if (!file) return;
+                            const fd = new FormData();
+                            fd.append('file', file);
+                            try {
+                              const res = await contractsService.uploadNotaryDoc(id, fd);
+                              if (res.data?.success) { toast.success('Evidencia subida correctamente'); refetch(); }
+                              else toast.error(res.data?.message || 'Error al subir');
+                            } catch { toast.error('Error al subir el documento'); }
+                            e.target.value = '';
+                          }}/>
+                      </label>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs mb-0.5" style={{ color:'var(--color-text-muted)' }}>Monto</p>
+                      <p className="text-sm font-mono font-medium" style={{ color:'var(--color-text-primary)' }}>
+                        {formatCurrency(contract.notary_expenses)}
+                      </p>
+                      <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>
+                        Informativo — no incluido en el valor del contrato
+                      </p>
+                    </div>
+                    {contract.notary_date && (
+                      <div>
+                        <p className="text-xs mb-0.5" style={{ color:'var(--color-text-muted)' }}>Fecha de registro</p>
+                        <p className="text-sm font-medium" style={{ color:'var(--color-text-primary)' }}>
+                          {format(new Date(contract.notary_date), 'dd/MM/yyyy')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  {contract.notary_document && (() => {
+                    const doc = typeof contract.notary_document === 'string'
+                      ? JSON.parse(contract.notary_document)
+                      : contract.notary_document;
+                    return (
+                      <div className="flex items-center gap-2 pt-1">
+                        <Paperclip size={12} style={{ color:'var(--color-gold)', flexShrink:0 }}/>
+                        <a href={doc.url} target="_blank" rel="noopener noreferrer"
+                          className="text-xs hover:underline flex-1 truncate"
+                          style={{ color:'var(--color-text-accent)' }}>
+                          {doc.filename}
+                        </a>
+                        <a href={doc.url} target="_blank" rel="noopener noreferrer"
+                          style={{ color:'var(--color-text-muted)' }}>
+                          <ExternalLink size={11}/>
+                        </a>
+                      </div>
+                    );
+                  })()}
+                  {!contract.notary_document && (
+                    <p className="text-xs" style={{ color:'var(--color-text-muted)', fontStyle:'italic' }}>
+                      Sin documento de evidencia adjunto
+                    </p>
+                  )}
+                </div>
+              </div>
             )}
           </div>
 

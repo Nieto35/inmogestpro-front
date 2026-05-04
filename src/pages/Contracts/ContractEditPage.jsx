@@ -109,6 +109,7 @@ const ContractEditPage = () => {
         abogado_id:         String(contract.abogado_id    || ''),
         supervisor_id:      String(contract.supervisor_id || ''),
         notary_expenses:    String(contract.notary_expenses || '0'),
+        notary_date:        contract.notary_date ? contract.notary_date.split('T')[0] : '',
         notes:              contract.notes              || '',
       });
     }
@@ -149,6 +150,7 @@ const ContractEditPage = () => {
         abogado_id:         form.abogado_id    || null,
         supervisor_id:      form.supervisor_id || null,
         notary_expenses:    parseFloat(form.notary_expenses) || 0,
+        notary_date:        form.notary_date || null,
         promise_date:       form.promise_date   || null,
         delivery_date:      form.delivery_date  || null,
       });
@@ -408,11 +410,18 @@ const ContractEditPage = () => {
         <p className="text-xs mb-3" style={{ color:'var(--color-text-muted)' }}>
           Informativo — <strong>no afecta el valor del contrato</strong> ni los cálculos. Solo visible en el detalle.
         </p>
-        <Field label="Monto gastos notariales / papelería">
-          <input type="number" value={form.notary_expenses}
-            onChange={e => set('notary_expenses', e.target.value)}
-            className="input text-sm" placeholder="0" min="0" step="1"/>
-        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Monto gastos notariales / papelería">
+            <input type="number" value={form.notary_expenses}
+              onChange={e => set('notary_expenses', e.target.value)}
+              className="input text-sm" placeholder="0" min="0" step="1"/>
+          </Field>
+          <Field label="Fecha de pago / registro">
+            <input type="date" value={form.notary_date}
+              onChange={e => set('notary_date', e.target.value)}
+              className="input text-sm"/>
+          </Field>
+        </div>
       </div>
 
       {/* Notas */}
