@@ -127,6 +127,7 @@ const ContractNewPage = () => {
     rental_months:      '12',   // duración en meses
     rental_canon:       '',     // canon mensual
     notary_expenses:    '0',
+    notary_date:        '',
     notes:              '',
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -301,6 +302,7 @@ const ContractNewPage = () => {
         installment_amount: canon,
         installment_day:    parseInt(form.installment_day) || 1,
         notary_expenses:    parseFloat(form.notary_expenses) || 0,
+        notary_date:        form.notary_date || null,
         notes:              form.notes || null,
       };
     } else {
@@ -335,6 +337,7 @@ const ContractNewPage = () => {
         bank_credit_number: form.bank_credit_number || null,
         interest_rate:      form.interest_rate ? parseFloat(form.interest_rate) : null,
         notary_expenses:    parseFloat(form.notary_expenses) || 0,
+        notary_date:        form.notary_date || null,
         notes:              form.notes              || null,
       };
     }
@@ -785,11 +788,21 @@ const ContractNewPage = () => {
           Este monto es informativo y <strong>no afecta el valor del contrato</strong> ni los cálculos de cuotas o reportes.
           Aparece solo en el detalle del contrato.
         </p>
-        <Field label="Monto gastos notariales / papelería">
-          <input type="number" value={form.notary_expenses}
-            onChange={e => set('notary_expenses', e.target.value)}
-            className="input text-sm" placeholder="0" min="0" step="1"/>
-        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Monto gastos notariales / papelería">
+            <input type="number" value={form.notary_expenses}
+              onChange={e => set('notary_expenses', e.target.value)}
+              className="input text-sm" placeholder="0" min="0" step="1"/>
+          </Field>
+          <Field label="Fecha de pago / registro">
+            <input type="date" value={form.notary_date}
+              onChange={e => set('notary_date', e.target.value)}
+              className="input text-sm"/>
+          </Field>
+        </div>
+        <p className="text-xs mt-2" style={{ color:'var(--color-text-muted)' }}>
+          El documento de evidencia se puede adjuntar desde el detalle del contrato una vez creado.
+        </p>
       </div>
 
       {/* 5. Observaciones */}
