@@ -227,10 +227,10 @@ const ProjectNewPage = () => {
                 onChange={e => set('total_units', e.target.value)}
                 className="input text-sm" min="1" placeholder="100" />
             </Field>
-            <Field label="Precio por m² (COP)">
+            <Field label="Precio por m²">
               <input type="number" value={form.price_per_m2}
                 onChange={e => set('price_per_m2', e.target.value)}
-                className="input text-sm" min="0" step="1000" placeholder="2500000" />
+                className="input text-sm" min="0" step="1000" placeholder="250000" />
             </Field>
             <div className="col-span-2">
               <Field label="Descripción">

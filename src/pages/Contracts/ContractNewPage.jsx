@@ -97,6 +97,7 @@ const ContractNewPage = () => {
   const [saving, setSaving]           = useState(false);
   const [selectedClient, setClient]   = useState(null);
   const [selectedProps,  setSelProps] = useState([]); // array de inmuebles
+  const [notaryFile,     setNotaryFile] = useState(null);
   const selectedProp = selectedProps[0] || null; // backward compat
 
   // ── Estado de los filtros en cascada ───────────────────────
@@ -192,7 +193,9 @@ const ContractNewPage = () => {
     queryKey: ['advisors'],
     queryFn:  () => advisorsService.getAll(),
   });
-  const advisors = advisorsData?.data?.data || [];
+  const advisors = (advisorsData?.data?.data || []).filter(a =>
+    ['planta','externo','freelance','referido','asesor'].includes(a.advisor_type)
+  );
 
   const { data: usersData } = useQuery({
     queryKey: ['users'],
@@ -345,6 +348,18 @@ const ContractNewPage = () => {
     setSaving(true);
     try {
       const res = await contractsService.create(payload);
+      const contractId = res.data?.data?.id;
+
+      if (notaryFile && contractId) {
+        try {
+          const fd = new FormData();
+          fd.append('file', notaryFile);
+          await contractsService.uploadNotaryDoc(contractId, fd);
+        } catch (_) {
+          toast.error('Contrato creado, pero hubo un error al subir el documento notarial');
+        }
+      }
+
       toast.success(res.data?.message || 'Contrato creado exitosamente');
       navigate(to('contracts'));
     } catch (err) {
@@ -591,6 +606,7 @@ const ContractNewPage = () => {
             onChange={e => handlePaymentTypeChange(e.target.value)}
             className="input text-sm">
             <option value="credito">Crédito hipotecario</option>
+            <option value="credito_simple">Crédito</option>
             <option value="contado">Contado</option>
             <option value="leasing">Leasing habitacional</option>
             <option value="subsidio">Subsidio de vivienda</option>
@@ -800,9 +816,16 @@ const ContractNewPage = () => {
               className="input text-sm"/>
           </Field>
         </div>
-        <p className="text-xs mt-2" style={{ color:'var(--color-text-muted)' }}>
-          El documento de evidencia se puede adjuntar desde el detalle del contrato una vez creado.
-        </p>
+        <div className="mt-3">
+          <Field label="Documento de evidencia (opcional)">
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp"
+              onChange={e => setNotaryFile(e.target.files[0] || null)}
+              className="input text-sm"/>
+            {notaryFile && (
+              <p className="text-xs mt-1 text-green-500">Archivo seleccionado: {notaryFile.name}</p>
+            )}
+          </Field>
+        </div>
       </div>
 
       {/* 5. Observaciones */}

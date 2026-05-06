@@ -34,13 +34,14 @@ const Section = ({ title, children }) => (
 );
 
 const PAYMENT_TYPES = [
-  { value:'credito',     label:'Crédito hipotecario'    },
-  { value:'contado',     label:'Contado'                },
-  { value:'leasing',     label:'Leasing habitacional'   },
-  { value:'subsidio',    label:'Subsidio de vivienda'   },
-  { value:'permuta',     label:'Permuta'                },
-  { value:'corto_plazo', label:'Corto plazo'            },
-  { value:'arriendo',    label:'Arriendo'               },
+  { value:'credito',        label:'Crédito hipotecario' },
+  { value:'credito_simple', label:'Crédito'             },
+  { value:'contado',        label:'Contado'             },
+  { value:'leasing',        label:'Leasing habitacional'},
+  { value:'subsidio',       label:'Subsidio de vivienda'},
+  { value:'permuta',        label:'Permuta'             },
+  { value:'corto_plazo',    label:'Corto plazo'         },
+  { value:'arriendo',       label:'Arriendo'            },
 ];
 
 const CONTRACT_TYPES = [
@@ -73,7 +74,9 @@ const ContractEditPage = () => {
     queryKey: ['advisors'],
     queryFn:  () => advisorsService.getAll(),
   });
-  const advisors = advisorsData?.data?.data || [];
+  const advisors = (advisorsData?.data?.data || []).filter(a =>
+    ['planta','externo','freelance','referido','asesor'].includes(a.advisor_type)
+  );
 
   // Cargar usuarios para abogados y supervisores
   const { data: usersData } = useQuery({

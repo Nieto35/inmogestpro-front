@@ -64,8 +64,8 @@ const NewCommissionModal = ({ onClose, onSaved }) => {
   const contractQueryParams = () => {
     const base = { search: contractSearch || undefined, limit: 50 };
     if (isAdvisorType) return { ...base, advisor_id: form.advisor_id };
-    if (isAbogado)     return { ...base, abogado_user_id: selectedBenef?._userId || form.advisor_id };
-    if (isSupervisor)  return { ...base, supervisor_user_id: selectedBenef?._userId || form.advisor_id };
+    if (isAbogado)     return { ...base, abogado_user_id: selectedBenef?.user_id || selectedBenef?._userId };
+    if (isSupervisor)  return { ...base, supervisor_user_id: selectedBenef?.user_id || selectedBenef?._userId };
     return base; // gerente, contador, admin → ven todos los contratos
   };
 
