@@ -26,6 +26,18 @@ const STATUS_CONFIG = {
   refinanciado: { label:'Refinanciado', color:'var(--color-gold)',    bg:'rgba(200,168,75,0.1)'    },
 };
 
+const PAYMENT_TYPE_LABELS = {
+  credito:        'Crédito hipotecario',
+  credito_simple: 'Crédito',
+  contado:        'Contado',
+  leasing:        'Leasing habitacional',
+  subsidio:       'Subsidio de vivienda',
+  permuta:        'Permuta',
+  corto_plazo:    'Corto plazo',
+  arriendo:       'Arriendo',
+  financiado:     'Financiado',
+};
+
 const PAYMENT_METHODS = [
   { value:'transferencia', label:'Transferencia' },
   { value:'pse',           label:'PSE'           },
@@ -1398,7 +1410,7 @@ const ContractDetailPage = () => {
                   Incluida en el valor neto
                 </span>}/>
             )}
-            <InfoBlock label="Tipo de pago"  value={contract.payment_type}/>
+            <InfoBlock label="Tipo de pago"  value={PAYMENT_TYPE_LABELS[contract.payment_type] || contract.payment_type}/>
             <InfoBlock label="Cuotas"        value={`${contract.installments_total} × ${formatCurrency(contract.installment_amount)}`} mono/>
             {parseFloat(contract.notary_expenses || 0) > 0 && (
               <div className="col-span-2">
