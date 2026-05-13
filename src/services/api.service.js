@@ -201,13 +201,20 @@ export const blocksService = {
 };
 
 export const propertiesService = {
-  getAll:       (p)     => api.get('/properties',            { params:p }),
-  getById:      (id)    => api.get(`/properties/${id}`),
-  create:       (d)     => api.post('/properties', d),
-  update:       (id,d)  => api.put(`/properties/${id}`, d),
-  updateStatus: (id,st) => api.patch(`/properties/${id}/status`, { status:st }),
-  getDetail:    (id)    => api.get(`/properties/${id}/detail`),
-  createBulk:   (d)     => api.post('/properties/bulk', d),
+  getAll:       (p)          => api.get('/properties',            { params:p }),
+  getById:      (id)         => api.get(`/properties/${id}`),
+  create:       (d)          => api.post('/properties', d),
+  update:       (id,d)       => api.put(`/properties/${id}`, d),
+  updateStatus: (id,st,extra={}) => api.patch(`/properties/${id}/status`, { status:st, ...extra }),
+  getDetail:    (id)         => api.get(`/properties/${id}/detail`),
+  createBulk:   (d)          => api.post('/properties/bulk', d),
+};
+
+export const reservationsService = {
+  getAll:       (p)    => api.get('/reservations',              { params:p }),
+  getById:      (id)   => api.get(`/reservations/${id}`),
+  getByClient:  (cid)  => api.get('/reservations',              { params:{ client_id:cid, status:'activa' } }),
+  cancel:       (id,r) => api.patch(`/reservations/${id}/cancel`, { reason:r }),
 };
 
 export const contractsService = {

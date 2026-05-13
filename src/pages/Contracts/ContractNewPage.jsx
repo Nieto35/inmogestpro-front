@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Save, Search, CheckCircle } from 'lucide-react';
-import { contractsService, clientsService, propertiesService, advisorsService, usersService } from '../../services/api.service';
+import { contractsService, clientsService, propertiesService, advisorsService, usersService, reservationsService } from '../../services/api.service';
 import { useCurrencyFormat } from '../../utils/currency';
 import toast from 'react-hot-toast';
 
@@ -137,12 +137,21 @@ const ContractNewPage = () => {
   const { formatCurrency } = useCurrencyFormat();
   const isArriendo = form.payment_type === 'arriendo' || form.contract_type === 'arriendo';
 
-  // ── Datos: inmuebles disponibles (trae todos con project_id, block_id, project_name, block_name) ──
+  // ── Datos: inmuebles disponibles o reservados ──────────────
   const { data: propsData } = useQuery({
-    queryKey: ['properties-available'],
-    queryFn:  () => propertiesService.getAll({ status:'disponible' }),
+    queryKey: ['properties-for-contract'],
+    queryFn:  () => propertiesService.getAll({}),
   });
-  const availableProps = propsData?.data?.data || [];
+  const availableProps = (propsData?.data?.data || [])
+    .filter(p => p.status === 'disponible' || p.status === 'reservado');
+
+  // ── Reservas activas del cliente seleccionado ──────────────
+  const { data: reservationsData } = useQuery({
+    queryKey: ['client-reservations', selectedClient?.id],
+    queryFn:  () => reservationsService.getByClient(selectedClient.id),
+    enabled:  !!selectedClient,
+  });
+  const clientReservations = reservationsData?.data?.data || [];
 
   // ── Derivar lista de proyectos únicos desde los inmuebles disponibles ──
   // (así solo mostramos proyectos que efectivamente TIENEN inmuebles disponibles)
@@ -215,6 +224,12 @@ const ContractNewPage = () => {
     // Auto-sumar precios
     const total = newList.reduce((s, p) => s + parseFloat(p.base_price || 0), 0);
     set('total_value', String(total));
+    // Si el cliente tiene reserva activa sobre este inmueble, pre-llenar cuota inicial
+    const activeReservation = clientReservations.find(r => r.property_id === propId);
+    if (activeReservation) {
+      set('down_payment', String(activeReservation.amount));
+      toast(`Cuota inicial pre-llenada con el monto de la reserva: $${Number(activeReservation.amount).toLocaleString('es-CO')}`, { icon: '💡' });
+    }
   };
 
   const handleRemoveProp = (propId) => {
@@ -402,6 +417,30 @@ const ContractNewPage = () => {
       {/* 1. Cliente */}
       <Section num="1" title="Cliente">
         <ClientSearch value={selectedClient} onChange={setClient}/>
+
+        {/* Banner de reservas activas del cliente */}
+        {selectedClient && clientReservations.length > 0 && (
+          <div className="md:col-span-2 p-3 rounded-xl space-y-2"
+            style={{ background:'rgba(234,179,8,0.08)', border:'1px solid rgba(234,179,8,0.3)' }}>
+            <p className="text-xs font-semibold" style={{ color:'#ca8a04' }}>
+              🔒 Este cliente tiene {clientReservations.length} reserva{clientReservations.length > 1 ? 's' : ''} activa{clientReservations.length > 1 ? 's' : ''}
+            </p>
+            {clientReservations.map(r => (
+              <div key={r.id} className="flex items-center justify-between text-xs"
+                style={{ color:'var(--color-text-secondary)' }}>
+                <span>
+                  <strong>{r.project_name}</strong> · Unidad {r.unit_number}
+                </span>
+                <span style={{ color:'#ca8a04', fontWeight:600 }}>
+                  Reserva: ${Number(r.amount).toLocaleString('es-CO')} · Vence: {new Date(r.expiry_date).toLocaleDateString('es-CO')}
+                </span>
+              </div>
+            ))}
+            <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>
+              Al agregar el inmueble reservado, la cuota inicial se pre-llenará automáticamente.
+            </p>
+          </div>
+        )}
       </Section>
 
       {/* 2. Inmuebles y Asesor */}
@@ -466,7 +505,7 @@ const ContractNewPage = () => {
                 </option>
                 {filteredProps.map(p => (
                   <option key={p.id} value={p.id}>
-                    Unidad {p.unit_number} · {p.property_type} · {formatCurrency(p.base_price)}
+                    {p.status === 'reservado' ? '🔒 ' : ''}Unidad {p.unit_number} · {p.property_type} · {formatCurrency(p.base_price)}{p.status === 'reservado' ? ' (Reservado)' : ''}
                   </option>
                 ))}
               </select>
