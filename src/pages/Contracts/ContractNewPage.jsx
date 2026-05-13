@@ -137,13 +137,11 @@ const ContractNewPage = () => {
   const { formatCurrency } = useCurrencyFormat();
   const isArriendo = form.payment_type === 'arriendo' || form.contract_type === 'arriendo';
 
-  // ── Datos: inmuebles disponibles o reservados ──────────────
+  // ── Datos: todos los inmuebles (disponible + reservado) ────
   const { data: propsData } = useQuery({
     queryKey: ['properties-for-contract'],
     queryFn:  () => propertiesService.getAll({}),
   });
-  const availableProps = (propsData?.data?.data || [])
-    .filter(p => p.status === 'disponible' || p.status === 'reservado');
 
   // ── Reservas activas del cliente seleccionado ──────────────
   const { data: reservationsData } = useQuery({
@@ -152,6 +150,19 @@ const ContractNewPage = () => {
     enabled:  !!selectedClient,
   });
   const clientReservations = reservationsData?.data?.data || [];
+
+  // ── Inmuebles disponibles para este contrato ───────────────
+  // - Disponibles: siempre visibles
+  // - Reservados: solo si el cliente seleccionado tiene la reserva activa
+  const availableProps = useMemo(() => {
+    return (propsData?.data?.data || []).filter(p => {
+      if (p.status === 'disponible') return true;
+      if (p.status === 'reservado') {
+        return !!selectedClient && clientReservations.some(r => r.property_id === p.id);
+      }
+      return false;
+    });
+  }, [propsData, selectedClient, clientReservations]);
 
   // ── Derivar lista de proyectos únicos desde los inmuebles disponibles ──
   // (así solo mostramos proyectos que efectivamente TIENEN inmuebles disponibles)
