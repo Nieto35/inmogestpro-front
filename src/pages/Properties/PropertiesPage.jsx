@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search, RefreshCw, Plus, Building, Edit, X, Save, LayoutGrid, List, Layers } from 'lucide-react';
-import { propertiesService, projectsService, blocksService } from '../../services/api.service';
+import { propertiesService, projectsService, blocksService, clientsService } from '../../services/api.service';
 import { useSearchParams } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import toast from 'react-hot-toast';
@@ -307,6 +307,164 @@ const EditPropertyModal = ({ property, onClose, onSaved }) => {
   );
 };
 
+// ── Modal de Reserva ─────────────────────────────────────────
+const ReservationModal = ({ property, onClose, onSaved }) => {
+  const today = new Date().toISOString().split('T')[0];
+  const [saving, setSaving] = useState(false);
+  const [clientQ, setClientQ] = useState('');
+  const [clientOpen, setClientOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [form, setForm] = useState({
+    amount:           '',
+    reservation_date: today,
+    expiry_date:      '',
+    notes:            '',
+  });
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const { data: clientResults } = useQuery({
+    queryKey: ['client-search-modal', clientQ],
+    queryFn:  () => clientsService.search(clientQ),
+    enabled:  clientQ.length >= 2,
+  });
+  const clients = clientResults?.data?.data || [];
+
+  const handleSave = async () => {
+    if (!selectedClient) return toast.error('Selecciona un cliente');
+    if (!form.amount)    return toast.error('El monto de reserva es requerido');
+    if (!form.expiry_date) return toast.error('La fecha de vencimiento es requerida');
+    setSaving(true);
+    try {
+      await propertiesService.updateStatus(property.id, 'reservado', {
+        client_id:        selectedClient.id,
+        client_name:      selectedClient.full_name,
+        amount:           parseFloat(form.amount),
+        reservation_date: form.reservation_date,
+        expiry_date:      form.expiry_date,
+        notes:            form.notes || null,
+      });
+      toast.success(`Inmueble "${property.unit_number}" reservado para ${selectedClient.full_name}`);
+      onSaved();
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error al registrar la reserva');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background:'rgba(13,27,62,0.6)' }}>
+      <div className="w-full max-w-md rounded-xl shadow-2xl flex flex-col"
+        style={{ background:'var(--color-bg-card)', border:'1px solid var(--color-border)' }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 flex-shrink-0"
+          style={{ background:'var(--color-navy)', borderBottom:'3px solid var(--color-gold)' }}>
+          <div>
+            <h2 className="font-bold" style={{ color:'#F5F3EE', fontFamily:'var(--font-display)' }}>
+              Registrar Reserva
+            </h2>
+            <p className="text-xs mt-0.5" style={{ color:'rgba(200,168,75,0.7)' }}>
+              {property.project_name} · Unidad {property.unit_number}
+            </p>
+          </div>
+          <button onClick={onClose} className="btn btn-ghost btn-sm" style={{ color:'rgba(245,243,238,0.7)' }}>
+            <X size={16}/>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-5 space-y-4">
+
+          {/* Búsqueda de cliente */}
+          <div>
+            <label className="block text-xs font-medium mb-1.5" style={{ color:'var(--color-text-muted)' }}>
+              Cliente que reserva <span className="text-red-400">*</span>
+            </label>
+            <div className="relative">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color:'var(--color-text-muted)' }}/>
+              <input
+                type="text" value={clientQ}
+                onChange={e => { setClientQ(e.target.value); setClientOpen(true); if (!e.target.value) setSelectedClient(null); }}
+                onFocus={() => setClientOpen(true)}
+                className="input pl-8 text-sm w-full"
+                placeholder="Nombre o documento..."/>
+            </div>
+            {clientOpen && clients.length > 0 && (
+              <div className="relative">
+                <div className="absolute z-20 w-full mt-1 rounded-lg overflow-hidden shadow-xl"
+                  style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)' }}>
+                  {clients.map(c => (
+                    <button key={c.id} type="button"
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-slate-700 flex justify-between"
+                      onClick={() => { setSelectedClient(c); setClientQ(c.full_name); setClientOpen(false); }}>
+                      <span style={{ color:'var(--color-text-primary)' }}>{c.full_name}</span>
+                      <span style={{ color:'var(--color-text-muted)' }}>{c.document_number}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {selectedClient && (
+              <div className="mt-1.5 px-3 py-1.5 rounded text-xs"
+                style={{ background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.2)', color:'#10b981' }}>
+                ✓ {selectedClient.full_name} — {selectedClient.document_number}
+              </div>
+            )}
+          </div>
+
+          {/* Monto */}
+          <div>
+            <label className="block text-xs font-medium mb-1.5" style={{ color:'var(--color-text-muted)' }}>
+              Monto de la reserva <span className="text-red-400">*</span>
+            </label>
+            <input type="number" value={form.amount} onChange={e => set('amount', e.target.value)}
+              className="input text-sm w-full" placeholder="2000000" min="0" step="1000"/>
+          </div>
+
+          {/* Fechas */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color:'var(--color-text-muted)' }}>
+                Fecha de reserva <span className="text-red-400">*</span>
+              </label>
+              <input type="date" value={form.reservation_date} onChange={e => set('reservation_date', e.target.value)}
+                className="input text-sm w-full"/>
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color:'var(--color-text-muted)' }}>
+                Fecha de vencimiento <span className="text-red-400">*</span>
+              </label>
+              <input type="date" value={form.expiry_date} onChange={e => set('expiry_date', e.target.value)}
+                className="input text-sm w-full"/>
+            </div>
+          </div>
+
+          {/* Notas */}
+          <div>
+            <label className="block text-xs font-medium mb-1.5" style={{ color:'var(--color-text-muted)' }}>
+              Notas (opcional)
+            </label>
+            <textarea value={form.notes} onChange={e => set('notes', e.target.value)}
+              className="input text-sm w-full resize-none" rows={2}
+              placeholder="Condiciones especiales, observaciones..."/>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-5 border-t flex gap-3 flex-shrink-0" style={{ borderColor:'var(--color-border)' }}>
+          <button onClick={onClose} className="btn btn-outline flex-1">Cancelar</button>
+          <button onClick={handleSave} disabled={saving} className="btn btn-primary flex-1">
+            <Save size={14}/> {saving ? 'Guardando...' : 'Confirmar Reserva'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ── Página principal ──────────────────────────────────────────
 const PropertiesPage = () => {
   const navigate = useNavigate();
@@ -325,8 +483,9 @@ const PropertiesPage = () => {
   const [search,        setSearch]        = useState('');
   const [statusFilter,  setStatusFilter]  = useState('');
   const [purposeFilter, setPurposeFilter] = useState('');
-  const [changingId,    setChangingId]    = useState(null);
-  const [editTarget,    setEditTarget]    = useState(null);
+  const [changingId,      setChangingId]      = useState(null);
+  const [editTarget,      setEditTarget]      = useState(null);
+  const [reservationTarget, setReservationTarget] = useState(null);
   const [viewMode,      setViewMode]      = useState(
     () => localStorage.getItem('properties_view') || 'table'
   );
@@ -375,6 +534,11 @@ const PropertiesPage = () => {
     : allProps;
 
   const handleStatusChange = async (property, newStatus) => {
+    // Reservado requiere modal con datos adicionales
+    if (newStatus === 'reservado') {
+      setReservationTarget(property);
+      return;
+    }
     setChangingId(property.id);
     try {
       await propertiesService.updateStatus(property.id, newStatus);
@@ -399,6 +563,14 @@ const PropertiesPage = () => {
         <EditPropertyModal
           property={editTarget}
           onClose={() => setEditTarget(null)}
+          onSaved={handleSaved}
+        />
+      )}
+
+      {reservationTarget && (
+        <ReservationModal
+          property={reservationTarget}
+          onClose={() => setReservationTarget(null)}
           onSaved={handleSaved}
         />
       )}
