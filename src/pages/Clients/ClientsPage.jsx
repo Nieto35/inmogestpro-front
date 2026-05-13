@@ -50,7 +50,7 @@ const ClientsPage = () => {
           <div className="p-12 text-center"><Users size={40} className="mx-auto mb-3" style={{ color:'var(--color-text-muted)' }} /><p style={{ color:'var(--color-text-secondary)' }}>No hay clientes registrados</p></div>
         ) : (
           <table>
-            <thead><tr><th>Documento</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Ciudad</th><th>Estado</th><th></th></tr></thead>
+            <thead><tr><th>Documento</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Ciudad</th><th>Contrato</th><th>Estado</th><th></th></tr></thead>
             <tbody>
               {clients.map(c => (
                 <tr key={c.id} style={{ cursor:'pointer' }} onClick={() => navigate(to(`clients/${c.id}`))}>
@@ -59,6 +59,15 @@ const ClientsPage = () => {
                   <td className="text-sm" style={{ color:'var(--color-text-secondary)' }}>{c.mobile || '—'}</td>
                   <td className="text-sm" style={{ color:'var(--color-text-secondary)' }}>{c.email || '—'}</td>
                   <td className="text-sm" style={{ color:'var(--color-text-secondary)' }}>{c.city || '—'}</td>
+                  <td>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded"
+                      style={c.has_contract
+                        ? { background:'rgba(16,185,129,0.12)', color:'#10b981', border:'1px solid rgba(16,185,129,0.3)' }
+                        : { background:'rgba(148,163,184,0.1)', color:'#94a3b8', border:'1px solid rgba(148,163,184,0.2)' }
+                      }>
+                      {c.has_contract ? 'Sí' : 'No'}
+                    </span>
+                  </td>
                   <td><span className={`badge ${c.is_active ? 'badge-activo' : 'badge-cancelado'}`}>{c.is_active ? 'Activo' : 'Inactivo'}</span></td>
                   <td><button className="btn btn-ghost btn-sm"><Eye size={14} /></button></td>
                 </tr>

@@ -423,6 +423,32 @@ const ContractsPage = () => {
                           </button>
                         )}
                       </div>
+                      {/* Indicadores de comisión pagada */}
+                      {(c.advisor_commission_paid || c.abogado_commission_paid || c.supervisor_commission_paid) && (
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          {c.advisor_commission_paid && (
+                            <span title="Comisión asesor pagada"
+                              className="text-xs font-semibold px-1.5 py-0.5 rounded"
+                              style={{ background:'rgba(16,185,129,0.12)', color:'#10b981', border:'1px solid rgba(16,185,129,0.3)' }}>
+                              Ase.
+                            </span>
+                          )}
+                          {c.abogado_commission_paid && (
+                            <span title="Comisión abogado pagada"
+                              className="text-xs font-semibold px-1.5 py-0.5 rounded"
+                              style={{ background:'rgba(59,130,246,0.12)', color:'#60a5fa', border:'1px solid rgba(59,130,246,0.3)' }}>
+                              Abo.
+                            </span>
+                          )}
+                          {c.supervisor_commission_paid && (
+                            <span title="Comisión supervisor pagada"
+                              className="text-xs font-semibold px-1.5 py-0.5 rounded"
+                              style={{ background:'rgba(168,85,247,0.12)', color:'#c084fc', border:'1px solid rgba(168,85,247,0.3)' }}>
+                              Sup.
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );

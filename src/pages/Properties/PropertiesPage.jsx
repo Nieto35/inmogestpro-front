@@ -807,6 +807,11 @@ const PropertiesPage = () => {
                           {p.occupant_contract && (
                             <p className="text-xs font-mono" style={{ color:'var(--color-gold)' }}>{p.occupant_contract}</p>
                           )}
+                          {p.reservation_id && !p.occupant_contract && (
+                            <p className="text-xs font-semibold" style={{ color:'var(--color-warning)' }}>
+                              🔒 Reserva · Vence: {new Date(p.reservation_expiry_date).toLocaleDateString('es-CO')}
+                            </p>
+                          )}
                           {p.occupant_phone && (
                             <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>{p.occupant_phone}</p>
                           )}
@@ -929,6 +934,11 @@ const PropertiesPage = () => {
                     <p className="text-xs font-medium" style={{ color:'var(--color-navy)' }}>{p.occupant_name}</p>
                     {p.occupant_contract && (
                       <p className="text-xs font-mono" style={{ color:'var(--color-gold)' }}>{p.occupant_contract}</p>
+                    )}
+                    {p.reservation_id && !p.occupant_contract && (
+                      <p className="text-xs font-semibold" style={{ color:'var(--color-warning)' }}>
+                        🔒 Reserva · Vence: {new Date(p.reservation_expiry_date).toLocaleDateString('es-CO')}
+                      </p>
                     )}
                     {p.occupant_phone && (
                       <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>{p.occupant_phone}</p>
