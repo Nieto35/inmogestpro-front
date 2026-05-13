@@ -203,7 +203,7 @@ const ProjectNewPage = () => {
               <input value={form.city} onChange={e => set('city', e.target.value)}
                 className="input text-sm" placeholder="Cali" />
             </Field>
-            <Field label="Departamento">
+            <Field label="Departamento, Provincia o Estado">
               <input value={form.department} onChange={e => set('department', e.target.value)}
                 className="input text-sm" placeholder="Valle del Cauca" />
             </Field>

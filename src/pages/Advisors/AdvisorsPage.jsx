@@ -4,7 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   UserCheck, RefreshCw, Plus, X, Save, Eye,
-  FileText, DollarSign, TrendingUp, Edit, ChevronDown, ChevronUp
+  FileText, DollarSign, TrendingUp, Edit, ChevronDown, ChevronUp,
+  LayoutGrid, List, Briefcase, Scale, Crown
 } from 'lucide-react';
 import { advisorsService, usersService, commissionsService } from '../../services/api.service';
 import useAuthStore from '../../store/authStore';
@@ -42,7 +43,12 @@ const EditAdvisorModal = ({ advisor, onClose, onSaved }) => {
     queryKey: ['users-for-advisor'],
     queryFn:  () => usersService.getAll(),
   });
-  const advisorUsers = (usersData?.data?.data || []).filter(u => u.role === 'asesor');
+  // Filtrar usuarios según el tipo del asesor que se está editando
+  const advisorUsers = (usersData?.data?.data || []).filter(u => {
+    if (form.advisor_type === 'abogado')    return u.role === 'abogado';
+    if (form.advisor_type === 'supervisor') return u.role === 'supervisor';
+    return u.role === 'asesor';
+  });
 
   const handleSave = async () => {
     if (!form.full_name) return toast.error('El nombre es requerido');
@@ -368,12 +374,27 @@ const AdvisorsPage = () => {
 
   const [selected,   setSelected]   = useState(null);
   const [editTarget, setEditTarget] = useState(null);
+  const [activeTab,  setActiveTab]  = useState('asesores');
+  const [viewMode,   setViewMode]   = useState(() => localStorage.getItem('advisors_view') || 'grid');
+
+  const setView = (mode) => {
+    setViewMode(mode);
+    localStorage.setItem('advisors_view', mode);
+    setSelected(null);
+  };
 
   const { data, refetch, isFetching } = useQuery({
     queryKey: ['advisors'],
     queryFn:  () => advisorsService.getAll(),
   });
   const advisors = data?.data?.data || [];
+
+  const ASESOR_TYPES = ['planta','externo','freelance','referido','gerente','asesor'];
+  const filteredAdvisors = advisors.filter(a => {
+    if (activeTab === 'abogados')    return a.advisor_type === 'abogado';
+    if (activeTab === 'supervisores') return a.advisor_type === 'supervisor';
+    return ASESOR_TYPES.includes(a.advisor_type);
+  });
 
   const handleSaved = () => {
     queryClient.invalidateQueries({ queryKey:['advisors'] });
@@ -393,132 +414,162 @@ const AdvisorsPage = () => {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
         <div>
           <h1 className="text-2xl font-bold"
             style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
-            Asesores Comerciales
+            Equipo Comercial
           </h1>
           <p className="text-sm" style={{ color:'var(--color-text-muted)' }}>
-            {advisors.length} asesor{advisors.length !== 1 ? 'es' : ''} registrado{advisors.length !== 1 ? 's' : ''}
+            {filteredAdvisors.length} {activeTab === 'abogados' ? 'abogado' : activeTab === 'supervisores' ? 'supervisor' : 'asesor'}{filteredAdvisors.length !== 1 ? 'es' : ''} registrado{filteredAdvisors.length !== 1 ? 's' : ''}
           </p>
         </div>
         <div className="flex gap-2">
+          {/* View toggle */}
+          <div className="flex rounded overflow-hidden" style={{ border:'1px solid var(--color-border)' }}>
+            <button
+              onClick={() => setView('grid')}
+              className="px-2.5 py-1.5 transition-colors"
+              style={{
+                background: viewMode==='grid' ? 'var(--color-navy)' : 'var(--color-bg-card)',
+                color:      viewMode==='grid' ? 'var(--color-gold)' : 'var(--color-text-muted)',
+              }}
+              title="Vista cuadrícula">
+              <LayoutGrid size={14}/>
+            </button>
+            <button
+              onClick={() => setView('list')}
+              className="px-2.5 py-1.5 transition-colors"
+              style={{
+                background: viewMode==='list' ? 'var(--color-navy)' : 'var(--color-bg-card)',
+                color:      viewMode==='list' ? 'var(--color-gold)' : 'var(--color-text-muted)',
+                borderLeft: '1px solid var(--color-border)',
+              }}
+              title="Vista lista">
+              <List size={14}/>
+            </button>
+          </div>
           <button onClick={() => refetch()} className="btn btn-outline btn-sm">
             <RefreshCw size={14} className={isFetching ? 'animate-spin':''}/>
           </button>
           {canCreate && (
             <button onClick={() => navigate(to('advisors/new'))} className="btn btn-primary btn-sm">
-              <Plus size={14}/> Nuevo Asesor
+              <Plus size={14}/> Nuevo {activeTab === 'abogados' ? 'Abogado' : activeTab === 'supervisores' ? 'Supervisor' : 'Asesor'}
             </button>
           )}
         </div>
       </div>
 
-      <div className="flex gap-4" style={{ alignItems:'flex-start' }}>
+      {/* Tabs */}
+      <div className="flex gap-1 mb-5 p-1 rounded-lg" style={{ background:'var(--color-bg-secondary)', width:'fit-content' }}>
+        {[
+          { key:'asesores',    label:'Asesores',    icon:<Briefcase size={13}/> },
+          { key:'abogados',    label:'Abogados',    icon:<Scale size={13}/> },
+          { key:'supervisores',label:'Supervisores', icon:<Crown size={13}/> },
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => { setActiveTab(tab.key); setSelected(null); }}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-medium transition-all"
+            style={{
+              background: activeTab === tab.key ? 'var(--color-navy)' : 'transparent',
+              color:      activeTab === tab.key ? 'var(--color-gold)' : 'var(--color-text-muted)',
+              boxShadow:  activeTab === tab.key ? 'var(--shadow-sm)' : 'none',
+            }}>
+            {tab.icon} {tab.label}
+            <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full"
+              style={{
+                background: activeTab === tab.key ? 'rgba(200,168,75,0.2)' : 'var(--color-bg-card)',
+                color:      activeTab === tab.key ? 'var(--color-gold)' : 'var(--color-text-muted)',
+              }}>
+              {advisors.filter(a => {
+                if (tab.key==='abogados')    return a.advisor_type==='abogado';
+                if (tab.key==='supervisores') return a.advisor_type==='supervisor';
+                return ['planta','externo','freelance','referido','gerente','asesor'].includes(a.advisor_type);
+              }).length}
+            </span>
+          </button>
+        ))}
+      </div>
 
-        {/* Lista */}
-        <div className={`space-y-3 ${selected ? 'w-72 flex-shrink-0' : 'w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'}`}
-          style={{ transition:'all 0.3s' }}>
-
-          {advisors.length === 0 && !isFetching && (
-            <div className="card flex flex-col items-center py-16 gap-4 col-span-3">
-              <UserCheck size={48} style={{ color:'var(--color-text-muted)' }}/>
-              <div className="text-center">
-                <p className="font-medium" style={{ color:'var(--color-text-secondary)' }}>
-                  No hay asesores registrados
-                </p>
-                <p className="text-sm mt-1" style={{ color:'var(--color-text-muted)' }}>
-                  Registra los asesores para asignarlos a contratos
-                </p>
-              </div>
-              {canCreate && (
-                <button onClick={() => navigate(to('advisors/new'))} className="btn btn-primary btn-sm">
-                  <Plus size={14}/> Registrar Asesor
-                </button>
-              )}
+      {/* ── VISTA LISTA ── */}
+      {viewMode === 'list' && (
+        <>
+        <div className="table-container">
+          {filteredAdvisors.length === 0 && !isFetching ? (
+            <div className="p-12 text-center">
+              <UserCheck size={40} className="mx-auto mb-3" style={{ color:'var(--color-text-muted)' }}/>
+              <p style={{ color:'var(--color-text-secondary)' }}>
+                No hay {activeTab === 'abogados' ? 'abogados' : activeTab === 'supervisores' ? 'supervisores' : 'asesores'} registrados
+              </p>
             </div>
-          )}
-
-          {advisors.map((a, i) => {
-            const isSelected = selected?.id === a.id;
-            return (
-              <div key={a.id}
-                className="card cursor-pointer transition-all"
-                style={{
-                  borderLeft: isSelected ? '4px solid var(--color-gold)' : '4px solid transparent',
-                  boxShadow:  isSelected ? 'var(--shadow-md)' : undefined,
-                }}
-                onClick={() => setSelected(isSelected ? null : a)}>
-
-                <div className="flex items-center gap-3 mb-3">
-                  {/* Avatar — navy + inicial dorada */}
-                  <div className="w-11 h-11 flex items-center justify-center font-bold text-lg flex-shrink-0"
-                    style={{ background:'var(--color-navy)', color:'var(--color-gold)', fontFamily:'var(--font-display)' }}>
-                    {a.full_name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate" style={{ color:'var(--color-navy)' }}>
-                      {a.full_name}
-                    </p>
-                    <div className="flex items-center gap-2 mt-0.5">
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Nombre</th>
+                  <th>Tipo</th>
+                  <th>Email</th>
+                  <th>Teléfono</th>
+                  <th>Contratos</th>
+                  <th>Comisión</th>
+                  <th>Vendido</th>
+                  <th>Estado</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAdvisors.map((a, i) => (
+                  <tr key={a.id}
+                    style={{ cursor:'pointer' }}
+                    onClick={() => setSelected(selected?.id === a.id ? null : a)}>
+                    <td className="font-bold text-sm" style={{ color:'var(--color-gold)', fontFamily:'var(--font-display)' }}>#{i+1}</td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 flex items-center justify-center font-bold text-sm flex-shrink-0"
+                          style={{ background:'var(--color-navy)', color:'var(--color-gold)', fontFamily:'var(--font-display)', borderRadius:'6px' }}>
+                          {a.full_name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-medium text-sm" style={{ color:'var(--color-navy)' }}>{a.full_name}</span>
+                      </div>
+                    </td>
+                    <td>
                       <span className={`badge text-xs ${a.advisor_type==='freelance'?'badge-freelance':'badge-planta'}`}>
                         {a.advisor_type}
                       </span>
-                      {!a.is_active && (
-                        <span className="badge badge-cancelado text-xs">Inactivo</span>
-                      )}
-                    </div>
-                  </div>
-                  {/* Número ranking en dorado */}
-                  <span className="text-xl font-bold flex-shrink-0"
-                    style={{ color:'var(--color-gold)', fontFamily:'var(--font-display)' }}>
-                    #{i+1}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="rounded p-1.5" style={{ background:'var(--color-bg-secondary)' }}>
-                    <p className="font-bold text-sm" style={{ color:'var(--color-navy)' }}>
-                      {a.contracts_count ?? 0}
-                    </p>
-                    <p style={{ color:'var(--color-text-muted)' }}>Contratos</p>
-                  </div>
-                  <div className="rounded p-1.5" style={{ background:'var(--color-bg-secondary)' }}>
-                    <p className="font-bold text-sm" style={{ color:'var(--color-navy)' }}>
-                      {a.commission_rate ?? 3}%
-                    </p>
-                    <p style={{ color:'var(--color-text-muted)' }}>Comisión</p>
-                  </div>
-                  {/* Vendido — navy, sin verde */}
-                  <div className="rounded p-1.5" style={{ background:'rgba(200,168,75,0.08)', border:'1px solid rgba(200,168,75,0.15)' }}>
-                    <p className="font-bold text-sm" style={{ color:'var(--color-gold)' }}>
+                    </td>
+                    <td className="text-sm" style={{ color:'var(--color-text-secondary)' }}>{a.email || '—'}</td>
+                    <td className="text-sm" style={{ color:'var(--color-text-secondary)' }}>{a.phone || '—'}</td>
+                    <td className="text-sm font-semibold text-center" style={{ color:'var(--color-navy)' }}>{a.contracts_count ?? 0}</td>
+                    <td className="text-sm font-semibold text-center" style={{ color:'var(--color-navy)' }}>{a.commission_rate ?? 3}%</td>
+                    <td className="text-sm font-semibold font-mono" style={{ color:'var(--color-gold)' }}>
                       {a.total_value > 0 ? `$${(parseFloat(a.total_value)/1000000).toFixed(1)}M` : '$0'}
-                    </p>
-                    <p style={{ color:'var(--color-text-muted)' }}>Vendido</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between mt-3 pt-2"
-                  style={{ borderTop:'1px solid var(--color-border)' }}>
-                  <button
-                    onClick={e => { e.stopPropagation(); setEditTarget(a); }}
-                    className="btn btn-ghost btn-sm text-xs">
-                    <Edit size={12}/> Editar
-                  </button>
-                  <button className="btn btn-ghost btn-sm text-xs"
-                    style={{ color:'var(--color-gold)' }}>
-                    <Eye size={12}/> {isSelected ? 'Ocultar' : 'Ver detalle'}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                    </td>
+                    <td>
+                      <span className={`badge ${a.is_active ? 'badge-activo' : 'badge-cancelado'}`}>
+                        {a.is_active ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
+                    <td>
+                      {canEdit && (
+                        <button
+                          onClick={e => { e.stopPropagation(); setEditTarget(a); }}
+                          className="btn btn-ghost btn-sm">
+                          <Edit size={13}/>
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
-        {/* Panel de detalle */}
+        {/* Panel de detalle en vista lista */}
         {selected && (
-          <div className="flex-1 card" style={{ minWidth:0, borderTop:'3px solid var(--color-gold)' }}>
+          <div className="mt-4 card" style={{ borderTop:'3px solid var(--color-gold)' }}>
             <div className="flex items-center justify-between mb-4 pb-3"
               style={{ borderBottom:'1px solid var(--color-border)' }}>
               <div className="flex items-center gap-3">
@@ -545,7 +596,142 @@ const AdvisorsPage = () => {
             />
           </div>
         )}
-      </div>
+        </>
+      )}
+
+      {/* ── VISTA CUADRÍCULA ── */}
+      {viewMode === 'grid' && (
+        <div className="flex gap-4" style={{ alignItems:'flex-start' }}>
+
+          {/* Tarjetas */}
+          <div className={`${selected ? 'space-y-3 w-72 flex-shrink-0' : 'w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'}`}
+            style={{ transition:'all 0.3s' }}>
+
+            {filteredAdvisors.length === 0 && !isFetching && (
+              <div className="card flex flex-col items-center py-16 gap-4 col-span-3">
+                <UserCheck size={48} style={{ color:'var(--color-text-muted)' }}/>
+                <div className="text-center">
+                  <p className="font-medium" style={{ color:'var(--color-text-secondary)' }}>
+                    No hay {activeTab === 'abogados' ? 'abogados' : activeTab === 'supervisores' ? 'supervisores' : 'asesores'} registrados
+                  </p>
+                  <p className="text-sm mt-1" style={{ color:'var(--color-text-muted)' }}>
+                    Regístralos para asignarlos a contratos
+                  </p>
+                </div>
+                {canCreate && (
+                  <button onClick={() => navigate(to('advisors/new'))} className="btn btn-primary btn-sm">
+                    <Plus size={14}/> Registrar
+                  </button>
+                )}
+              </div>
+            )}
+
+            {filteredAdvisors.map((a, i) => {
+              const isSelected = selected?.id === a.id;
+              return (
+                <div key={a.id}
+                  className="card cursor-pointer transition-all"
+                  style={{
+                    borderLeft: isSelected ? '4px solid var(--color-gold)' : '4px solid transparent',
+                    boxShadow:  isSelected ? 'var(--shadow-md)' : undefined,
+                  }}
+                  onClick={() => setSelected(isSelected ? null : a)}>
+
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-11 h-11 flex items-center justify-center font-bold text-lg flex-shrink-0"
+                      style={{ background:'var(--color-navy)', color:'var(--color-gold)', fontFamily:'var(--font-display)' }}>
+                      {a.full_name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate" style={{ color:'var(--color-navy)' }}>
+                        {a.full_name}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className={`badge text-xs ${a.advisor_type==='freelance'?'badge-freelance':'badge-planta'}`}>
+                          {a.advisor_type}
+                        </span>
+                        {!a.is_active && (
+                          <span className="badge badge-cancelado text-xs">Inactivo</span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-xl font-bold flex-shrink-0"
+                      style={{ color:'var(--color-gold)', fontFamily:'var(--font-display)' }}>
+                      #{i+1}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="rounded p-1.5" style={{ background:'var(--color-bg-secondary)' }}>
+                      <p className="font-bold text-sm" style={{ color:'var(--color-navy)' }}>
+                        {a.contracts_count ?? 0}
+                      </p>
+                      <p style={{ color:'var(--color-text-muted)' }}>Contratos</p>
+                    </div>
+                    <div className="rounded p-1.5" style={{ background:'var(--color-bg-secondary)' }}>
+                      <p className="font-bold text-sm" style={{ color:'var(--color-navy)' }}>
+                        {a.commission_rate ?? 3}%
+                      </p>
+                      <p style={{ color:'var(--color-text-muted)' }}>Comisión</p>
+                    </div>
+                    <div className="rounded p-1.5" style={{ background:'rgba(200,168,75,0.08)', border:'1px solid rgba(200,168,75,0.15)' }}>
+                      <p className="font-bold text-sm" style={{ color:'var(--color-gold)' }}>
+                        {a.total_value > 0 ? `$${(parseFloat(a.total_value)/1000000).toFixed(1)}M` : '$0'}
+                      </p>
+                      <p style={{ color:'var(--color-text-muted)' }}>Vendido</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-3 pt-2"
+                    style={{ borderTop:'1px solid var(--color-border)' }}>
+                    {canEdit ? (
+                      <button
+                        onClick={e => { e.stopPropagation(); setEditTarget(a); }}
+                        className="btn btn-ghost btn-sm text-xs">
+                        <Edit size={12}/> Editar
+                      </button>
+                    ) : <span/>}
+                    <button className="btn btn-ghost btn-sm text-xs"
+                      style={{ color:'var(--color-gold)' }}>
+                      <Eye size={12}/> {isSelected ? 'Ocultar' : 'Ver detalle'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Panel de detalle */}
+          {selected && (
+            <div className="flex-1 card" style={{ minWidth:0, borderTop:'3px solid var(--color-gold)' }}>
+              <div className="flex items-center justify-between mb-4 pb-3"
+                style={{ borderBottom:'1px solid var(--color-border)' }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 flex items-center justify-center font-bold"
+                    style={{ background:'var(--color-navy)', color:'var(--color-gold)', fontFamily:'var(--font-display)' }}>
+                    {selected.full_name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h2 className="font-bold" style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
+                      {selected.full_name}
+                    </h2>
+                    <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>
+                      Contratos y comisiones
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setSelected(null)} className="btn btn-ghost btn-sm">
+                  <X size={16}/>
+                </button>
+              </div>
+              <AdvisorDetail
+                advisor={selected}
+                onEdit={() => setEditTarget(selected)}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
