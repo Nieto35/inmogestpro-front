@@ -10,11 +10,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Search, RefreshCw, Eye, Users } from 'lucide-react';
 import { clientsService } from '../../services/api.service';
+import useAuthStore from '../../store/authStore';
 
 const ClientsPage = () => {
   const navigate = useNavigate();
   const { tenant } = useParams();
   const to = (path) => `/${tenant}/${path.replace(/^\//, '')}`;
+  const { hasRole } = useAuthStore();
+  const isAsesor = hasRole('asesor');
   const [search, setSearch] = useState('');
 
   const { data, refetch, isFetching } = useQuery({
@@ -53,7 +56,9 @@ const ClientsPage = () => {
             <thead><tr><th>Documento</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Ciudad</th><th>Contrato</th><th>Estado</th><th></th></tr></thead>
             <tbody>
               {clients.map(c => (
-                <tr key={c.id} style={{ cursor:'pointer' }} onClick={() => navigate(to(`clients/${c.id}`))}>
+                <tr key={c.id}
+                  style={{ cursor: isAsesor ? 'default' : 'pointer' }}
+                  onClick={() => !isAsesor && navigate(to(`clients/${c.id}`))}>
                   <td className="font-mono text-sm" style={{ color:'var(--color-text-muted)' }}>{c.document_type} · {c.document_number}</td>
                   <td className="font-medium text-sm" style={{ color:'var(--color-text-primary)' }}>{c.full_name}</td>
                   <td className="text-sm" style={{ color:'var(--color-text-secondary)' }}>{c.mobile || '—'}</td>
@@ -69,7 +74,7 @@ const ClientsPage = () => {
                     </span>
                   </td>
                   <td><span className={`badge ${c.is_active ? 'badge-activo' : 'badge-cancelado'}`}>{c.is_active ? 'Activo' : 'Inactivo'}</span></td>
-                  <td><button className="btn btn-ghost btn-sm"><Eye size={14} /></button></td>
+                  <td>{!isAsesor && <button className="btn btn-ghost btn-sm"><Eye size={14} /></button>}</td>
                 </tr>
               ))}
             </tbody>
