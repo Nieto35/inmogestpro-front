@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { interactionsService, clientsService, contractsService } from '../../services/api.service';
 import { format } from 'date-fns';
+import Modal from '../../components/UI/Modal';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import { getActiveTenantSlug } from '../../utils/tenant';
@@ -183,8 +184,7 @@ const NewInteractionModal = ({ onClose, onSaved, preselectedClient = null, prese
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center"
-      style={{ background:'rgba(13,27,62,0.55)', paddingTop:'5vh' }}>
+    <Modal onClose={onClose}>
       <div className="w-full rounded-xl shadow-2xl"
         style={{ maxWidth:'500px', margin:'0 16px', background:'var(--color-bg-card)',
                  border:'1px solid var(--color-border)', maxHeight:'90vh', display:'flex', flexDirection:'column' }}>
@@ -408,7 +408,7 @@ const NewInteractionModal = ({ onClose, onSaved, preselectedClient = null, prese
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 
