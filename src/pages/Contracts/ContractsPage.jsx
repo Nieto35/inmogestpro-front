@@ -136,6 +136,7 @@ const ContractsPage = () => {
   const canCreate    = hasRole('admin','gerente');
   const canExport    = hasRole('admin','gerente','contador');
   const canCancel    = hasRole('admin','gerente','contador');
+  const isAsesor     = hasRole('asesor');
 
   const [filters, setFilters] = useState({
     search:'', status:'', payment_type:'', page:1, limit:20,
@@ -313,8 +314,9 @@ const ContractsPage = () => {
                 const statusCfg = STATUS_CONFIG[c.status] || { label:c.status, class:'badge-pendiente' };
                 const pct       = getProgressPct(c);
                 return (
-                  <tr key={c.id} style={{ cursor:'pointer' }}
-                    onClick={() => navigate(to(`contracts/${c.id}`))}>
+                  <tr key={c.id}
+                    style={{ cursor: isAsesor ? 'default' : 'pointer' }}
+                    onClick={() => !isAsesor && navigate(to(`contracts/${c.id}`))}>
 
                     <td>
                       <span className="font-mono text-sm font-medium"
@@ -398,12 +400,14 @@ const ContractsPage = () => {
 
                     <td onClick={e => e.stopPropagation()}>
                       <div className="flex gap-1">
-                        <button
-                          onClick={() => navigate(to(`contracts/${c.id}`))}
-                          className="btn btn-ghost btn-sm"
-                          title="Ver detalle">
-                          <Eye size={14}/>
-                        </button>
+                        {!isAsesor && (
+                          <button
+                            onClick={() => navigate(to(`contracts/${c.id}`))}
+                            className="btn btn-ghost btn-sm"
+                            title="Ver detalle">
+                            <Eye size={14}/>
+                          </button>
+                        )}
                         {canCancel && c.status !== 'cancelado' && (
                           <button
                             onClick={e => { e.stopPropagation(); navigate(to(`contracts/${c.id}/edit`)); }}

@@ -21,7 +21,7 @@ const NAV_ITEMS = [
   { path: 'blocks',            label: 'Manzanas',       icon: Layers,          roles: ['admin','gerente','contador','readonly'] },
   { path: 'properties',        label: 'Inmuebles',      icon: Home,            roles: ['admin','gerente','contador','asesor','abogado','readonly'] },
   { path: 'payments',          label: 'Pagos',          icon: CreditCard,      roles: ['admin','gerente','contador'] },
-  { path: 'interactions',      label: 'Interacciones',  icon: Phone,           roles: ['admin','gerente','contador','abogado'] },
+  { path: 'interactions',      label: 'Interacciones',  icon: Phone,           roles: ['admin','gerente','contador','asesor','abogado'] },
   { path: 'advisors',          label: 'Asesores',       icon: UserCheck,       roles: ['admin','gerente','readonly'] },
   { path: 'commissions',       label: 'Comisiones',     icon: DollarSign,      roles: ['admin','gerente','contador','asesor'] },
   { path: 'reports',           label: 'Reportes',       icon: BarChart3,       roles: ['admin','gerente','contador','readonly'] },
