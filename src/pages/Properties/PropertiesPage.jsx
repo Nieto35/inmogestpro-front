@@ -7,6 +7,7 @@ import { propertiesService, projectsService, blocksService, clientsService } fro
 import { useSearchParams } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import toast from 'react-hot-toast';
+import Modal from '../../components/UI/Modal';
 
 // Colores semánticos de estado — justificados (semáforo funcional)
 const STATUS_CFG = {
@@ -176,8 +177,7 @@ const EditPropertyModal = ({ property, onClose, onSaved }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background:'rgba(13,27,62,0.55)' }}>
+    <Modal onClose={onClose}>
       <div className="w-full max-w-lg rounded-xl shadow-2xl flex flex-col"
         style={{ background:'var(--color-bg-card)', border:'1px solid var(--color-border)', maxHeight:'90vh' }}>
 
@@ -303,7 +303,7 @@ const EditPropertyModal = ({ property, onClose, onSaved }) => {
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 
@@ -354,8 +354,7 @@ const ReservationModal = ({ property, onClose, onSaved }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background:'rgba(13,27,62,0.6)' }}>
+    <Modal onClose={onClose}>
       <div className="w-full max-w-md rounded-xl shadow-2xl flex flex-col"
         style={{ background:'var(--color-bg-card)', border:'1px solid var(--color-border)' }}>
 
@@ -461,7 +460,7 @@ const ReservationModal = ({ property, onClose, onSaved }) => {
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

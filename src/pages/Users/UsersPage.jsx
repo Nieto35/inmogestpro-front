@@ -8,6 +8,7 @@ import {
 import { usersService } from '../../services/api.service';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import Modal from '../../components/UI/Modal';
 
 const ROLE_LABELS = {
   admin:      'Administrador',
@@ -86,8 +87,7 @@ const NewUserModal = ({ onClose, onCreated }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.6)' }}>
+    <Modal onClose={onClose}>
       <div className="w-full max-w-lg rounded-xl shadow-2xl"
         style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
 
@@ -159,7 +159,7 @@ const NewUserModal = ({ onClose, onCreated }) => {
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 
@@ -205,8 +205,7 @@ const EditUserModal = ({ user, onClose, onSaved }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.6)' }}>
+    <Modal onClose={onClose}>
       <div className="w-full max-w-lg rounded-xl shadow-2xl"
         style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
 
@@ -307,7 +306,7 @@ const EditUserModal = ({ user, onClose, onSaved }) => {
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { commissionsService, advisorsService, contractsService, usersService } from '../../services/api.service';
 import * as XLSX from 'xlsx';
+import Modal from '../../components/UI/Modal';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
@@ -131,8 +132,7 @@ const NewCommissionModal = ({ onClose, onSaved }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center"
-      style={{ background:'rgba(13,27,62,0.55)', paddingTop:'4vh' }}>
+    <Modal onClose={onClose}>
       <div className="w-full rounded-xl shadow-2xl flex flex-col"
         style={{ maxWidth:'520px', margin:'0 16px', background:'var(--color-bg-card)',
                  border:'1px solid var(--color-border)', maxHeight:'92vh' }}>
@@ -464,7 +464,7 @@ const NewCommissionModal = ({ onClose, onSaved }) => {
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

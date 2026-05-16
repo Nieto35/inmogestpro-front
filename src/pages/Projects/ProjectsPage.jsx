@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Building, RefreshCw, Plus, Edit, X, Save, MapPin, LayoutGrid, List, Layers } from 'lucide-react';
+import Modal from '../../components/UI/Modal';
 import { projectsService } from '../../services/api.service';
 import useAuthStore from '../../store/authStore';
 import toast from 'react-hot-toast';
@@ -61,8 +62,7 @@ const EditProjectModal = ({ project, onClose, onSaved }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background:'rgba(13,27,62,0.55)' }}>
+    <Modal onClose={onClose}>
       <div className="w-full max-w-lg rounded-xl shadow-2xl flex flex-col"
         style={{ background:'var(--color-bg-card)', border:'1px solid var(--color-border)', maxHeight:'90vh' }}>
 
@@ -143,7 +143,7 @@ const EditProjectModal = ({ project, onClose, onSaved }) => {
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

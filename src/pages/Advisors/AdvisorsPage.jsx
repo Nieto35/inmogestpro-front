@@ -12,6 +12,7 @@ import useAuthStore from '../../store/authStore';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
+import Modal from '../../components/UI/Modal';
 
 const formatCurrency = v =>
   new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0}).format(v||0);
@@ -74,8 +75,7 @@ const EditAdvisorModal = ({ advisor, onClose, onSaved }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background:'rgba(13,27,62,0.55)' }}>
+    <Modal onClose={onClose}>
       <div className="w-full max-w-lg rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto"
         style={{ background:'var(--color-bg-card)', border:'1px solid var(--color-border)' }}>
         <div className="flex items-center justify-between p-5 sticky top-0"
@@ -147,7 +147,7 @@ const EditAdvisorModal = ({ advisor, onClose, onSaved }) => {
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

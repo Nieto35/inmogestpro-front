@@ -13,6 +13,7 @@ import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/authStore';
 import * as XLSX from 'xlsx';
+import Modal from '../../components/UI/Modal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://back.inmogestpro.com';
 const formatCurrency = (v) =>
@@ -167,8 +168,7 @@ const PaymentModal = ({ tenant, contract, schedule, onClose, onSaved }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background:'rgba(0,0,0,0.7)' }}>
+    <Modal onClose={onClose}>
       <div className="w-full max-w-md rounded-2xl shadow-2xl max-h-[92vh] overflow-y-auto"
         style={{ background:'var(--color-bg-card)', border:'1px solid var(--color-border)' }}>
 
@@ -376,7 +376,7 @@ const PaymentModal = ({ tenant, contract, schedule, onClose, onSaved }) => {
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 
@@ -604,8 +604,7 @@ const EditScheduleModal = ({ open, onClose, contract, paidCount, onSaved }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background:'rgba(0,0,0,0.6)' }} onClick={onClose}>
+    <Modal onClose={onClose}>
       <div className="w-full max-w-md rounded-xl shadow-2xl"
         style={{ background:'var(--color-bg-primary)', border:'1px solid var(--color-border)' }}
         onClick={e => e.stopPropagation()}>
@@ -687,7 +686,7 @@ const EditScheduleModal = ({ open, onClose, contract, paidCount, onSaved }) => {
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 
@@ -785,9 +784,7 @@ const ExportScheduleModal = ({
     : rawName;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background:'rgba(0,0,0,0.6)' }}
-      onClick={onClose}>
+    <Modal onClose={onClose}>
       <div className="w-full max-w-lg rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto"
         style={{ background:'var(--color-bg-primary)', border:'1px solid var(--color-border)' }}
         onClick={e => e.stopPropagation()}>
@@ -939,7 +936,7 @@ const ExportScheduleModal = ({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

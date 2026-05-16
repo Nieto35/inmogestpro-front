@@ -9,6 +9,7 @@ import {
 import { paymentsService, contractsService } from '../../services/api.service';
 import { getActiveTenantSlug } from '../../utils/tenant';
 import { format } from 'date-fns';
+import Modal from '../../components/UI/Modal';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -175,8 +176,7 @@ const PaymentModal = ({ onClose, onSaved }) => {
   const isPartial  = pago > 0 && !isFullPay;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background:'rgba(13,27,62,0.55)' }}>
+    <Modal onClose={onClose}>
       <div className="w-full max-w-lg rounded-xl shadow-2xl max-h-[92vh] overflow-y-auto"
         style={{ background:'var(--color-bg-card)', border:'1px solid var(--color-border)' }}>
 
@@ -522,7 +522,7 @@ const PaymentModal = ({ onClose, onSaved }) => {
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

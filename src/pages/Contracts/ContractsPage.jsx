@@ -11,6 +11,7 @@ import useAuthStore from '../../store/authStore';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Modal from '../../components/UI/Modal';
 
 const formatCurrency = (v) =>
   new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', minimumFractionDigits:0 }).format(v||0);
@@ -54,8 +55,7 @@ const CancelContractModal = ({ contract, onClose, onCancelled }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background:'rgba(0,0,0,0.7)' }}>
+    <Modal onClose={onClose}>
       <div className="w-full max-w-md rounded-2xl shadow-2xl"
         style={{ background:'var(--color-bg-card)', border:'1px solid rgba(239,68,68,0.35)' }}>
 
@@ -122,7 +122,7 @@ const CancelContractModal = ({ contract, onClose, onCancelled }) => {
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 
