@@ -464,6 +464,90 @@ const ReservationModal = ({ property, onClose, onSaved }) => {
   );
 };
 
+// ── Modal: motivo de cancelación de reserva ──────────────────
+// Cuando un inmueble reservado se libera (a cualquier otro estado), exigimos
+// un motivo. El dinero de la reserva queda registrado como ingreso retenido.
+const CancelReservationModal = ({ property, newStatus, onClose, onConfirmed }) => {
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleConfirm = async () => {
+    if (reason.trim().length < 10) {
+      toast.error('El motivo debe tener al menos 10 caracteres');
+      return;
+    }
+    setSaving(true);
+    try {
+      await propertiesService.updateStatus(property.id, newStatus, {
+        cancel_reason: reason.trim(),
+      });
+      toast.success(`Reserva cancelada. El monto queda como ingreso retenido.`);
+      onConfirmed();
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error al cancelar la reserva');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="w-full max-w-md rounded-2xl shadow-2xl"
+        style={{ background:'var(--color-bg-card)', border:'1px solid rgba(239,68,68,0.35)' }}>
+        <div className="p-5 border-b" style={{ borderColor:'rgba(239,68,68,0.2)' }}>
+          <h2 className="font-bold text-lg" style={{ color:'var(--color-text-primary)' }}>
+            Cancelar Reserva
+          </h2>
+          <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
+            Inmueble {property?.unit_number} · {property?.reservation_client_name || 'Cliente'}
+          </p>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="p-3 rounded-lg text-sm"
+            style={{ background:'rgba(239,68,68,0.07)', border:'1px solid rgba(239,68,68,0.2)', color:'#fca5a5' }}>
+            ⚠️ El dinero de la reserva NO se devuelve al cliente. Quedará registrado como ingreso retenido de la empresa y aparecerá en los reportes.
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color:'var(--color-text-secondary)' }}>
+              Motivo de cancelación <span className="text-red-400">*</span>
+            </label>
+            <textarea
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              className="input text-sm resize-none w-full"
+              rows={4}
+              placeholder="Explique el motivo de la cancelación (mínimo 10 caracteres)..."
+              autoFocus
+            />
+            <p className="text-xs mt-1.5 font-medium"
+              style={{ color: reason.trim().length >= 10 ? '#10b981' : '#94a3b8' }}>
+              {reason.trim().length} / 10 caracteres mínimos
+              {reason.trim().length >= 10 && ' ✓'}
+            </p>
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button onClick={onClose} className="btn btn-secondary flex-1" disabled={saving}>
+              No cancelar
+            </button>
+            <button
+              onClick={handleConfirm}
+              disabled={saving || reason.trim().length < 10}
+              className="btn flex-1 font-medium"
+              style={{
+                background: reason.trim().length >= 10 ? '#dc2626' : 'rgba(220,38,38,0.3)',
+                color:      reason.trim().length >= 10 ? 'white'   : '#9ca3af',
+                cursor:     reason.trim().length >= 10 ? 'pointer' : 'not-allowed',
+              }}>
+              {saving ? 'Cancelando...' : 'Confirmar Cancelación'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
 // ── Página principal ──────────────────────────────────────────
 const PropertiesPage = () => {
   const navigate = useNavigate();
@@ -485,6 +569,7 @@ const PropertiesPage = () => {
   const [changingId,      setChangingId]      = useState(null);
   const [editTarget,      setEditTarget]      = useState(null);
   const [reservationTarget, setReservationTarget] = useState(null);
+  const [cancelReservationTarget, setCancelReservationTarget] = useState(null); // { property, newStatus }
   const [viewMode,      setViewMode]      = useState(
     () => localStorage.getItem('properties_view') || 'table'
   );
@@ -538,6 +623,12 @@ const PropertiesPage = () => {
       setReservationTarget(property);
       return;
     }
+    // Si el inmueble está reservado y queremos liberarlo, exigimos motivo
+    // (el dinero queda como ingreso retenido — ver CancelReservationModal).
+    if (property.status === 'reservado' && newStatus !== 'reservado') {
+      setCancelReservationTarget({ property, newStatus });
+      return;
+    }
     setChangingId(property.id);
     try {
       await propertiesService.updateStatus(property.id, newStatus);
@@ -571,6 +662,15 @@ const PropertiesPage = () => {
           property={reservationTarget}
           onClose={() => setReservationTarget(null)}
           onSaved={handleSaved}
+        />
+      )}
+
+      {cancelReservationTarget && (
+        <CancelReservationModal
+          property={cancelReservationTarget.property}
+          newStatus={cancelReservationTarget.newStatus}
+          onClose={() => setCancelReservationTarget(null)}
+          onConfirmed={handleSaved}
         />
       )}
 

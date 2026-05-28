@@ -381,24 +381,25 @@ const PaymentModal = ({ tenant, contract, schedule, onClose, onSaved }) => {
 };
 
 // ── Panel de hitos de entrega ─────────────────────────────────
+// Todos los hitos requieren registrar la fecha exacta en que se cumplieron.
 const MILESTONES = [
   {
     key:   'terrain_delivery',
     label: 'Entrega de terreno',
     desc:  'Fecha en que se hace entrega física del terreno o inmueble al comprador',
-    hasDate: true, // permite registrar la fecha en que ocurrió
+    hasDate: true,
   },
   {
     key:   'basic_services',
     label: 'Pagos de servicios básicos',
     desc:  'Confirmación de que los servicios públicos están al día (agua, luz, gas)',
-    hasDate: false,
+    hasDate: true,
   },
   {
     key:   'additional_values',
     label: 'Pago de valores adicionales',
     desc:  'Pagos extra acordados: administración, impuestos, escrituración, etc.',
-    hasDate: false,
+    hasDate: true,
   },
 ];
 
@@ -410,16 +411,11 @@ const MilestonesPanel = ({ contractId, tenant, deliveryDate, canEdit, onRefresh,
     basic_services:    milestones.basic_services    || { done:false, date:'' },
     additional_values: milestones.additional_values || { done:false, date:'' },
   });
+  // Hitos en proceso de marcado — esperando que el usuario ingrese la fecha
+  const [pendingDate, setPendingDate] = useState({}); // { [key]: '' }
   const API_URL = import.meta.env.VITE_API_URL || 'https://back.inmogestpro.com';
 
-  const toggleMilestone = async (key) => {
-    if (!canEdit) return;
-    const current = state[key];
-    const next = { ...current, done: !current.done };
-    // Si se desmarca, limpiamos fecha
-    if (!next.done) next.date = '';
-    setState(prev => ({ ...prev, [key]: next }));
-
+  const saveMilestone = async (key, payload, prevForRevert) => {
     setSaving(key);
     try {
       const token = localStorage.getItem('inmogest_token');
@@ -428,60 +424,89 @@ const MilestonesPanel = ({ contractId, tenant, deliveryDate, canEdit, onRefresh,
         {
           method:  'PATCH',
           headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
-          body:    JSON.stringify({ key, done: next.done, date: next.date || null }),
+          body:    JSON.stringify({ key, done: payload.done, date: payload.date || null }),
         }
       );
       const json = await res.json();
       if (!json.success) throw new Error(json.message || 'Error');
       onRefresh();
+      return true;
     } catch {
-      // Revertir si falla
-      setState(prev => ({ ...prev, [key]: current }));
+      setState(prev => ({ ...prev, [key]: prevForRevert }));
       toast.error('No se pudo actualizar el hito');
+      return false;
     } finally {
       setSaving(null);
     }
   };
 
+  // Click en el check: si está marcado lo desmarca; si NO lo está, abre el input de fecha
+  // (no se marca hasta que el usuario confirme la fecha).
+  const toggleMilestone = async (key) => {
+    if (!canEdit) return;
+    const current = state[key];
+
+    // Desmarcar — limpiar fecha y guardar
+    if (current.done) {
+      const next = { done: false, date: '' };
+      setState(prev => ({ ...prev, [key]: next }));
+      setPendingDate(prev => { const c = { ...prev }; delete c[key]; return c; });
+      await saveMilestone(key, next, current);
+      return;
+    }
+
+    // Marcar — abrir input de fecha (aún no se guarda)
+    if (pendingDate[key] === undefined) {
+      setPendingDate(prev => ({ ...prev, [key]: '' }));
+    }
+  };
+
+  // Confirmar el hito una vez ingresada la fecha
+  const confirmMilestone = async (key) => {
+    if (!canEdit) return;
+    const date = pendingDate[key];
+    if (!date) {
+      toast.error('Debes ingresar la fecha en que se realizó el hito');
+      return;
+    }
+    const current = state[key];
+    const next = { done: true, date };
+    setState(prev => ({ ...prev, [key]: next }));
+    const ok = await saveMilestone(key, next, current);
+    if (ok) setPendingDate(prev => { const c = { ...prev }; delete c[key]; return c; });
+  };
+
+  const cancelMilestone = (key) => {
+    setPendingDate(prev => { const c = { ...prev }; delete c[key]; return c; });
+  };
+
+  // Editar la fecha de un hito ya marcado (no cambia el done)
   const setDate = async (key, date) => {
     if (!canEdit) return;
+    if (!date) {
+      toast.error('La fecha del hito es obligatoria');
+      return;
+    }
     const current = state[key];
     const next = { ...current, date };
     setState(prev => ({ ...prev, [key]: next }));
-
-    setSaving(key);
-    try {
-      const token = localStorage.getItem('inmogest_token');
-      await fetch(
-        `${API_URL}/api/v1/${tenant}/contracts/${contractId}/milestones`,
-        {
-          method:  'PATCH',
-          headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
-          body:    JSON.stringify({ key, done: next.done, date: date || null }),
-        }
-      );
-      onRefresh();
-    } catch {
-      setState(prev => ({ ...prev, [key]: current }));
-      toast.error('No se pudo actualizar la fecha');
-    } finally {
-      setSaving(null);
-    }
+    await saveMilestone(key, next, current);
   };
 
   return (
     <div className="space-y-2">
       {MILESTONES.map(m => {
-        const ms      = state[m.key];
-        const isDone  = ms.done;
-        const isSaving= saving === m.key;
+        const ms        = state[m.key];
+        const isDone    = ms.done;
+        const isSaving  = saving === m.key;
+        const isPending = pendingDate[m.key] !== undefined; // esperando que ingresen la fecha
 
         return (
           <div key={m.key}
             className="flex items-start gap-3 p-3 rounded transition-all"
             style={{
-              background: isDone ? 'rgba(200,168,75,0.07)' : 'var(--color-bg-secondary)',
-              border:     `1px solid ${isDone ? 'rgba(200,168,75,0.3)' : 'var(--color-border)'}`,
+              background: isDone ? 'rgba(200,168,75,0.07)' : isPending ? 'rgba(59,130,246,0.06)' : 'var(--color-bg-secondary)',
+              border:     `1px solid ${isDone ? 'rgba(200,168,75,0.3)' : isPending ? 'rgba(59,130,246,0.3)' : 'var(--color-border)'}`,
             }}>
 
             {/* Botón marcar — estilo del sistema */}
@@ -522,10 +547,49 @@ const MilestonesPanel = ({ contractId, tenant, deliveryDate, canEdit, onRefresh,
                     Realizado
                   </span>
                 )}
+                {isPending && !isDone && (
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                    style={{ background:'rgba(59,130,246,0.15)', color:'#3b82f6', border:'1px solid rgba(59,130,246,0.3)' }}>
+                    Ingresa la fecha
+                  </span>
+                )}
               </div>
 
-              {/* Fecha de entrega de terreno — campo especial */}
-              {m.hasDate && isDone && (
+              {/* Captura de fecha cuando se va a marcar el hito */}
+              {isPending && !isDone && (
+                <div className="mt-2 flex items-center gap-2 flex-wrap">
+                  <label className="text-xs" style={{ color:'var(--color-text-muted)' }}>
+                    Fecha en que se realizó <span className="text-red-400">*</span>:
+                  </label>
+                  <input
+                    type="date"
+                    value={pendingDate[m.key]}
+                    max={new Date().toISOString().split('T')[0]}
+                    onChange={e => setPendingDate(prev => ({ ...prev, [m.key]: e.target.value }))}
+                    disabled={!canEdit || isSaving}
+                    className="input text-xs"
+                    style={{ height:'28px', padding:'3px 8px', width:'140px' }}
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => confirmMilestone(m.key)}
+                    disabled={!canEdit || isSaving || !pendingDate[m.key]}
+                    className="btn btn-primary btn-sm"
+                    style={{ height:'28px', padding:'3px 10px', fontSize:'11px' }}>
+                    {isSaving ? 'Guardando...' : 'Confirmar'}
+                  </button>
+                  <button
+                    onClick={() => cancelMilestone(m.key)}
+                    disabled={isSaving}
+                    className="btn btn-ghost btn-sm"
+                    style={{ height:'28px', padding:'3px 8px', fontSize:'11px' }}>
+                    Cancelar
+                  </button>
+                </div>
+              )}
+
+              {/* Fecha del hito ya marcado — permite editarla */}
+              {isDone && (
                 <div className="mt-2 flex items-center gap-2">
                   <label className="text-xs" style={{ color:'var(--color-text-muted)' }}>
                     Fecha en que se realizó:
@@ -543,7 +607,7 @@ const MilestonesPanel = ({ contractId, tenant, deliveryDate, canEdit, onRefresh,
               )}
 
               {/* Fecha programada de entrega (del contrato) — solo en terrain_delivery */}
-              {m.key === 'terrain_delivery' && deliveryDate && !isDone && (
+              {m.key === 'terrain_delivery' && deliveryDate && !isDone && !isPending && (
                 <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
                   Programada para:{' '}
                   <span style={{ color:'var(--color-warning)', fontWeight:600 }}>
@@ -561,7 +625,7 @@ const MilestonesPanel = ({ contractId, tenant, deliveryDate, canEdit, onRefresh,
 
 
 // ── Modal para editar el plan de pagos ───────────────────────
-const EditScheduleModal = ({ open, onClose, contract, paidCount, onSaved }) => {
+const EditScheduleModal = ({ open, onClose, contract, paymentSchedule = [], paidCount, onSaved }) => {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     installments_total:  '',
@@ -665,17 +729,42 @@ const EditScheduleModal = ({ open, onClose, contract, paidCount, onSaved }) => {
               className="input text-sm w-full"/>
           </div>
 
-          {pendingCount > 0 && parseFloat(form.installment_amount) > 0 && (
-            <div className="p-3 rounded-lg text-xs"
-              style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)' }}>
-              <p style={{ color:'var(--color-text-muted)' }}>
-                Total pendiente estimado:{' '}
-                <strong style={{ color:'var(--color-text-primary)' }}>
-                  {formatCurrency(pendingCount * parseFloat(form.installment_amount))}
-                </strong>
-              </p>
-            </div>
-          )}
+          {pendingCount > 0 && parseFloat(form.installment_amount) > 0 && (() => {
+            // Vista previa: la última cuota cuadra contra el saldo real pendiente
+            // (neto - cuota inicial - lo ya pagado en cuotas pagadas).
+            const net    = parseFloat(contract?.net_value || 0);
+            const dp     = parseFloat(contract?.down_payment || 0);
+            const paidSum = (paymentSchedule || [])
+              .filter(s => s.status === 'pagado')
+              .reduce((a, s) => a + parseFloat(s.paid_amount || 0), 0);
+            const pendingTotal = Math.max(0, Math.round(net - dp - paidSum));
+            const base = Math.round(parseFloat(form.installment_amount));
+            const lastPreview = pendingCount === 1
+              ? pendingTotal
+              : pendingTotal - base * (pendingCount - 1);
+            const showDiff = pendingCount > 1 && lastPreview !== base;
+            return (
+              <div className="p-3 rounded-lg text-xs space-y-1"
+                style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)' }}>
+                <p style={{ color:'var(--color-text-muted)' }}>
+                  Saldo pendiente real:{' '}
+                  <strong style={{ color:'var(--color-text-primary)' }}>
+                    {formatCurrency(pendingTotal)}
+                  </strong>
+                </p>
+                {showDiff && lastPreview > 0 && (
+                  <p style={{ color:'#60a5fa' }}>
+                    ℹ️ {pendingCount - 1} cuota{pendingCount - 1 === 1 ? '' : 's'} de {formatCurrency(base)} + última cuota de <strong>{formatCurrency(lastPreview)}</strong> para cuadrar el total exacto.
+                  </p>
+                )}
+                {lastPreview <= 0 && pendingCount > 1 && (
+                  <p style={{ color:'#ef4444' }}>
+                    ⚠️ El monto por cuota es demasiado alto: la última cuota quedaría en cero o negativa. Reduce el valor o aumenta el número de cuotas.
+                  </p>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         <div className="px-5 py-4 flex justify-end gap-2"
@@ -1252,6 +1341,7 @@ const ContractDetailPage = () => {
         open={showEditSchedule}
         onClose={() => setShowEditSchedule(false)}
         contract={contract}
+        paymentSchedule={payment_schedule}
         paidCount={paidCount}
         onSaved={() => {
           queryClient.invalidateQueries({ queryKey:['contract', id] });
