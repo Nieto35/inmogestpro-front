@@ -260,14 +260,25 @@ const ContractNewPage = () => {
     setFilterBlockId(blockId);
   };
 
-  // Calcular cuota venta
+  // Calcular cuota venta. La cuota mostrada es la "base" (cuotas 1 a N-1).
+  // La última cuota la calcula el backend para cuadrar el total exacto.
   const calcInstallment = () => {
     const net = parseFloat(form.total_value||0) - parseFloat(form.discount||0) - parseFloat(form.down_payment||0);
     const n   = parseInt(form.installments_total||1);
     if (net > 0 && n > 0) {
-      set('installment_amount', String(Math.ceil(net / n)));
+      set('installment_amount', String(Math.floor(net / n)));
       set('financed_amount',    String(net));
     }
+  };
+
+  // Vista previa de la última cuota (cuadra la diferencia para que el total sea exacto)
+  const previewLastInstallment = () => {
+    const net  = parseFloat(form.total_value||0) - parseFloat(form.discount||0) - parseFloat(form.down_payment||0);
+    const n    = parseInt(form.installments_total||1);
+    const base = parseFloat(form.installment_amount||0);
+    if (net <= 0 || n <= 0 || base <= 0 || n === 1) return null;
+    const last = Math.round(net) - Math.round(base) * (n - 1);
+    return last;
   };
 
   // Cambiar tipo de contrato → sincronizar tipo de pago
@@ -819,6 +830,21 @@ const ContractNewPage = () => {
               onChange={e => set('installment_amount', e.target.value)}
               className="input text-sm" placeholder="Se calcula automáticamente" min="0"/>
           </Field>
+
+          {/* Aviso de la última cuota cuando hay diferencia por redondeo */}
+          {(() => {
+            const last = previewLastInstallment();
+            const base = parseFloat(form.installment_amount||0);
+            if (last == null || last === base) return null;
+            return (
+              <div className="md:col-span-2 p-3 rounded-lg text-sm"
+                style={{ background:'rgba(59,130,246,0.08)', border:'1px solid rgba(59,130,246,0.25)', color:'#60a5fa' }}>
+                ℹ️ La <strong>última cuota</strong> será de <strong>{formatCurrency(last)}</strong> para cuadrar el total exacto del financiamiento.
+                Las primeras {(parseInt(form.installments_total)||1) - 1} cuotas serán de {formatCurrency(base)} y la última de {formatCurrency(last)}.
+                {last <= 0 && <span className="block mt-1 font-semibold" style={{ color:'#ef4444' }}>⚠️ El monto por cuota es demasiado alto: la última cuota quedaría en cero o negativa. Reduce el valor.</span>}
+              </div>
+            );
+          })()}
 
         </>)}
       </Section>

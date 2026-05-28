@@ -4,7 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Plus, Search, Download, Eye, FileText,
-  ChevronLeft, ChevronRight, RefreshCw, X, AlertTriangle, Edit
+  ChevronLeft, ChevronRight, RefreshCw, X, AlertTriangle, Edit,
+  CheckCircle2, ListChecks
 } from 'lucide-react';
 import { contractsService } from '../../services/api.service';
 import useAuthStore from '../../store/authStore';
@@ -25,12 +26,14 @@ const STATUS_CONFIG = {
 };
 
 const PAYMENT_TYPE = {
-  credito:     'Crédito',
-  contado:     'Contado',
-  leasing:     'Leasing',
-  subsidio:    'Subsidio',
-  permuta:     'Permuta',
-  corto_plazo: 'Corto plazo',
+  credito:          'Crédito hipotecario',
+  credito_simple:   'Crédito simple',
+  contado:          'Contado',
+  leasing:          'Leasing',
+  subsidio:         'Subsidio',
+  permuta:          'Permuta',
+  corto_plazo:      'Corto plazo',
+  arriendo:         'Arriendo',
 };
 
 // ── Modal cancelar contrato ───────────────────────────────────
@@ -138,15 +141,28 @@ const ContractsPage = () => {
   const canCancel    = hasRole('admin','gerente','contador');
   const isAsesor     = hasRole('asesor');
 
+  // `view`: 'active' = contratos en curso (default), 'completed' = contratos pagos y culminados.
+  // Los culminados (cuotas saldadas + 3 hitos hechos) salen de la lista principal a su propia pestaña.
+  const [view, setView] = useState('active');
   const [filters, setFilters] = useState({
     search:'', status:'', payment_type:'', page:1, limit:20,
   });
   const [cancelTarget, setCancelTarget] = useState(null);
 
   const { data, isPending: isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['contracts', filters],
-    queryFn:  () => contractsService.getAll(filters),
+    queryKey: ['contracts', filters, view],
+    queryFn:  () => contractsService.getAll({ ...filters, view }),
   });
+
+  // Conteo de la pestaña opuesta para mostrar en el tab
+  const { data: otherViewData } = useQuery({
+    queryKey: ['contracts-count', view === 'active' ? 'completed' : 'active'],
+    queryFn:  () => contractsService.getAll({
+      view: view === 'active' ? 'completed' : 'active',
+      page: 1, limit: 1,
+    }),
+  });
+  const otherViewCount = otherViewData?.data?.pagination?.total ?? 0;
 
   const contracts  = data?.data?.data        || [];
   const pagination = data?.data?.pagination  || {};
@@ -212,7 +228,7 @@ const ContractsPage = () => {
             Contratos
           </h1>
           <p className="text-sm mt-0.5" style={{ color:'var(--color-text-muted)' }}>
-            {pagination.total ?? contracts.length} contratos registrados
+            {pagination.total ?? contracts.length} {view === 'completed' ? 'contratos culminados' : 'contratos en curso'}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -230,6 +246,57 @@ const ContractsPage = () => {
             </button>
           )}
         </div>
+      </div>
+
+      {/* Pestañas: Activos / Culminados */}
+      <div className="flex items-center gap-1 border-b" style={{ borderColor:'var(--color-border)' }}>
+        <button
+          onClick={() => { setView('active'); setFilters(f => ({ ...f, page: 1 })); }}
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all"
+          style={{
+            color:        view === 'active' ? 'var(--color-gold)' : 'var(--color-text-muted)',
+            borderBottom: `2px solid ${view === 'active' ? 'var(--color-gold)' : 'transparent'}`,
+            marginBottom: '-1px',
+          }}>
+          <ListChecks size={15}/>
+          Contratos activos
+          {view === 'active' && pagination.total > 0 && (
+            <span className="text-xs px-2 py-0.5 rounded-full"
+              style={{ background:'rgba(200,168,75,0.15)', color:'var(--color-gold)' }}>
+              {pagination.total}
+            </span>
+          )}
+          {view !== 'active' && otherViewCount > 0 && (
+            <span className="text-xs px-2 py-0.5 rounded-full"
+              style={{ background:'var(--color-bg-secondary)', color:'var(--color-text-muted)' }}>
+              {otherViewCount}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => { setView('completed'); setFilters(f => ({ ...f, page: 1 })); }}
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all"
+          style={{
+            color:        view === 'completed' ? '#10b981' : 'var(--color-text-muted)',
+            borderBottom: `2px solid ${view === 'completed' ? '#10b981' : 'transparent'}`,
+            marginBottom: '-1px',
+          }}>
+          <CheckCircle2 size={15}/>
+          Contratos culminados
+          {view === 'completed' && pagination.total > 0 && (
+            <span className="text-xs px-2 py-0.5 rounded-full"
+              style={{ background:'rgba(16,185,129,0.15)', color:'#10b981' }}>
+              {pagination.total}
+            </span>
+          )}
+          {view !== 'completed' && otherViewCount > 0 && (
+            <span className="text-xs px-2 py-0.5 rounded-full"
+              style={{ background:'var(--color-bg-secondary)', color:'var(--color-text-muted)' }}>
+              {otherViewCount}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Filtros */}
@@ -283,9 +350,13 @@ const ContractsPage = () => {
           </div>
         ) : contracts.length === 0 ? (
           <div className="p-12 text-center">
-            <FileText size={40} className="mx-auto mb-3" style={{ color:'var(--color-text-muted)' }}/>
+            {view === 'completed'
+              ? <CheckCircle2 size={40} className="mx-auto mb-3" style={{ color:'var(--color-text-muted)' }}/>
+              : <FileText size={40} className="mx-auto mb-3" style={{ color:'var(--color-text-muted)' }}/>}
             <p style={{ color:'var(--color-text-secondary)' }}>
-              No hay contratos que coincidan con los filtros
+              {view === 'completed'
+                ? 'Aún no hay contratos culminados. Los contratos pasarán a esta lista cuando estén totalmente pagos y con los hitos de entrega cumplidos.'
+                : 'No hay contratos que coincidan con los filtros'}
             </p>
             {activeFilterCount > 0 && (
               <button onClick={clearFilters} className="btn btn-secondary btn-sm mt-3">
@@ -360,7 +431,16 @@ const ContractsPage = () => {
                     </td>
 
                     <td>
-                      <span className={`badge ${statusCfg.class}`}>{statusCfg.label}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`badge ${statusCfg.class}`}>{statusCfg.label}</span>
+                        {c.is_completed && (
+                          <span title="Contrato totalmente pagado y con hitos de entrega cumplidos"
+                            className="badge text-xs flex items-center gap-1"
+                            style={{ background:'rgba(16,185,129,0.12)', color:'#10b981', border:'1px solid rgba(16,185,129,0.3)' }}>
+                            <CheckCircle2 size={11}/> Culminado
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     <td className="text-sm" style={{ color:'var(--color-text-secondary)' }}>
@@ -408,7 +488,7 @@ const ContractsPage = () => {
                             <Eye size={14}/>
                           </button>
                         )}
-                        {canCancel && c.status !== 'cancelado' && (
+                        {canCancel && c.status !== 'cancelado' && !c.is_completed && (
                           <button
                             onClick={e => { e.stopPropagation(); navigate(to(`contracts/${c.id}/edit`)); }}
                             className="btn btn-ghost btn-sm"
@@ -417,7 +497,7 @@ const ContractsPage = () => {
                             <Edit size={14}/>
                           </button>
                         )}
-                        {canCancel && ['activo','en_mora'].includes(c.status) && (
+                        {canCancel && ['activo','en_mora'].includes(c.status) && !c.is_completed && (
                           <button
                             onClick={e => { e.stopPropagation(); setCancelTarget(c); }}
                             className="btn btn-ghost btn-sm"

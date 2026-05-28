@@ -25,8 +25,8 @@ const NAV_ITEMS = [
   { path: 'advisors',          label: 'Asesores',       icon: UserCheck,       roles: ['admin','gerente','readonly'] },
   { path: 'commissions',       label: 'Comisiones',     icon: DollarSign,      roles: ['admin','gerente','contador','asesor'] },
   { path: 'reports',           label: 'Reportes',       icon: BarChart3,       roles: ['admin','gerente','contador','readonly'] },
-  { path: 'audit',             label: 'Auditoría',      icon: Shield,          roles: ['admin','gerente','abogado'] },
-  { path: 'users',             label: 'Usuarios',       icon: Settings,        roles: ['admin','gerente'] },
+  { path: 'audit',             label: 'Auditoría',      icon: Shield,          roles: ['gerente','abogado'] },
+  { path: 'users',             label: 'Usuarios',       icon: Settings,        roles: ['gerente'] },
 
 ];
 
