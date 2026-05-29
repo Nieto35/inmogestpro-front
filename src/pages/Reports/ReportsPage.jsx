@@ -66,10 +66,11 @@ const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
 const COLORS = ['#0D1B3E','#C8A84B','#2D7A3A','#C0392B','#92660A','#1A2F5E'];
 
 const TABS = [
-  { id:'resumen',      label:'Resumen',          icon:TrendingUp   },
-  { id:'vacancia',     label:'Vacancia',         icon:Home         },
-  { id:'cartera',      label:'Estado Cartera',   icon:FileText     },
-  { id:'liquidacion',  label:'Liquidación Mensual', icon:DollarSign },
+  { id:'resumen',          label:'Resumen',             icon:TrendingUp   },
+  { id:'vacancia',         label:'Vacancia',            icon:Home         },
+  { id:'cartera',          label:'Estado Cartera',      icon:FileText     },
+  { id:'liquidacion-dia',  label:'Liquidación Diaria',  icon:DollarSign   },
+  { id:'liquidacion',      label:'Liquidación Mensual', icon:DollarSign   },
 ];
 
 // ── Tooltip personalizado ─────────────────────────────────────
@@ -782,6 +783,214 @@ const TabLiquidacion = () => {
   );
 };
 
+// ── Tab: Liquidación Diaria ───────────────────────────────────
+// Ingresos del día = pagos de contratos + reservas canceladas (retenidas)
+const TabLiquidacionDiaria = () => {
+  const today = new Date().toISOString().slice(0, 10);
+  const [date, setDate] = useState(today);
+
+  const { data, isFetching, refetch } = useQuery({
+    queryKey: ['report-liquidacion-diaria', date],
+    queryFn:  () => reportsService.getLiquidacionDiaria({ date }),
+  });
+  const liq            = data?.data?.data || {};
+  const pagos          = liq.pagos || [];
+  const retenidas      = liq.reservas_retenidas || [];
+  const comisionesDia  = liq.comisiones_pagadas || [];
+
+  const handleExport = () => {
+    const sheets = [
+      {
+        name: 'Pagos del Día',
+        headers: ['Recibo','Contrato','Cliente','Proyecto','Unidad','Monto COP','Método','Registrado por'],
+        data: pagos.map(p => [
+          p.receipt_number, p.contract_number, p.client_name,
+          p.project_name, p.unit_number,
+          parseFloat(p.amount||0), p.payment_method, p.recorded_by_name || '',
+        ]),
+      },
+    ];
+    if (retenidas.length > 0) {
+      sheets.push({
+        name: 'Reservas Retenidas',
+        headers: ['Cliente','Proyecto','Unidad','Monto COP','Motivo','Cancelada por','Hora'],
+        data: retenidas.map(r => [
+          r.client_name, r.project_name, r.unit_number,
+          parseFloat(r.amount||0),
+          r.cancellation_reason || '',
+          r.cancelled_by_name || r.cancelled_by_username || '',
+          r.cancelled_at ? format(new Date(r.cancelled_at), 'HH:mm') : '',
+        ]),
+      });
+    }
+    sheets.push({
+      name: 'Resumen',
+      headers: ['Concepto','Valor COP'],
+      data: [
+        ['Total Pagos',          parseFloat(liq.total_pagos||0)],
+        ['Reservas Retenidas',   parseFloat(liq.total_reservas_retenidas||0)],
+        ['Total Recaudado',      parseFloat(liq.total_recaudado||0)],
+        ['Comisiones Pagadas',   parseFloat(liq.total_comisiones||0)],
+        ['Neto Inmobiliaria',    parseFloat(liq.neto_inmobiliaria||0)],
+      ],
+    });
+    exportToExcel(sheets, `Liquidacion_Diaria_${date}`);
+  };
+
+  const hayDatos = pagos.length > 0 || retenidas.length > 0 || comisionesDia.length > 0;
+
+  return (
+    <div className="space-y-5">
+      {/* Selector de fecha */}
+      <div className="card p-4 flex items-center gap-3 flex-wrap">
+        <Calendar size={16} style={{ color:'var(--color-text-muted)' }}/>
+        <input
+          type="date"
+          value={date}
+          max={today}
+          onChange={e => setDate(e.target.value)}
+          className="input text-sm"
+          style={{ width:'170px', height:'36px' }}
+        />
+        <button onClick={() => setDate(today)} className="btn btn-secondary btn-sm">
+          Hoy
+        </button>
+        <button onClick={() => refetch()} disabled={isFetching} className="btn btn-secondary btn-sm">
+          <RefreshCw size={13} className={isFetching?'animate-spin':''}/>
+          {isFetching ? 'Cargando...' : 'Actualizar'}
+        </button>
+        <ExportBtn
+          onClick={handleExport}
+          label={`Exportar ${date}`}
+          loading={isFetching || !hayDatos}
+        />
+      </div>
+
+      {/* KPIs del día */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <KPI icon={DollarSign} label="Total recaudado"     value={fmM(liq.total_recaudado)}          sub="Pagos + retenidas" color="#C8A84B"/>
+        <KPI icon={Users}      label="Pagos del día"       value={pagos.length}                       sub={fmM(liq.total_pagos)}      color="#0D1B3E"/>
+        <KPI icon={AlertTriangle} label="Reservas retenidas" value={retenidas.length}                sub={fmM(liq.total_reservas_retenidas)} color="#C0392B"/>
+        <KPI icon={Building}   label="Neto inmobiliaria"   value={fmM(liq.neto_inmobiliaria)}        sub={`Comis. ${fmM(liq.total_comisiones)}`} color="#2D7A3A"/>
+      </div>
+
+      {/* Detalle de pagos del día */}
+      <div className="card p-0 overflow-hidden">
+        <div className="px-5 py-4 border-b" style={{ borderColor:'var(--color-border)' }}>
+          <h3 className="font-semibold text-sm" style={{ color:'var(--color-text-primary)' }}>
+            Pagos del {format(new Date(date+'T00:00:00'), "EEEE d 'de' MMMM 'de' yyyy", { locale: es })}
+          </h3>
+        </div>
+        {pagos.length === 0 ? (
+          <p className="text-center py-10 text-sm" style={{ color:'var(--color-text-muted)' }}>
+            Sin pagos registrados ese día
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr style={{ background:'var(--color-navy)', borderBottom:'2px solid var(--color-gold)' }}>
+                  {['Recibo','Contrato','Cliente','Proyecto / Unidad','Monto','Método','Registrado por'].map(h => (
+                    <th key={h} className="px-3 py-2.5 text-left font-semibold whitespace-nowrap"
+                      style={{ color:'rgba(245,243,238,0.75)' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {pagos.map((p,i) => (
+                  <tr key={i} style={{ borderBottom:'1px solid var(--color-border)' }}>
+                    <td className="px-3 py-2.5 font-mono font-bold" style={{ color:'var(--color-navy)' }}>{p.receipt_number}</td>
+                    <td className="px-3 py-2.5 font-mono" style={{ color:'var(--color-gold)' }}>{p.contract_number}</td>
+                    <td className="px-3 py-2.5" style={{ color:'var(--color-text-primary)' }}>{p.client_name}</td>
+                    <td className="px-3 py-2.5" style={{ color:'var(--color-text-muted)' }}>{p.project_name} · {p.unit_number}</td>
+                    <td className="px-3 py-2.5 font-mono font-bold" style={{ color:'var(--color-navy)' }}>{fm(p.amount)}</td>
+                    <td className="px-3 py-2.5">
+                      <span className="px-2 py-0.5 rounded capitalize"
+                        style={{ background:'rgba(13,27,62,0.07)', color:'var(--color-navy)', border:'1px solid rgba(13,27,62,0.15)' }}>
+                        {p.payment_method}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5" style={{ color:'var(--color-text-muted)' }}>{p.recorded_by_name || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background:'var(--color-navy)', borderTop:'2px solid var(--color-gold)' }}>
+                  <td colSpan={4} className="px-3 py-2.5 text-right font-bold text-xs" style={{ color:'rgba(245,243,238,0.7)' }}>
+                    TOTAL PAGOS:
+                  </td>
+                  <td className="px-3 py-2.5 font-bold font-mono" style={{ color:'var(--color-gold)' }}>{fm(liq.total_pagos)}</td>
+                  <td colSpan={2}/>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Reservas retenidas del día */}
+      <div className="card p-0 overflow-hidden">
+        <div className="px-5 py-4 border-b flex items-center justify-between flex-wrap gap-2"
+          style={{ borderColor:'var(--color-border)' }}>
+          <h3 className="font-semibold text-sm" style={{ color:'var(--color-text-primary)' }}>
+            Reservas canceladas — ingreso retenido
+          </h3>
+          <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>
+            El dinero no se devuelve y queda como ingreso de la empresa
+          </p>
+        </div>
+        {retenidas.length === 0 ? (
+          <p className="text-center py-10 text-sm" style={{ color:'var(--color-text-muted)' }}>
+            Sin reservas canceladas ese día
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr style={{ background:'var(--color-navy)', borderBottom:'2px solid var(--color-gold)' }}>
+                  {['Cliente','Proyecto / Unidad','Monto','Motivo','Cancelada por','Hora'].map(h => (
+                    <th key={h} className="px-3 py-2.5 text-left font-semibold whitespace-nowrap"
+                      style={{ color:'rgba(245,243,238,0.75)' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {retenidas.map((r,i) => (
+                  <tr key={i} style={{ borderBottom:'1px solid var(--color-border)' }}>
+                    <td className="px-3 py-2.5" style={{ color:'var(--color-text-primary)' }}>{r.client_name || '—'}</td>
+                    <td className="px-3 py-2.5" style={{ color:'var(--color-text-muted)' }}>
+                      {r.project_name || '—'} {r.unit_number ? `· ${r.unit_number}` : ''}
+                    </td>
+                    <td className="px-3 py-2.5 font-mono font-bold" style={{ color:'#C0392B' }}>{fm(r.amount)}</td>
+                    <td className="px-3 py-2.5 max-w-md" style={{ color:'var(--color-text-secondary)' }}>
+                      {r.cancellation_reason || <span style={{ color:'var(--color-text-muted)', fontStyle:'italic' }}>sin motivo registrado</span>}
+                    </td>
+                    <td className="px-3 py-2.5" style={{ color:'var(--color-text-muted)' }}>
+                      {r.cancelled_by_name || r.cancelled_by_username || '—'}
+                    </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap font-mono" style={{ color:'var(--color-text-muted)' }}>
+                      {r.cancelled_at ? format(new Date(r.cancelled_at), 'HH:mm') : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background:'var(--color-navy)', borderTop:'2px solid var(--color-gold)' }}>
+                  <td colSpan={2} className="px-3 py-2.5 text-right font-bold text-xs" style={{ color:'rgba(245,243,238,0.7)' }}>
+                    TOTAL RETENIDO:
+                  </td>
+                  <td className="px-3 py-2.5 font-bold font-mono" style={{ color:'var(--color-gold)' }}>{fm(liq.total_reservas_retenidas)}</td>
+                  <td colSpan={3}/>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ── Página principal ──────────────────────────────────────────
 const ReportsPage = () => {
   const [activeTab, setActiveTab] = useState('resumen');
@@ -824,10 +1033,11 @@ const ReportsPage = () => {
       </div>
 
       {/* Contenido */}
-      {activeTab === 'resumen'     && <TabResumen/>}
-      {activeTab === 'vacancia'    && <TabVacancia/>}
-      {activeTab === 'cartera'     && <TabCartera/>}
-      {activeTab === 'liquidacion' && <TabLiquidacion/>}
+      {activeTab === 'resumen'         && <TabResumen/>}
+      {activeTab === 'vacancia'        && <TabVacancia/>}
+      {activeTab === 'cartera'         && <TabCartera/>}
+      {activeTab === 'liquidacion-dia' && <TabLiquidacionDiaria/>}
+      {activeTab === 'liquidacion'     && <TabLiquidacion/>}
 
     </div>
   );

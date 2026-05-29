@@ -257,6 +257,7 @@ export const reportsService = {
   getAdvisorKPIs:     ()  => api.get('/reports/kpis/advisor'),
   getVacancy:         ()  => api.get('/reports/vacancy'),
   getLiquidacion:     (p) => api.get('/reports/liquidacion-mensual', { params:p }),
+  getLiquidacionDiaria:(p) => api.get('/reports/liquidacion-diaria',  { params:p }),
   getCartera:         ()  => api.get('/reports/cartera'),
 };
 

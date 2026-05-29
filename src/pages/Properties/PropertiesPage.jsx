@@ -2,8 +2,11 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search, RefreshCw, Plus, Building, Edit, X, Save, LayoutGrid, List, Layers } from 'lucide-react';
-import { propertiesService, projectsService, blocksService, clientsService } from '../../services/api.service';
+import { Search, RefreshCw, Plus, Building, Edit, X, Save, LayoutGrid, List, Layers,
+         Home, AlertTriangle, Calendar, Download } from 'lucide-react';
+import { propertiesService, projectsService, blocksService, clientsService, reservationsService } from '../../services/api.service';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { useSearchParams } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import toast from 'react-hot-toast';
@@ -549,6 +552,238 @@ const CancelReservationModal = ({ property, newStatus, onClose, onConfirmed }) =
 };
 
 // ── Página principal ──────────────────────────────────────────
+// ── Tab: Reservas canceladas ─────────────────────────────────
+// Vista de evidencia: lista todas las reservas cuyo dinero quedó como ingreso
+// retenido para la empresa, con el motivo y quién las canceló.
+const CancelledReservationsTab = ({ projects, formatCurrency }) => {
+  const [filters, setFilters] = useState({ project_id:'', date_from:'', date_to:'', search:'' });
+
+  const { data, isFetching, refetch } = useQuery({
+    queryKey: ['reservations-cancelled', filters],
+    queryFn:  () => reservationsService.getAll({
+      status:     'cancelada',
+      project_id: filters.project_id || undefined,
+      date_from:  filters.date_from  || undefined,
+      date_to:    filters.date_to    || undefined,
+    }),
+  });
+
+  const all = data?.data?.data || [];
+  // Filtro de búsqueda local (cliente, motivo, unidad)
+  const filtered = filters.search
+    ? all.filter(r => {
+        const q = filters.search.toLowerCase();
+        return (
+          (r.client_name      || '').toLowerCase().includes(q) ||
+          (r.client_full_name || '').toLowerCase().includes(q) ||
+          (r.cancellation_reason || '').toLowerCase().includes(q) ||
+          (r.unit_number     || '').toLowerCase().includes(q) ||
+          (r.project_name    || '').toLowerCase().includes(q)
+        );
+      })
+    : all;
+
+  const totalRetenido = filtered.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+
+  const setF = (k, v) => setFilters(f => ({ ...f, [k]: v }));
+  const clearFilters = () => setFilters({ project_id:'', date_from:'', date_to:'', search:'' });
+  const hasFilters   = Object.values(filters).some(Boolean);
+
+  const handleExport = () => {
+    const headers = ['Cliente','Documento','Proyecto','Unidad','Monto retenido','Motivo','Cancelada por','Fecha cancelación'];
+    const csv = [
+      headers.join(','),
+      ...filtered.map(r => [
+        `"${r.client_name || r.client_full_name || ''}"`,
+        r.document_number || '',
+        `"${r.project_name || ''}"`,
+        r.unit_number || '',
+        parseFloat(r.amount || 0),
+        `"${(r.cancellation_reason || '').replace(/"/g, '""')}"`,
+        `"${r.cancelled_by_name || r.cancelled_by_username || ''}"`,
+        r.cancelled_at ? format(new Date(r.cancelled_at), 'yyyy-MM-dd HH:mm') : '',
+      ].join(',')),
+    ].join('\n');
+    const blob = new Blob(['﻿' + csv], { type:'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `reservas_canceladas_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Filtros */}
+      <div className="card p-4 space-y-3">
+        <div className="flex gap-3 flex-wrap items-center">
+          <div className="relative flex-1 min-w-[220px]">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2"
+              style={{ color:'var(--color-text-muted)' }}/>
+            <input
+              type="text"
+              placeholder="Buscar por cliente, motivo, unidad..."
+              value={filters.search}
+              onChange={e => setF('search', e.target.value)}
+              className="input pl-9 text-sm w-full"
+              style={{ height:'36px' }}
+            />
+          </div>
+
+          <select value={filters.project_id}
+            onChange={e => setF('project_id', e.target.value)}
+            className="input text-sm" style={{ height:'36px', minWidth:'180px' }}>
+            <option value="">Todos los proyectos</option>
+            {projects.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+
+          <div className="flex items-center gap-2">
+            <Calendar size={14} style={{ color:'var(--color-text-muted)' }}/>
+            <input type="date" value={filters.date_from}
+              onChange={e => setF('date_from', e.target.value)}
+              className="input text-sm" style={{ height:'36px', width:'150px' }}
+              title="Desde"/>
+            <span style={{ color:'var(--color-text-muted)' }}>—</span>
+            <input type="date" value={filters.date_to}
+              onChange={e => setF('date_to', e.target.value)}
+              className="input text-sm" style={{ height:'36px', width:'150px' }}
+              title="Hasta"/>
+          </div>
+
+          <button onClick={() => refetch()} className="btn btn-secondary btn-sm">
+            <RefreshCw size={13} className={isFetching ? 'animate-spin':''}/>
+          </button>
+
+          {hasFilters && (
+            <button onClick={clearFilters} className="btn btn-ghost btn-sm text-red-400">
+              <X size={13}/> Limpiar
+            </button>
+          )}
+
+          <button onClick={handleExport} disabled={!filtered.length}
+            className="btn btn-secondary btn-sm">
+            <Download size={13}/> Exportar
+          </button>
+        </div>
+      </div>
+
+      {/* Resumen */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="card p-3">
+          <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>Reservas canceladas</p>
+          <p className="text-xl font-bold font-mono mt-1" style={{ color:'var(--color-navy)' }}>
+            {filtered.length}
+          </p>
+        </div>
+        <div className="card p-3">
+          <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>Monto retenido total</p>
+          <p className="text-xl font-bold font-mono mt-1" style={{ color:'#C0392B' }}>
+            {formatCurrency(totalRetenido)}
+          </p>
+        </div>
+        <div className="card p-3" style={{ background:'rgba(192,57,43,0.05)' }}>
+          <p className="text-xs font-medium" style={{ color:'#C0392B' }}>
+            ⚠️ Este dinero NO se devuelve al cliente
+          </p>
+          <p className="text-xs mt-1" style={{ color:'var(--color-text-muted)' }}>
+            Queda como ingreso retenido de la empresa y aparece en reportes.
+          </p>
+        </div>
+      </div>
+
+      {/* Tabla */}
+      <div className="table-container">
+        {isFetching && filtered.length === 0 ? (
+          <div className="p-8 text-center" style={{ color:'var(--color-text-muted)' }}>
+            <RefreshCw size={20} className="animate-spin mx-auto mb-2"/>
+            Cargando reservas canceladas...
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-12 text-center">
+            <AlertTriangle size={36} className="mx-auto mb-3" style={{ color:'var(--color-text-muted)' }}/>
+            <p style={{ color:'var(--color-text-secondary)' }}>
+              {hasFilters
+                ? 'No hay reservas canceladas que coincidan con los filtros'
+                : 'No hay reservas canceladas registradas'}
+            </p>
+          </div>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Proyecto / Unidad</th>
+                <th>Monto retenido</th>
+                <th>Motivo</th>
+                <th>Cancelada por</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(r => (
+                <tr key={r.id}>
+                  <td>
+                    <p className="font-medium text-sm" style={{ color:'var(--color-text-primary)' }}>
+                      {r.client_name || r.client_full_name || '—'}
+                    </p>
+                    {r.document_number && (
+                      <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>
+                        {r.document_number}
+                      </p>
+                    )}
+                  </td>
+                  <td>
+                    <p className="text-sm" style={{ color:'var(--color-text-primary)' }}>
+                      {r.project_name || '—'}
+                    </p>
+                    <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>
+                      Unidad {r.unit_number}
+                    </p>
+                  </td>
+                  <td>
+                    <p className="text-sm font-mono font-bold" style={{ color:'#C0392B', whiteSpace:'nowrap' }}>
+                      {formatCurrency(r.amount)}
+                    </p>
+                  </td>
+                  <td style={{ maxWidth:'320px' }}>
+                    <p className="text-sm" style={{ color:'var(--color-text-secondary)', whiteSpace:'pre-wrap' }}>
+                      {r.cancellation_reason ||
+                        <span style={{ color:'var(--color-text-muted)', fontStyle:'italic' }}>
+                          sin motivo registrado
+                        </span>
+                      }
+                    </p>
+                  </td>
+                  <td>
+                    <p className="text-sm" style={{ color:'var(--color-text-primary)' }}>
+                      {r.cancelled_by_name || r.cancelled_by_username || '—'}
+                    </p>
+                  </td>
+                  <td style={{ whiteSpace:'nowrap' }}>
+                    <p className="text-sm" style={{ color:'var(--color-text-secondary)' }}>
+                      {r.cancelled_at
+                        ? format(new Date(r.cancelled_at), "dd/MM/yyyy", { locale: es })
+                        : '—'}
+                    </p>
+                    {r.cancelled_at && (
+                      <p className="text-xs font-mono" style={{ color:'var(--color-text-muted)' }}>
+                        {format(new Date(r.cancelled_at), 'HH:mm')}
+                      </p>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const PropertiesPage = () => {
   const navigate = useNavigate();
   const { tenant } = useParams();
@@ -570,6 +805,10 @@ const PropertiesPage = () => {
   const [editTarget,      setEditTarget]      = useState(null);
   const [reservationTarget, setReservationTarget] = useState(null);
   const [cancelReservationTarget, setCancelReservationTarget] = useState(null); // { property, newStatus }
+  // Pestaña activa dentro de Inmuebles:
+  //   'inmuebles'           → listado normal (default)
+  //   'reservas-canceladas' → evidencia de reservas eliminadas con motivo
+  const [activeTab, setActiveTab] = useState('inmuebles');
   const [viewMode,      setViewMode]      = useState(
     () => localStorage.getItem('properties_view') || 'table'
   );
@@ -714,7 +953,7 @@ const PropertiesPage = () => {
               <LayoutGrid size={14}/>
             </button>
           </div>
-          {canCreate && (
+          {canCreate && activeTab === 'inmuebles' && (
             <>
               <button onClick={() => navigate(to('properties/bulk'))} className="btn btn-secondary btn-sm">
                 <Plus size={14}/> Crear en Lote
@@ -726,6 +965,43 @@ const PropertiesPage = () => {
           )}
         </div>
       </div>
+
+      {/* Pestañas: Inmuebles / Reservas canceladas */}
+      <div className="flex items-center gap-1 border-b" style={{ borderColor:'var(--color-border)' }}>
+        <button
+          onClick={() => setActiveTab('inmuebles')}
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all"
+          style={{
+            color:        activeTab === 'inmuebles' ? 'var(--color-gold)' : 'var(--color-text-muted)',
+            borderBottom: `2px solid ${activeTab === 'inmuebles' ? 'var(--color-gold)' : 'transparent'}`,
+            marginBottom: '-1px',
+          }}>
+          <Home size={15}/>
+          Inmuebles
+        </button>
+        <button
+          onClick={() => setActiveTab('reservas-canceladas')}
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all"
+          style={{
+            color:        activeTab === 'reservas-canceladas' ? '#C0392B' : 'var(--color-text-muted)',
+            borderBottom: `2px solid ${activeTab === 'reservas-canceladas' ? '#C0392B' : 'transparent'}`,
+            marginBottom: '-1px',
+          }}>
+          <AlertTriangle size={15}/>
+          Reservas canceladas
+        </button>
+      </div>
+
+      {/* Contenido pestaña: Reservas canceladas */}
+      {activeTab === 'reservas-canceladas' && (
+        <CancelledReservationsTab
+          projects={filterProjects}
+          formatCurrency={(v) => new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0}).format(v||0)}
+        />
+      )}
+
+      {/* Contenido pestaña: Inmuebles (default) */}
+      {activeTab === 'inmuebles' && <>
 
       {/* Filtros */}
       <div className="card p-4 space-y-3">
@@ -1090,6 +1366,8 @@ const PropertiesPage = () => {
           })}
         </div>
       )}
+
+      </>}
     </div>
   );
 };
