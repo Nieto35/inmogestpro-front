@@ -17,13 +17,9 @@ import { es } from 'date-fns/locale';
 
 const fm = v =>
   new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0}).format(v||0);
-const fmM = v => {
-  if (!v) return '$0';
-  if (v >= 1e9) return `$${(v/1e9).toFixed(1)}B`;
-  if (v >= 1e6) return `$${(v/1e6).toFixed(1)}M`;
-  if (v >= 1e3) return `$${(v/1e3).toFixed(0)}K`;
-  return `$${v}`;
-};
+// fmM se mantiene como alias de fm: en Reportes mostramos el monto exacto
+// (ej. $86.789) en lugar de la versión abreviada ($86K).
+const fmM = fm;
 
 
 // ── Utilidad de exportación a Excel ──────────────────────────
@@ -557,8 +553,9 @@ const TabLiquidacion = () => {
     queryKey: ['report-liquidacion', month, year],
     queryFn:  () => reportsService.getLiquidacion({ month, year }),
   });
-  const liq = data?.data?.data || {};
-  const pagos = liq.pagos || [];
+  const liq        = data?.data?.data || {};
+  const pagos      = liq.pagos || [];
+  const retenidas  = liq.reservas_retenidas || [];
 
   const byMethod = pagos.reduce((acc, p) => {
     acc[p.payment_method] = (acc[p.payment_method]||0) + parseFloat(p.amount||0);
@@ -581,13 +578,29 @@ const TabLiquidacion = () => {
         name: 'Resumen',
         headers: ['Concepto','Valor COP'],
         data: [
-          ['Total Recaudado',   parseFloat(liq.total_recaudado||0)],
-          ['Total Comisiones',  parseFloat(liq.total_comisiones||0)],
-          ['Neto Inmobiliaria', parseFloat(liq.neto_inmobiliaria||0)],
-          ['N° de Pagos',       pagos.length],
+          ['Total Pagos',              parseFloat(liq.total_pagos||0)],
+          ['Reservas Retenidas',       parseFloat(liq.total_reservas_retenidas||0)],
+          ['Total Recaudado',          parseFloat(liq.total_recaudado||0)],
+          ['Total Comisiones',         parseFloat(liq.total_comisiones||0)],
+          ['Neto Inmobiliaria',        parseFloat(liq.neto_inmobiliaria||0)],
+          ['N° de Pagos',              pagos.length],
+          ['N° Reservas Canceladas',   retenidas.length],
         ],
       },
     ];
+    if (retenidas.length > 0) {
+      sheets.push({
+        name: 'Reservas Retenidas',
+        headers: ['Cliente','Proyecto','Unidad','Monto COP','Motivo','Cancelada por','Fecha'],
+        data: retenidas.map(r => [
+          r.client_name, r.project_name, r.unit_number,
+          parseFloat(r.amount||0),
+          r.cancellation_reason || '',
+          r.cancelled_by_name || r.cancelled_by_username || '',
+          r.cancelled_at ? format(new Date(r.cancelled_at), 'dd/MM/yyyy HH:mm') : '',
+        ]),
+      });
+    }
     if (liq.comisiones_pagadas?.length > 0) {
       sheets.push({
         name: 'Comisiones Pagadas',
@@ -626,12 +639,12 @@ const TabLiquidacion = () => {
         />
       </div>
 
-      {/* KPIs liquidación */}
+      {/* KPIs liquidación — desglose: pagos + reservas retenidas = total recaudado */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KPI icon={DollarSign}    label="Total recaudado"   value={fmM(liq.total_recaudado)}    color="#C8A84B"/>
-        <KPI icon={Users}         label="Pagos registrados" value={pagos.length}                 color="#0D1B3E"/>
-        <KPI icon={TrendingUp}    label="Comisiones pagadas" value={fmM(liq.total_comisiones)}   color="#92660A"/>
-        <KPI icon={Building}      label="Neto inmobiliaria" value={fmM(liq.neto_inmobiliaria)}   color="#0D1B3E"/>
+        <KPI icon={DollarSign}    label="Total recaudado"   value={fm(liq.total_recaudado)}             sub="Pagos + retenidas"           color="#C8A84B"/>
+        <KPI icon={Users}         label="Pagos del mes"     value={pagos.length}                        sub={fm(liq.total_pagos)}        color="#0D1B3E"/>
+        <KPI icon={AlertTriangle} label="Reservas retenidas" value={retenidas.length}                  sub={fm(liq.total_reservas_retenidas)} color="#C0392B"/>
+        <KPI icon={Building}      label="Neto inmobiliaria" value={fm(liq.neto_inmobiliaria)}           sub={`Comis. ${fm(liq.total_comisiones)}`} color="#2D7A3A"/>
       </div>
 
       {/* Distribución por método de pago */}
@@ -715,12 +728,79 @@ const TabLiquidacion = () => {
                 <tr style={{ background:'var(--color-navy)', borderTop:'2px solid var(--color-gold)' }}>
                   <td colSpan={5} className="px-3 py-2.5 text-right font-bold text-xs"
                     style={{ color:'rgba(245,243,238,0.7)' }}>
-                    TOTAL RECAUDADO:
+                    TOTAL PAGOS:
                   </td>
                   <td className="px-3 py-2.5 font-bold font-mono" style={{ color:'var(--color-gold)' }}>
-                    {fm(liq.total_recaudado)}
+                    {fm(liq.total_pagos)}
                   </td>
                   <td colSpan={2}/>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Reservas canceladas del mes — ingreso retenido */}
+      <div className="card p-0 overflow-hidden">
+        <div className="px-5 py-4 border-b flex items-center justify-between flex-wrap gap-2"
+          style={{ borderColor:'var(--color-border)' }}>
+          <h3 className="font-semibold text-sm" style={{ color:'var(--color-text-primary)' }}>
+            Reservas canceladas — ingreso retenido
+          </h3>
+          <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>
+            El dinero no se devuelve y queda como ingreso de la empresa
+          </p>
+        </div>
+        {retenidas.length === 0 ? (
+          <p className="text-center py-10 text-sm" style={{ color:'var(--color-text-muted)' }}>
+            Sin reservas canceladas en {MONTHS[month-1]} {year}
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr style={{ background:'var(--color-navy)', borderBottom:'2px solid var(--color-gold)' }}>
+                  {['Cliente','Proyecto / Unidad','Monto','Motivo','Cancelada por','Fecha'].map(h => (
+                    <th key={h} className="px-3 py-2.5 text-left font-semibold whitespace-nowrap"
+                      style={{ color:'rgba(245,243,238,0.75)' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {retenidas.map((r,i) => (
+                  <tr key={i} style={{ borderBottom:'1px solid var(--color-border)' }}>
+                    <td className="px-3 py-2.5" style={{ color:'var(--color-text-primary)' }}>{r.client_name || '—'}</td>
+                    <td className="px-3 py-2.5" style={{ color:'var(--color-text-muted)' }}>
+                      {r.project_name || '—'} {r.unit_number ? `· ${r.unit_number}` : ''}
+                    </td>
+                    <td className="px-3 py-2.5 font-mono font-bold" style={{ color:'#C0392B' }}>{fm(r.amount)}</td>
+                    <td className="px-3 py-2.5 max-w-md" style={{ color:'var(--color-text-secondary)' }}>
+                      {r.cancellation_reason || <span style={{ color:'var(--color-text-muted)', fontStyle:'italic' }}>sin motivo registrado</span>}
+                    </td>
+                    <td className="px-3 py-2.5" style={{ color:'var(--color-text-muted)' }}>
+                      {r.cancelled_by_name || r.cancelled_by_username || '—'}
+                    </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap" style={{ color:'var(--color-text-muted)' }}>
+                      {r.cancelled_at ? format(new Date(r.cancelled_at), 'dd/MM/yyyy') : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background:'var(--color-navy)', borderTop:'2px solid var(--color-gold)' }}>
+                  <td colSpan={2} className="px-3 py-2.5 text-right font-bold text-xs" style={{ color:'rgba(245,243,238,0.7)' }}>
+                    TOTAL RETENIDO:
+                  </td>
+                  <td className="px-3 py-2.5 font-bold font-mono" style={{ color:'var(--color-gold)' }}>{fm(liq.total_reservas_retenidas)}</td>
+                  <td colSpan={3}/>
+                </tr>
+                <tr style={{ background:'rgba(200,168,75,0.08)', borderTop:'1px solid var(--color-gold)' }}>
+                  <td colSpan={2} className="px-3 py-2.5 text-right font-bold text-xs" style={{ color:'var(--color-navy)' }}>
+                    TOTAL RECAUDADO (Pagos + Retenidas):
+                  </td>
+                  <td className="px-3 py-2.5 font-bold font-mono" style={{ color:'var(--color-navy)' }}>{fm(liq.total_recaudado)}</td>
+                  <td colSpan={3}/>
                 </tr>
               </tfoot>
             </table>
