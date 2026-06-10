@@ -124,8 +124,8 @@ const App = () => (
             <Route path="payments" element={<ProtectedRoute roles={['admin','gerente','contador']}><S><PaymentsPage/></S></ProtectedRoute>}/>
 
             {/* Asesores y comisiones */}
-            <Route path="advisors"     element={<ProtectedRoute roles={['admin','gerente','readonly','abogado','supervisor']}><S><AdvisorsPage/></S></ProtectedRoute>}/>
-            <Route path="advisors/new" element={<ProtectedRoute roles={['admin','gerente']}><S><AdvisorNewPage/></S></ProtectedRoute>}/>
+            <Route path="advisors"     element={<ProtectedRoute roles={['admin','gerente','contador','readonly','abogado','supervisor']}><S><AdvisorsPage/></S></ProtectedRoute>}/>
+            <Route path="advisors/new" element={<ProtectedRoute roles={['admin','gerente','contador']}><S><AdvisorNewPage/></S></ProtectedRoute>}/>
             <Route path="commissions"  element={<ProtectedRoute roles={['admin','gerente','contador','asesor']}><S><CommissionsPage/></S></ProtectedRoute>}/>
 
             {/* Reportes */}

@@ -13,7 +13,7 @@ const CurrencySettingsPage = () => {
   const queryClient       = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState('COP');
-  const canEdit = hasRole('admin');
+  const canEdit = hasRole('admin','gerente','contador');
 
   const { data } = useQuery({
     queryKey: ['system-config'],
