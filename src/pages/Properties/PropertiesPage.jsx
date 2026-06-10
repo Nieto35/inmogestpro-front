@@ -792,7 +792,7 @@ const PropertiesPage = () => {
   const { hasRole }     = useAuthStore();
   const canCreate       = hasRole('admin','gerente','contador');
   const canEdit         = hasRole('admin','gerente','contador');
-  const canChangeStatus = hasRole('admin','gerente');
+  const canChangeStatus = hasRole('admin','gerente','contador');
 
   const [searchParams] = useSearchParams();
   // Si venimos desde una manzana (ej: /properties?block_id=xxx), pre-seleccionamos

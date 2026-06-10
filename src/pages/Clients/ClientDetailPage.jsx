@@ -57,7 +57,7 @@ const ClientDetailPage = () => {
   const to = (path) => `/${tenant}/${path.replace(/^\//, '')}`;
   const queryClient  = useQueryClient();
   const { hasRole }  = useAuthStore();
-  const canEdit      = hasRole('admin','gerente');
+  const canEdit      = hasRole('admin','gerente','contador');
 
   const [editing, setEditing] = useState(false);
   const [saving,  setSaving]  = useState(false);
@@ -301,7 +301,7 @@ const ClientDetailPage = () => {
               {contracts.length}
             </span>
           </h3>
-          {hasRole('admin','gerente') && (
+          {hasRole('admin','gerente','contador') && (
             <button onClick={() => navigate(to('contracts/new'))} className="btn btn-primary btn-sm">
               <Plus size={13}/> Nuevo Contrato
             </button>
