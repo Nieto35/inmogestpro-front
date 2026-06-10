@@ -136,7 +136,7 @@ const ContractsPage = () => {
   const to = (path) => `/${tenant}/${path.replace(/^\//, '')}`;
   const queryClient  = useQueryClient();
   const { hasRole }  = useAuthStore();
-  const canCreate    = hasRole('admin','gerente');
+  const canCreate    = hasRole('admin','gerente','contador');
   const canExport    = hasRole('admin','gerente','contador');
   const canCancel    = hasRole('admin','gerente','contador');
   const isAsesor     = hasRole('asesor');

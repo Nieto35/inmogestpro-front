@@ -154,8 +154,8 @@ const ProjectsPage = () => {
   const to = (path) => `/${tenant}/${path}`;
   const queryClient = useQueryClient();
   const { hasRole } = useAuthStore();
-  const canCreate   = hasRole('admin','gerente');
-  const canEdit     = hasRole('admin','gerente');
+  const canCreate   = hasRole('admin','gerente','contador');
+  const canEdit     = hasRole('admin','gerente','contador');
 
   const [editTarget, setEditTarget] = useState(null);
   const [viewMode, setViewMode] = useState(
