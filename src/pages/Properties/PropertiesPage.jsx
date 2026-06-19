@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search, RefreshCw, Plus, Building, Edit, X, Save, LayoutGrid, List, Layers,
-         Home, AlertTriangle, Calendar, Download } from 'lucide-react';
+         Home, AlertTriangle, Calendar, Download, Trash2 } from 'lucide-react';
 import { propertiesService, projectsService, blocksService, clientsService, reservationsService } from '../../services/api.service';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -552,6 +552,101 @@ const CancelReservationModal = ({ property, newStatus, onClose, onConfirmed }) =
 };
 
 // ── Página principal ──────────────────────────────────────────
+// ── Modal: confirmación de borrado de inmueble ───────────────
+// Pide escribir el número de unidad para evitar borrados accidentales.
+// El backend valida que no haya contratos ni reservas asociadas.
+const DeletePropertyModal = ({ property, onClose, onDeleted }) => {
+  const [typed,  setTyped]  = useState('');
+  const [saving, setSaving] = useState(false);
+  const matches = String(typed).trim() === String(property.unit_number).trim();
+
+  const handleDelete = async () => {
+    if (!matches) return toast.error(`Debes escribir exactamente "${property.unit_number}"`);
+    setSaving(true);
+    try {
+      await propertiesService.delete(property.id, typed.trim());
+      toast.success(`Inmueble "${property.unit_number}" eliminado`);
+      onDeleted();
+      onClose();
+    } catch (err) {
+      // 409 = conflicto por dependencias; otros = errores generales
+      toast.error(err.response?.data?.message || 'Error al eliminar el inmueble');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="w-full max-w-md rounded-2xl shadow-2xl"
+        style={{ background:'var(--color-bg-card)', border:'1px solid rgba(239,68,68,0.35)' }}>
+        <div className="p-5 border-b" style={{ borderColor:'rgba(239,68,68,0.2)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background:'rgba(239,68,68,0.1)' }}>
+              <Trash2 size={20} className="text-red-400"/>
+            </div>
+            <div>
+              <h2 className="font-bold" style={{ color:'var(--color-text-primary)' }}>
+                Eliminar Inmueble
+              </h2>
+              <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
+                Unidad {property.unit_number} · {property.project_name || ''}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div className="p-3 rounded-lg text-sm"
+            style={{ background:'rgba(239,68,68,0.07)', border:'1px solid rgba(239,68,68,0.2)', color:'#fca5a5' }}>
+            ⚠️ Esta acción es <strong>permanente</strong>. El inmueble desaparecerá del sistema.
+            <br/>
+            <span className="text-xs">
+              Si el inmueble tiene contratos o reservas asociadas el sistema bloqueará la operación automáticamente.
+            </span>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2"
+              style={{ color:'var(--color-text-secondary)' }}>
+              Para confirmar, escribe exactamente el número de unidad:{' '}
+              <span className="font-mono font-bold" style={{ color:'var(--color-text-primary)' }}>
+                {property.unit_number}
+              </span>
+            </label>
+            <input
+              type="text"
+              value={typed}
+              onChange={e => setTyped(e.target.value)}
+              className="input text-sm w-full font-mono"
+              placeholder={property.unit_number}
+              autoFocus
+            />
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <button onClick={onClose} className="btn btn-secondary flex-1" disabled={saving}>
+              Cancelar
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={saving || !matches}
+              className="btn flex-1 font-medium"
+              style={{
+                background: matches ? '#dc2626' : 'rgba(220,38,38,0.3)',
+                color:      matches ? 'white'   : '#9ca3af',
+                cursor:     matches ? 'pointer' : 'not-allowed',
+              }}>
+              {saving ? 'Eliminando...' : 'Eliminar definitivamente'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
 // ── Tab: Reservas canceladas ─────────────────────────────────
 // Vista de evidencia: lista todas las reservas cuyo dinero quedó como ingreso
 // retenido para la empresa, con el motivo y quién las canceló.
@@ -805,6 +900,7 @@ const PropertiesPage = () => {
   const [editTarget,      setEditTarget]      = useState(null);
   const [reservationTarget, setReservationTarget] = useState(null);
   const [cancelReservationTarget, setCancelReservationTarget] = useState(null); // { property, newStatus }
+  const [deleteTarget, setDeleteTarget] = useState(null);
   // Pestaña activa dentro de Inmuebles:
   //   'inmuebles'           → listado normal (default)
   //   'reservas-canceladas' → evidencia de reservas eliminadas con motivo
@@ -910,6 +1006,14 @@ const PropertiesPage = () => {
           newStatus={cancelReservationTarget.newStatus}
           onClose={() => setCancelReservationTarget(null)}
           onConfirmed={handleSaved}
+        />
+      )}
+
+      {deleteTarget && (
+        <DeletePropertyModal
+          property={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onDeleted={handleSaved}
         />
       )}
 
@@ -1232,6 +1336,23 @@ const PropertiesPage = () => {
                               loading={changingId === p.id}
                             />
                           ))}
+                        {/* Borrar — solo cuando el inmueble está disponible
+                            (sin contrato ni reserva activa). El backend valida
+                            de nuevo antes de borrar. */}
+                        {canEdit && p.status === 'disponible' && (
+                          <button
+                            onClick={() => setDeleteTarget(p)}
+                            title="Eliminar inmueble"
+                            className="btn btn-sm text-xs"
+                            style={{
+                              height:'26px', padding:'0 8px',
+                              background:'rgba(239,68,68,0.08)',
+                              color:'#ef4444',
+                              border:'1px solid rgba(239,68,68,0.3)',
+                            }}>
+                            <Trash2 size={11}/>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1360,6 +1481,21 @@ const PropertiesPage = () => {
                         loading={changingId === p.id}
                       />
                     ))}
+                  {/* Borrar — solo cuando está disponible y sin dependencias */}
+                  {canEdit && p.status === 'disponible' && (
+                    <button
+                      onClick={() => setDeleteTarget(p)}
+                      title="Eliminar inmueble"
+                      className="btn btn-sm text-xs w-full flex items-center justify-center gap-1"
+                      style={{
+                        height:'28px',
+                        background:'rgba(239,68,68,0.08)',
+                        color:'#ef4444',
+                        border:'1px solid rgba(239,68,68,0.3)',
+                      }}>
+                      <Trash2 size={11}/> Eliminar
+                    </button>
+                  )}
                 </div>
               </div>
             );
