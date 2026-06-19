@@ -208,6 +208,10 @@ export const propertiesService = {
   updateStatus: (id,st,extra={}) => api.patch(`/properties/${id}/status`, { status:st, ...extra }),
   getDetail:    (id)         => api.get(`/properties/${id}/detail`),
   createBulk:   (d)          => api.post('/properties/bulk', d),
+  // Borra el inmueble. confirmUnitNumber debe coincidir con unit_number.
+  // El backend rechaza con 409 si hay contratos o reservas asociadas.
+  delete:       (id, confirmUnitNumber) =>
+                  api.delete(`/properties/${id}`, { data: { confirm_unit_number: confirmUnitNumber } }),
 };
 
 export const reservationsService = {
