@@ -490,13 +490,13 @@ const UsersPage = () => {
           Permisos por Rol
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-          <div>🔴 <strong style={{ color: 'var(--color-text-secondary)' }}>Administrador:</strong> acceso total al sistema</div>
-          <div>🟣 <strong style={{ color: 'var(--color-text-secondary)' }}>Gerente:</strong> contratos, clientes, pagos, reportes, auditoría</div>
-          <div>🔵 <strong style={{ color: 'var(--color-text-secondary)' }}>Contador:</strong> pagos, reportes, contratos (solo lectura)</div>
-          <div>🟢 <strong style={{ color: 'var(--color-text-secondary)' }}>Asesor:</strong> clientes, contratos propios, inmuebles</div>
-          <div>🟡 <strong style={{ color: 'var(--color-text-secondary)' }}>Abogado:</strong> asignado a contratos, solo lectura</div>
-          <div>🩵 <strong style={{ color: 'var(--color-text-secondary)' }}>Supervisor:</strong> asignado a contratos, solo lectura</div>
-          <div>⚪ <strong style={{ color: 'var(--color-text-secondary)' }}>Solo Lectura:</strong> consulta sin modificar nada</div>
+          <div>🟣 <strong style={{ color: 'var(--color-text-secondary)' }}>Gerente:</strong> acceso total al sistema. Único rol con acceso a Usuarios y Auditoría.</div>
+          <div>🔴 <strong style={{ color: 'var(--color-text-secondary)' }}>Administrador:</strong> acceso completo a la operación (contratos, clientes, inmuebles, pagos, reservas, asesores, comisiones, reportes, proyectos y manzanas). Sin acceso a Usuarios ni Auditoría.</div>
+          <div>🔵 <strong style={{ color: 'var(--color-text-secondary)' }}>Contador:</strong> mismo alcance operativo que el administrador — crea y edita contratos, clientes, pagos, comisiones, proyectos, inmuebles y reservas. Sin acceso a Usuarios ni Auditoría.</div>
+          <div>🟢 <strong style={{ color: 'var(--color-text-secondary)' }}>Asesor Comercial:</strong> ve solo sus propios contratos y clientes. Puede crear clientes y contratos, ver inmuebles y consultar sus comisiones.</div>
+          <div>🟡 <strong style={{ color: 'var(--color-text-secondary)' }}>Abogado:</strong> ve los contratos donde está asignado como abogado. Puede editar contratos, subir documentos notariales y marcar hitos de entrega.</div>
+          <div>🩵 <strong style={{ color: 'var(--color-text-secondary)' }}>Supervisor:</strong> ve los contratos donde está asignado como supervisor. Puede marcar hitos de entrega y consultar el estado.</div>
+          <div>⚪ <strong style={{ color: 'var(--color-text-secondary)' }}>Solo Lectura:</strong> consulta general del sistema (dashboard, contratos, proyectos, inmuebles, reportes) sin poder crear ni modificar nada.</div>
         </div>
       </div>
     </div>
