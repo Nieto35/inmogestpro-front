@@ -8,7 +8,7 @@ import {
   RefreshCw, Plus, X, Save, Paperclip, Info, Upload, ExternalLink, Edit, Download
 } from 'lucide-react';
 import { contractsService, usersService, configService, paymentsService } from '../../services/api.service';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/authStore';
@@ -209,7 +209,7 @@ const PaymentModal = ({ tenant, contract, schedule, onClose, onSaved }) => {
                   const remain  = total - paid;
                   return (
                     <option key={s.id} value={s.id}>
-                      {`Cuota #${s.installment_number} · ${s.due_date?format(new Date(s.due_date),'dd/MM/yyyy'):'—'} · `}
+                      {`Cuota #${s.installment_number} · ${s.due_date?format(parseISO(s.due_date),'dd/MM/yyyy'):'—'} · `}
                       {isPart
                         ? `Pendiente: ${formatCurrency(remain)} (abonado ${formatCurrency(paid)})`
                         : formatCurrency(total)}
@@ -611,7 +611,7 @@ const MilestonesPanel = ({ contractId, tenant, deliveryDate, canEdit, onRefresh,
                 <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
                   Programada para:{' '}
                   <span style={{ color:'var(--color-warning)', fontWeight:600 }}>
-                    {format(new Date(deliveryDate), 'dd/MM/yyyy')}
+                    {format(parseISO(deliveryDate), 'dd/MM/yyyy')}
                   </span>
                 </p>
               )}
@@ -1142,7 +1142,7 @@ const ContractDetailPage = () => {
       merges.push({ s:{r:6,c:0}, e:{r:6,c:NCOLS-1} });
 
       rows.push([
-        `Fecha firma: ${contract.signing_date ? format(new Date(contract.signing_date),'dd/MM/yyyy') : '—'}` +
+        `Fecha firma: ${contract.signing_date ? format(parseISO(contract.signing_date),'dd/MM/yyyy') : '—'}` +
         ` · Fecha exportación: ${format(new Date(),'dd/MM/yyyy')}`,
         '', '', '', '', '', ''
       ]);
@@ -1160,10 +1160,10 @@ const ContractDetailPage = () => {
         const paid  = parseFloat(ps.paid_amount||0);
         const total = parseFloat(ps.amount||0);
         const isOverdue = (ps.status==='en_mora' || ps.status==='pendiente') &&
-          ps.due_date && new Date(ps.due_date) < new Date();
+          ps.due_date && parseISO(ps.due_date) < new Date();
         rows.push([
           ps.installment_number,
-          ps.due_date ? format(new Date(ps.due_date),'dd/MM/yyyy') : '',
+          ps.due_date ? format(parseISO(ps.due_date),'dd/MM/yyyy') : '',
           total,
           ps.status==='pagado' ? 'Pagado'
             : isOverdue ? 'En mora'
@@ -1172,7 +1172,7 @@ const ContractDetailPage = () => {
             : 'Pendiente',
           paid,
           total - paid,
-          ps.paid_date ? format(new Date(ps.paid_date),'dd/MM/yyyy') : '',
+          ps.paid_date ? format(parseISO(ps.paid_date),'dd/MM/yyyy') : '',
         ]);
       });
 
@@ -1240,7 +1240,7 @@ const ContractDetailPage = () => {
       payments.forEach(p => {
         payRows.push([
           p.receipt_number || '',
-          p.payment_date ? format(new Date(p.payment_date),'dd/MM/yyyy') : '',
+          p.payment_date ? format(parseISO(p.payment_date),'dd/MM/yyyy') : '',
           parseFloat(p.amount||0),
           p.payment_method || '',
           p.bank_reference || p.bank_name || '',
@@ -1267,14 +1267,14 @@ const ContractDetailPage = () => {
         ['Asesor',         contract.advisor_name||'Sin asesor'],
         ['Tipo pago',      contract.payment_type],
         ['Estado',         contract.status],
-        ['Fecha firma',    contract.signing_date ? format(new Date(contract.signing_date),'dd/MM/yyyy') : ''],
+        ['Fecha firma',    contract.signing_date ? format(parseISO(contract.signing_date),'dd/MM/yyyy') : ''],
         ['Valor total',    parseFloat(contract.total_value||0)],
         ['Valor neto',     parseFloat(contract.net_value||0)],
         ['Total recaudado',payments.reduce((s,p)=>s+parseFloat(p.amount||0),0)],
         ['Saldo pendiente',parseFloat(contract.net_value||0)-payments.reduce((s,p)=>s+parseFloat(p.amount||0),0)],
         ['Cuotas pagadas', payment_schedule.filter(p=>p.status==='pagado').length],
         ['Cuotas en mora', payment_schedule.filter(p=>p.status==='en_mora'||
-          (p.status==='pendiente'&&p.due_date&&new Date(p.due_date)<new Date())).length],
+          (p.status==='pendiente'&&p.due_date&&parseISO(p.due_date)<new Date())).length],
       ];
       const ws3 = XLSX.utils.aoa_to_sheet(summary);
       ws3['!cols'] = [{wch:20},{wch:30}];
@@ -1368,7 +1368,7 @@ const ContractDetailPage = () => {
             </div>
             <p className="text-sm" style={{ color:'var(--color-text-muted)' }}>
               Firmado el {contract.signing_date
-                ? format(new Date(contract.signing_date),"d 'de' MMMM yyyy",{locale:es}) : '—'}
+                ? format(parseISO(contract.signing_date),"d 'de' MMMM yyyy",{locale:es}) : '—'}
             </p>
           </div>
         </div>
@@ -1540,7 +1540,7 @@ const ContractDetailPage = () => {
                       <div>
                         <p className="text-xs mb-0.5" style={{ color:'var(--color-text-muted)' }}>Fecha de registro</p>
                         <p className="text-sm font-medium" style={{ color:'var(--color-text-primary)' }}>
-                          {format(new Date(contract.notary_date), 'dd/MM/yyyy')}
+                          {format(parseISO(contract.notary_date), 'dd/MM/yyyy')}
                         </p>
                       </div>
                     )}
@@ -1605,11 +1605,11 @@ const ContractDetailPage = () => {
             <InfoBlock label="Asesor"          value={contract.advisor_name || '—'}/>
             <InfoBlock label="Abogado"         value={abogadoName || '—'}/>
             <InfoBlock label="Supervisor"      value={supervisorName || '—'}/>
-            <InfoBlock label="Fecha firma"     value={contract.signing_date?format(new Date(contract.signing_date),'dd/MM/yyyy'):'—'}/>
+            <InfoBlock label="Fecha firma"     value={contract.signing_date?format(parseISO(contract.signing_date),'dd/MM/yyyy'):'—'}/>
             <InfoBlock label="Registrado por"  value={contract.created_by_name}/>
             <InfoBlock label="Estado"          value={statusCfg.label}/>
             <InfoBlock label="Fecha de entrega"
-              value={contract.delivery_date ? format(new Date(contract.delivery_date),'dd/MM/yyyy') : '—'}
+              value={contract.delivery_date ? format(parseISO(contract.delivery_date),'dd/MM/yyyy') : '—'}
               extra={!contract.delivery_date && (
                 <span className="text-xs" style={{ color:'var(--color-text-muted)' }}>
                   No definida en el contrato
@@ -1802,7 +1802,7 @@ const ContractDetailPage = () => {
                   // Mora real: vencida y no pagada (aunque el backend aún no la haya marcado)
                   const isOverdue= ps.status === 'en_mora' ||
                     (ps.status === 'pendiente' && ps.due_date &&
-                     new Date(ps.due_date) < new Date(new Date().toDateString()) &&
+                     parseISO(ps.due_date) < new Date() &&
                      ps.status !== 'pagado' && ps.status !== 'condonado');
                   return (
                     <tr key={ps.id}
@@ -1827,7 +1827,7 @@ const ContractDetailPage = () => {
                           color: isOverdue ? '#ef4444' : 'var(--color-text-secondary)',
                           whiteSpace:'nowrap',
                         }}>
-                        {ps.due_date?format(new Date(ps.due_date),'dd/MM/yyyy'):'—'}
+                        {ps.due_date?format(parseISO(ps.due_date),'dd/MM/yyyy'):'—'}
                         {isOverdue && (
                           <span className="ml-1 text-xs">⚠</span>
                         )}
@@ -1853,7 +1853,7 @@ const ContractDetailPage = () => {
                         {ps.status==='pagado' ? '—' : formatCurrency(total-paid)}
                       </td>
                       <td className="text-sm" style={{ color:'var(--color-text-secondary)', whiteSpace:'nowrap' }}>
-                        {ps.paid_date?format(new Date(ps.paid_date),'dd/MM/yyyy'):'—'}
+                        {ps.paid_date?format(parseISO(ps.paid_date),'dd/MM/yyyy'):'—'}
                       </td>
                     </tr>
                   );
@@ -1908,7 +1908,7 @@ const ContractDetailPage = () => {
                       )}
                     </td>
                     <td className="text-sm" style={{ color:'var(--color-text-secondary)', whiteSpace:'nowrap' }}>
-                      {p.payment_date?format(new Date(p.payment_date),'dd/MM/yyyy'):'—'}
+                      {p.payment_date?format(parseISO(p.payment_date),'dd/MM/yyyy'):'—'}
                     </td>
                     <td className="text-sm font-mono font-bold" style={{ color:'var(--color-navy)' }}>
                       {formatCurrency(p.amount)}

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { clientsService, contractsService, interactionsService, commissionsService } from '../../services/api.service';
 import { NewInteractionModal } from './ClientInteractionsPage';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/authStore';
@@ -180,7 +180,7 @@ const ClientDetailPage = () => {
             <InfoItem icon={FileText} label="Número documento" value={client.document_number}/>
             {client.date_of_birth && (
               <InfoItem icon={FileText} label="Fecha nacimiento"
-                value={format(new Date(client.date_of_birth),'dd/MM/yyyy')}/>
+                value={format(parseISO(client.date_of_birth),'dd/MM/yyyy')}/>
             )}
             {client.occupation && (
               <InfoItem icon={FileText} label="Ocupación" value={client.occupation}/>
@@ -355,7 +355,7 @@ const ClientDetailPage = () => {
                         {c.advisor_name || '—'}
                       </td>
                       <td className="text-sm" style={{ color:'var(--color-text-secondary)', whiteSpace:'nowrap' }}>
-                        {c.signing_date ? format(new Date(c.signing_date),'dd/MM/yyyy') : '—'}
+                        {c.signing_date ? format(parseISO(c.signing_date),'dd/MM/yyyy') : '—'}
                       </td>
                       <td><span className={`badge ${s.class}`}>{s.label}</span></td>
                       <td className="text-sm" style={{ color:'var(--color-text-secondary)' }}>
@@ -669,7 +669,7 @@ const ClientEvaluation = ({ clientId, contracts, clientData }) => {
                         </span>
                       )}
                       <span className="text-xs ml-auto" style={{ color:'var(--color-text-muted)' }}>
-                        {i.created_at ? format(new Date(i.created_at), 'dd/MM/yyyy HH:mm') : ''}
+                        {i.created_at ? format(parseISO(i.created_at), 'dd/MM/yyyy HH:mm') : ''}
                       </span>
                     </div>
                     <p className="text-sm" style={{ color:'var(--color-text-secondary)' }}>
@@ -680,7 +680,7 @@ const ClientEvaluation = ({ clientId, contracts, clientData }) => {
                       <span>👤 {i.user_name || 'Sistema'}</span>
                       {i.next_contact && (
                         <span style={{ color:'var(--color-warning)' }}>
-                          📅 Próx: {format(new Date(i.next_contact), 'dd/MM/yyyy')}
+                          📅 Próx: {format(parseISO(i.next_contact), 'dd/MM/yyyy')}
                         </span>
                       )}
                       {i.documents?.length > 0 && (

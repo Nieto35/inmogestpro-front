@@ -7,7 +7,7 @@ import {
   Paperclip, Upload, ExternalLink, Trash2
 } from 'lucide-react';
 import { interactionsService, clientsService, contractsService } from '../../services/api.service';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import Modal from '../../components/UI/Modal';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
@@ -445,7 +445,7 @@ const ClientInteractionsPage = () => {
 
   const grouped = interactions.reduce((acc, i) => {
     const day = i.created_at
-      ? format(new Date(i.created_at), "EEEE d 'de' MMMM yyyy", { locale:es })
+      ? format(parseISO(i.created_at), "EEEE d 'de' MMMM yyyy", { locale:es })
       : 'Sin fecha';
     if (!acc[day]) acc[day] = [];
     acc[day].push(i);
@@ -546,7 +546,7 @@ const ClientInteractionsPage = () => {
                             )}
                             <div className="ml-auto flex items-center gap-2 flex-shrink-0">
                               <span className="text-xs" style={{ color:'var(--color-text-muted)' }}>
-                                {i.created_at ? format(new Date(i.created_at), 'HH:mm') : ''}
+                                {i.created_at ? format(parseISO(i.created_at), 'HH:mm') : ''}
                               </span>
                               {isOwn && (
                                 <button onClick={() => handleDelete(i.id)}
@@ -574,7 +574,7 @@ const ClientInteractionsPage = () => {
                             {i.next_contact && (
                               <span style={{ color:'var(--color-warning)' }}>
                                 📅 Próx. contacto:{' '}
-                                {format(new Date(i.next_contact), 'dd/MM/yyyy')}
+                                {format(parseISO(i.next_contact), 'dd/MM/yyyy')}
                               </span>
                             )}
                           </div>

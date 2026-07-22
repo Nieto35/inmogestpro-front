@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { paymentsService, contractsService } from '../../services/api.service';
 import { getActiveTenantSlug } from '../../utils/tenant';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import Modal from '../../components/UI/Modal';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
@@ -322,7 +322,7 @@ const PaymentModal = ({ onClose, onSaved }) => {
                       return (
                         <option key={s.id} value={s.id}>
                           Cuota #{s.installment_number}
-                          {' · '}Vence: {s.due_date ? format(new Date(s.due_date),'dd/MM/yyyy') : '—'}
+                          {' · '}Vence: {s.due_date ? format(parseISO(s.due_date),'dd/MM/yyyy') : '—'}
                           {' · '}{isPart ? `Pendiente: ${formatCurrency(remain)} (pagado ${formatCurrency(paid)} de ${formatCurrency(total)})` : formatCurrency(total)}
                           {isPart ? ' ⚡ PARCIAL' : ''}
                         </option>
@@ -585,7 +585,7 @@ const PaymentsPage = () => {
                 p.receipt_number||'',
                 p.contract_number||'',
                 p.client_name||'',
-                p.payment_date ? format(new Date(p.payment_date),'dd/MM/yyyy') : '',
+                p.payment_date ? format(parseISO(p.payment_date),'dd/MM/yyyy') : '',
                 fm(p.amount),
                 p.payment_method||'',
                 p.recorded_by_name||'',
@@ -605,7 +605,7 @@ const PaymentsPage = () => {
                   o.advisor_name||'',
                   o.installment_number||'',
                   fm(o.amount),
-                  o.due_date ? format(new Date(o.due_date),'dd/MM/yyyy') : '',
+                  o.due_date ? format(parseISO(o.due_date),'dd/MM/yyyy') : '',
                   o.days_overdue||0,
                 ]));
                 overdueRows.push(['','','','','','','TOTAL MORA', overdue.reduce((s,o)=>s+fm(o.amount),0),'']);
@@ -733,7 +733,7 @@ const PaymentsPage = () => {
                         {p.client_name}
                       </td>
                       <td className="text-sm" style={{ color:'var(--color-text-secondary)', whiteSpace:'nowrap' }}>
-                        {p.payment_date ? format(new Date(p.payment_date),'dd/MM/yyyy') : '—'}
+                        {p.payment_date ? format(parseISO(p.payment_date),'dd/MM/yyyy') : '—'}
                       </td>
                       {/* Monto — azul noche, mono. Sin verde. */}
                       <td className="text-sm font-mono font-bold"
@@ -812,7 +812,7 @@ const PaymentsPage = () => {
                       {o.installment_number}
                     </td>
                     <td className="text-sm" style={{ color:'var(--color-text-secondary)', whiteSpace:'nowrap' }}>
-                      {o.due_date ? format(new Date(o.due_date),'dd/MM/yyyy') : '—'}
+                      {o.due_date ? format(parseISO(o.due_date),'dd/MM/yyyy') : '—'}
                     </td>
                     {/* Monto en mora — rojo semántico */}
                     <td className="text-sm font-mono font-bold" style={{ color:'var(--color-danger)' }}>
