@@ -7,6 +7,7 @@ import { Search, RefreshCw, Plus, Building, Edit, X, Save, LayoutGrid, List, Lay
 import { propertiesService, projectsService, blocksService, clientsService, reservationsService } from '../../services/api.service';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { todayISO } from '../../utils/dates';
 import { useSearchParams } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import toast from 'react-hot-toast';
@@ -312,7 +313,7 @@ const EditPropertyModal = ({ property, onClose, onSaved }) => {
 
 // ── Modal de Reserva ─────────────────────────────────────────
 const ReservationModal = ({ property, onClose, onSaved }) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayISO();
   const [saving, setSaving] = useState(false);
   const [clientQ, setClientQ] = useState('');
   const [clientOpen, setClientOpen] = useState(false);

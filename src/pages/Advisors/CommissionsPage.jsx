@@ -9,6 +9,7 @@ import { commissionsService, advisorsService, contractsService, usersService } f
 import * as XLSX from 'xlsx';
 import Modal from '../../components/UI/Modal';
 import { format } from 'date-fns';
+import { formatDate, todayISO } from '../../utils/dates';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import { getActiveTenantSlug } from '../../utils/tenant';
@@ -492,7 +493,7 @@ const CommissionRow = ({ comm, canEdit, onRefresh, compact=false }) => {
   const pct        = total>0 ? Math.round((paidAmount/total)*100) : 0;
   const allPaid    = paidAmount>=total;
 
-  const getPayDate = (payId) => paidDates[payId]||new Date().toISOString().split('T')[0];
+  const getPayDate = (payId) => paidDates[payId]||todayISO();
 
   const handleMarkPaid = async (payId) => {
     const dateToUse=getPayDate(payId);
@@ -630,13 +631,13 @@ const CommissionRow = ({ comm, canEdit, onRefresh, compact=false }) => {
                     </p>
                     {pay.is_paid&&pay.paid_date && (
                       <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>
-                        Pagado el {format(new Date(pay.paid_date),'dd/MM/yyyy')}
+                        Pagado el {formatDate(pay.paid_date)}
                         {pay.paid_by_name&&` por ${pay.paid_by_name}`}
                       </p>
                     )}
                     {!pay.is_paid&&pay.paid_date && (
                       <p className="text-xs" style={{ color:'var(--color-warning)' }}>
-                        📅 Programado: {format(new Date(pay.paid_date),'dd/MM/yyyy')}
+                        📅 Programado: {formatDate(pay.paid_date)}
                       </p>
                     )}
                     {/* Evidencias adjuntas */}
@@ -689,7 +690,7 @@ const CommissionRow = ({ comm, canEdit, onRefresh, compact=false }) => {
                       <div className="flex flex-col gap-0.5">
                         <label className="text-xs" style={{ color:'var(--color-text-muted)' }}>Fecha real del pago:</label>
                         <input type="date" value={getPayDate(pay.id)}
-                          max={new Date().toISOString().split('T')[0]}
+                          max={todayISO()}
                           onChange={e=>setPaidDates(prev=>({...prev,[pay.id]:e.target.value}))}
                           className="input text-xs"
                           style={{ padding:'4px 8px', height:'30px', minWidth:'130px' }}/>
@@ -839,7 +840,7 @@ const CommissionsPage = () => {
                   onClick={() => {
                     const wb=XLSX.utils.book_new();
                     const rows=[['Asesor','Email','Contrato','Cliente','Cuota','Monto','Fecha Programada','Días Vencido']];
-                    overdues.forEach(o=>rows.push([o.advisor_name,o.advisor_email||'',o.contract_number,o.client_name,`Pago ${o.installment_num}`,parseFloat(o.amount||0),o.due_date?format(new Date(o.due_date),'dd/MM/yyyy'):'',o.days_overdue]));
+                    overdues.forEach(o=>rows.push([o.advisor_name,o.advisor_email||'',o.contract_number,o.client_name,`Pago ${o.installment_num}`,parseFloat(o.amount||0),o.due_date?formatDate(o.due_date,'dd/MM/yyyy',''):'',o.days_overdue]));
                     rows.push(['','','','','TOTAL',overdues.reduce((s,o)=>s+parseFloat(o.amount||0),0),'','']);
                     const ws=XLSX.utils.aoa_to_sheet(rows);
                     ws['!cols']=[20,24,16,20,10,16,16,12].map(w=>({wch:w}));
@@ -875,7 +876,7 @@ const CommissionsPage = () => {
                           {formatCurrency(o.amount)}
                         </td>
                         <td className="px-3 py-3" style={{ color:'var(--color-warning)' }}>
-                          {o.due_date?format(new Date(o.due_date),'dd/MM/yyyy'):'—'}
+                          {o.due_date?formatDate(o.due_date):'—'}
                         </td>
                         <td className="px-3 py-3">
                           <span className="px-2 py-1 rounded-full font-bold"
@@ -885,14 +886,14 @@ const CommissionsPage = () => {
                         </td>
                         <td className="px-3 py-3">
                           <div className="flex flex-col gap-1.5">
-                            <input type="date" defaultValue={new Date().toISOString().split('T')[0]}
-                              max={new Date().toISOString().split('T')[0]}
+                            <input type="date" defaultValue={todayISO()}
+                              max={todayISO()}
                               id={`overdue-date-${o.id}`} className="input text-xs"
                               style={{ padding:'3px 6px', height:'28px' }}/>
                             <button
                               onClick={async()=>{
                                 const dateInput=document.getElementById(`overdue-date-${o.id}`);
-                                const dateToUse=dateInput?.value||new Date().toISOString().split('T')[0];
+                                const dateToUse=dateInput?.value||todayISO();
                                 try {
                                   await commissionsService.markPaid(o.id,{paid_date:dateToUse});
                                   toast.success(`Pagada el ${format(new Date(dateToUse),'dd/MM/yyyy')}`);

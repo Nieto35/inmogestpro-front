@@ -10,6 +10,7 @@ import {
 import { contractsService, usersService, configService, paymentsService } from '../../services/api.service';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { todayISO } from '../../utils/dates';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/authStore';
 import * as XLSX from 'xlsx';
@@ -88,7 +89,7 @@ const PaymentModal = ({ tenant, contract, schedule, onClose, onSaved }) => {
   const pendingSchedule = (schedule||[]).filter(s => s.status !== 'pagado' && s.status !== 'condonado');
 
   const [form, setForm] = useState({
-    payment_date:   new Date().toISOString().split('T')[0],
+    payment_date:   todayISO(),
     amount:         '',
     payment_method: 'transferencia',
     bank_reference: '',
@@ -564,7 +565,7 @@ const MilestonesPanel = ({ contractId, tenant, deliveryDate, canEdit, onRefresh,
                   <input
                     type="date"
                     value={pendingDate[m.key]}
-                    max={new Date().toISOString().split('T')[0]}
+                    max={todayISO()}
                     onChange={e => setPendingDate(prev => ({ ...prev, [m.key]: e.target.value }))}
                     disabled={!canEdit || isSaving}
                     className="input text-xs"
@@ -597,7 +598,7 @@ const MilestonesPanel = ({ contractId, tenant, deliveryDate, canEdit, onRefresh,
                   <input
                     type="date"
                     value={ms.date || ''}
-                    max={new Date().toISOString().split('T')[0]}
+                    max={todayISO()}
                     onChange={e => setDate(m.key, e.target.value)}
                     disabled={!canEdit}
                     className="input text-xs"

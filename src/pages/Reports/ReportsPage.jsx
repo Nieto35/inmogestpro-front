@@ -14,6 +14,7 @@ import { reportsService } from '../../services/api.service';
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
 import { es } from 'date-fns/locale';
+import { formatDate, todayISO } from '../../utils/dates';
 
 const fm = v =>
   new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0}).format(v||0);
@@ -429,7 +430,7 @@ const TabCartera = () => {
           parseFloat(c.balance||0),
           parseInt(c.overdue_installments||0),
           parseFloat(c.overdue_value||0),
-          c.next_due_date ? format(new Date(c.next_due_date),'dd/MM/yyyy') : '',
+          c.next_due_date ? formatDate(c.next_due_date,'dd/MM/yyyy','') : '',
           c.payment_type||'',
         ]),
       },
@@ -525,7 +526,7 @@ const TabCartera = () => {
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap"
                       style={{ color: mora ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
-                      {c.next_due_date ? format(new Date(c.next_due_date),'dd/MM/yyyy') : '—'}
+                      {formatDate(c.next_due_date)}
                     </td>
                   </tr>
                 );
@@ -570,7 +571,7 @@ const TabLiquidacion = () => {
         data: pagos.map(p => [
           p.receipt_number, p.contract_number, p.client_name,
           p.project_name, p.unit_number,
-          p.payment_date ? format(new Date(p.payment_date),'dd/MM/yyyy') : '',
+          p.payment_date ? formatDate(p.payment_date,'dd/MM/yyyy','') : '',
           parseFloat(p.amount||0), p.payment_method, p.advisor_name||'',
         ]),
       },
@@ -608,7 +609,7 @@ const TabLiquidacion = () => {
         data: liq.comisiones_pagadas.map(c => [
           c.advisor_name, c.contract_number, c.commission_type,
           parseFloat(c.paid_amount||0),
-          c.paid_date ? format(new Date(c.paid_date),'dd/MM/yyyy') : '',
+          c.paid_date ? formatDate(c.paid_date,'dd/MM/yyyy','') : '',
         ]),
       });
     }
@@ -707,7 +708,7 @@ const TabLiquidacion = () => {
                       {p.project_name} · {p.unit_number}
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap" style={{ color:'var(--color-text-muted)' }}>
-                      {p.payment_date ? format(new Date(p.payment_date),'dd/MM/yyyy') : '—'}
+                      {formatDate(p.payment_date)}
                     </td>
                     <td className="px-3 py-2.5 font-mono font-bold" style={{ color:'var(--color-navy)' }}>
                       {fm(p.amount)}
@@ -850,7 +851,7 @@ const TabLiquidacion = () => {
                       {fm(c.paid_amount)}
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap" style={{ color:'var(--color-text-muted)' }}>
-                      {c.paid_date ? format(new Date(c.paid_date),'dd/MM/yyyy') : '—'}
+                      {formatDate(c.paid_date)}
                     </td>
                   </tr>
                 ))}
@@ -866,7 +867,7 @@ const TabLiquidacion = () => {
 // ── Tab: Liquidación Diaria ───────────────────────────────────
 // Ingresos del día = pagos de contratos + reservas canceladas (retenidas)
 const TabLiquidacionDiaria = () => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
   const [date, setDate] = useState(today);
 
   const { data, isFetching, refetch } = useQuery({

@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Save, Search, CheckCircle } from 'lucide-react';
 import { contractsService, clientsService, propertiesService, advisorsService, usersService, reservationsService } from '../../services/api.service';
 import { useCurrencyFormat } from '../../utils/currency';
+import { todayISO } from '../../utils/dates';
 import toast from 'react-hot-toast';
 
 const Field = ({ label, required, hint, children }) => (
@@ -108,7 +109,7 @@ const ContractNewPage = () => {
     advisor_id:         '',
     abogado_id:         '',
     supervisor_id:      '',
-    signing_date:       new Date().toISOString().split('T')[0],
+    signing_date:       todayISO(),
     promise_date:       '',
     delivery_date:      '',
     contract_type:      'promesa',

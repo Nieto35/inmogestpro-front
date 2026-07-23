@@ -10,6 +10,7 @@ import {
 import { advisorsService, usersService, commissionsService } from '../../services/api.service';
 import useAuthStore from '../../store/authStore';
 import { format } from 'date-fns';
+import { formatDate } from '../../utils/dates';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import Modal from '../../components/UI/Modal';
@@ -343,7 +344,7 @@ const AdvisorDetail = ({ advisor, onEdit }) => {
                     {formatCurrency(c.net_value)}
                   </p>
                   <p style={{ color:'var(--color-text-muted)' }}>
-                    {c.signing_date ? format(new Date(c.signing_date),'dd/MM/yyyy') : '—'}
+                    {formatDate(c.signing_date)}
                   </p>
                 </div>
               </div>
