@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { paymentsService, contractsService } from '../../services/api.service';
 import { getActiveTenantSlug } from '../../utils/tenant';
+import { todayISO } from '../../utils/dates';
 import { format, parseISO } from 'date-fns';
 import Modal from '../../components/UI/Modal';
 import { es } from 'date-fns/locale';
@@ -71,7 +72,7 @@ const PaymentModal = ({ onClose, onSaved }) => {
   const { tenant } = useParams();
 
   const [form, setForm] = useState({
-    payment_date:   new Date().toISOString().split('T')[0],
+    payment_date:   todayISO(),
     amount:         '',
     payment_method: 'transferencia',
     bank_reference: '',

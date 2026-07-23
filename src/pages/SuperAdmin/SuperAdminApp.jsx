@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { superAdminService } from '../../services/api.service';
+import { todayISO } from '../../utils/dates';
 import toast, { Toaster } from 'react-hot-toast';
 import {
   Building2, Users, CreditCard, TrendingUp, Plus, Eye, EyeOff,
@@ -241,7 +242,7 @@ const TenantCard = ({ tenant, onRefresh }) => {
     finally { setResetting(null); }
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayISO();
   const expired = tenant.subscription_end && tenant.subscription_end < today;
   const usageColor = tenant.active_users >= tenant.max_users ? '#C0392B' : tenant.active_users >= tenant.max_users*0.8 ? '#92660A' : '#C8A84B';
 

@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Modal from '../../components/UI/Modal';
+import { formatDate } from '../../utils/dates';
 
 const formatCurrency = (v) =>
   new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', minimumFractionDigits:0 }).format(v||0);
@@ -427,7 +428,7 @@ const ContractsPage = () => {
                     </td>
 
                     <td className="text-sm" style={{ color:'var(--color-text-secondary)', whiteSpace:'nowrap' }}>
-                      {c.signing_date ? format(new Date(c.signing_date),'dd/MM/yyyy') : '—'}
+                      {formatDate(c.signing_date)}
                     </td>
 
                     <td>
