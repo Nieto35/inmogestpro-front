@@ -193,7 +193,16 @@ const PaymentModal = ({ tenant, contract, schedule, onClose, onSaved }) => {
               style={{ color:'var(--color-text-secondary)' }}>
               Cuota a pagar <span className="text-red-400">*</span>
             </label>
-            {pendingSchedule.length === 0 ? (
+            {/* Distinguir "no hay plan de cuotas" de "todas pagadas" — antes
+                ambos casos mostraban el mismo mensaje de éxito y confundían. */}
+            {(schedule||[]).length === 0 ? (
+              <div className="p-3 rounded-lg text-sm"
+                style={{ background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.3)', color:'#f59e0b' }}>
+                ⚠️ Este contrato no tiene plan de cuotas generado, por eso no se puede
+                registrar un pago. Genera el plan desde el botón <strong>Generar Plan de Pagos</strong>
+                {' '}en la sección Plan de Pagos, o ajústalo con <strong>Editar Plan</strong>.
+              </div>
+            ) : pendingSchedule.length === 0 ? (
               <div className="p-3 rounded-lg text-sm text-center"
                 style={{ background:'var(--color-success-bg)', border:'1px solid var(--color-success-border)', color:'var(--color-success)' }}>
                 ✓ Todas las cuotas de este contrato están pagadas
