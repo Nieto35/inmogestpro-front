@@ -139,7 +139,7 @@ const ContractEditPage = () => {
 
     setSaving(true);
     try {
-      await contractsService.update(id, {
+      const res = await contractsService.update(id, {
         ...form,
         total_value:        parseFloat(form.total_value),
         discount:           parseFloat(form.discount)           || 0,
@@ -157,7 +157,14 @@ const ContractEditPage = () => {
         promise_date:       form.promise_date   || null,
         delivery_date:      form.delivery_date  || null,
       });
-      toast.success('Contrato actualizado correctamente');
+      // El backend resume en `message` lo que pasó con la cuota inicial y el
+      // plan de cuotas, y usa `warning` cuando algo necesita revisión manual.
+      const warning = res?.data?.warning;
+      const message = res?.data?.message || 'Contrato actualizado correctamente';
+      toast.success(message, { duration: 7000, style:{ maxWidth:'560px' } });
+      if (warning) {
+        toast(warning, { icon:'⚠️', duration: 10000, style:{ maxWidth:'560px' } });
+      }
       queryClient.invalidateQueries({ queryKey:['contract', id] });
       queryClient.invalidateQueries({ queryKey:['contracts'] });
       navigate(to(`contracts/${id}`));

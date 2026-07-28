@@ -97,7 +97,9 @@ const App = () => (
             <Route path="contracts"          element={<S><ContractsPage/></S>}/>
             <Route path="contracts/new"      element={<ProtectedRoute roles={['admin','gerente','contador','abogado']}><S><ContractNewPage/></S></ProtectedRoute>}/>
             <Route path="contracts/:id"      element={<S><ContractDetailPage/></S>}/>
-            <Route path="contracts/:id/edit" element={<ProtectedRoute roles={['admin','gerente','contador','abogado']}><S><ContractEditPage/></S></ProtectedRoute>}/>
+            {/* Editar contrato mueve dinero (la cuota inicial se registra como
+                pago real), por eso queda solo para los roles financieros */}
+            <Route path="contracts/:id/edit" element={<ProtectedRoute roles={['admin','gerente','contador']}><S><ContractEditPage/></S></ProtectedRoute>}/>
 
             {/* Clientes */}
             <Route path="clients"     element={<S><ClientsPage/></S>}/>
