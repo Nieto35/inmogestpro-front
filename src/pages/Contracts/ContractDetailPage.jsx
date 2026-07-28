@@ -11,6 +11,7 @@ import { contractsService, usersService, configService, paymentsService } from '
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { todayISO } from '../../utils/dates';
+import { UPLOAD_HINT, validateFileSize } from '../../utils/uploads';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/authStore';
 import * as XLSX from 'xlsx';
@@ -335,7 +336,7 @@ const PaymentModal = ({ tenant, contract, schedule, onClose, onSaved }) => {
               style={{ color:'var(--color-text-secondary)' }}>
               Comprobante de pago
               <span className="ml-2 text-xs font-normal" style={{ color:'var(--color-text-muted)' }}>
-                (PDF, JPG o PNG — máx 10 MB)
+                ({UPLOAD_HINT})
               </span>
             </label>
             <div
@@ -347,7 +348,12 @@ const PaymentModal = ({ tenant, contract, schedule, onClose, onSaved }) => {
               onClick={() => fileRef.current?.click()}>
               <input ref={fileRef} type="file" className="hidden"
                 accept=".pdf,.jpg,.jpeg,.png,.webp"
-                onChange={e => setUploadFile(e.target.files[0]||null)}/>
+                onChange={e => {
+                  const f = e.target.files[0] || null;
+                  const err = validateFileSize(f);
+                  if (err) { toast.error(err); e.target.value = ''; return; }
+                  setUploadFile(f);
+                }}/>
               {uploadFile ? (
                 <div className="flex items-center justify-center gap-2">
                   <Paperclip size={15} style={{ color:'var(--color-gold)' }}/>
@@ -1524,12 +1530,15 @@ const ContractDetailPage = () => {
                       Gastos notariales / papelería
                     </p>
                     {canPay && (
-                      <label className="btn btn-secondary btn-sm cursor-pointer text-xs">
+                      <label className="btn btn-secondary btn-sm cursor-pointer text-xs"
+                        title={UPLOAD_HINT}>
                         <Upload size={11}/> {contract.notary_document ? 'Reemplazar' : 'Subir evidencia'}
                         <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png"
                           onChange={async e => {
                             const file = e.target.files[0];
                             if (!file) return;
+                            const sizeErr = validateFileSize(file);
+                            if (sizeErr) { toast.error(sizeErr); e.target.value = ''; return; }
                             const fd = new FormData();
                             fd.append('file', file);
                             try {
@@ -1676,12 +1685,15 @@ const ContractDetailPage = () => {
               </span>
             </div>
             {canUpload && (
-              <label className="btn btn-secondary btn-sm cursor-pointer text-xs">
+              <label className="btn btn-secondary btn-sm cursor-pointer text-xs"
+                title={UPLOAD_HINT}>
                 <Upload size={12}/> Subir
                 <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png"
                   onChange={async e => {
                     const file = e.target.files[0];
                     if (!file) return;
+                    const sizeErr = validateFileSize(file);
+                    if (sizeErr) { toast.error(sizeErr); e.target.value = ''; return; }
                     const fd = new FormData();
                     fd.append('file', file);
                     try {
@@ -1955,7 +1967,7 @@ const ContractDetailPage = () => {
                         )}
                         {/* Subir evidencia */}
                         <label className="btn btn-ghost btn-sm cursor-pointer"
-                          title="Subir comprobante"
+                          title={`Subir comprobante — ${UPLOAD_HINT}`}
                           style={{ color:'var(--color-text-muted)' }}>
                           <Upload size={13}/>
                           <input type="file" className="hidden"
@@ -1963,6 +1975,8 @@ const ContractDetailPage = () => {
                             onChange={async (e) => {
                               const file = e.target.files[0];
                               if (!file) return;
+                              const sizeErr = validateFileSize(file);
+                              if (sizeErr) { toast.error(sizeErr); e.target.value = ''; return; }
                               const fd = new FormData();
                               fd.append('file', file);
                               const token = localStorage.getItem('inmogest_token');

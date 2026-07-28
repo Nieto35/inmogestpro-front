@@ -6,6 +6,7 @@ import { ArrowLeft, Save, Search, CheckCircle } from 'lucide-react';
 import { contractsService, clientsService, propertiesService, advisorsService, usersService, reservationsService } from '../../services/api.service';
 import { useCurrencyFormat } from '../../utils/currency';
 import { todayISO } from '../../utils/dates';
+import { UPLOAD_HINT, validateFileSize } from '../../utils/uploads';
 import toast from 'react-hot-toast';
 
 const Field = ({ label, required, hint, children }) => (
@@ -894,9 +895,14 @@ const ContractNewPage = () => {
           </Field>
         </div>
         <div className="mt-3">
-          <Field label="Documento de evidencia (opcional)">
+          <Field label="Documento de evidencia (opcional)" hint={UPLOAD_HINT}>
             <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp"
-              onChange={e => setNotaryFile(e.target.files[0] || null)}
+              onChange={e => {
+                const f = e.target.files[0] || null;
+                const err = validateFileSize(f);
+                if (err) { toast.error(err); e.target.value = ''; return; }
+                setNotaryFile(f);
+              }}
               className="input text-sm"/>
             {notaryFile && (
               <p className="text-xs mt-1 text-green-500">Archivo seleccionado: {notaryFile.name}</p>

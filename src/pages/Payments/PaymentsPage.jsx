@@ -9,6 +9,7 @@ import {
 import { paymentsService, contractsService } from '../../services/api.service';
 import { getActiveTenantSlug } from '../../utils/tenant';
 import { todayISO } from '../../utils/dates';
+import { UPLOAD_HINT, validateFileSize } from '../../utils/uploads';
 import { format, parseISO } from 'date-fns';
 import Modal from '../../components/UI/Modal';
 import { es } from 'date-fns/locale';
@@ -462,7 +463,7 @@ const PaymentModal = ({ onClose, onSaved }) => {
                   style={{ color:'var(--color-text-secondary)' }}>
                   Comprobante de pago
                   <span className="ml-2 text-xs font-normal" style={{ color:'var(--color-text-muted)' }}>
-                    (PDF, JPG o PNG — máx 10 MB)
+                    ({UPLOAD_HINT})
                   </span>
                 </label>
                 <div
@@ -474,7 +475,12 @@ const PaymentModal = ({ onClose, onSaved }) => {
                   onClick={() => fileInputRef.current?.click()}>
                   <input ref={fileInputRef} type="file" className="hidden"
                     accept=".pdf,.jpg,.jpeg,.png,.webp"
-                    onChange={e => setUploadFile(e.target.files[0] || null)}/>
+                    onChange={e => {
+                      const f = e.target.files[0] || null;
+                      const err = validateFileSize(f);
+                      if (err) { toast.error(err); e.target.value = ''; return; }
+                      setUploadFile(f);
+                    }}/>
                   {uploadFile ? (
                     <div className="flex items-center justify-center gap-2">
                       <Paperclip size={16} style={{ color:'var(--color-gold)' }}/>

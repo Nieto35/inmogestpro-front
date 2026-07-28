@@ -12,6 +12,7 @@ import Modal from '../../components/UI/Modal';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import { getActiveTenantSlug } from '../../utils/tenant';
+import { UPLOAD_HINT_MEDIA, validateFileSize } from '../../utils/uploads';
 import useAuthStore from '../../store/authStore';
 import { useParams } from 'react-router-dom';
 
@@ -355,14 +356,21 @@ const NewInteractionModal = ({ onClose, onSaved, preselectedClient = null, prese
             <Paperclip size={15}/>
             <span className="text-sm">
               {attachedFiles.length === 0
-                ? 'Clic para adjuntar archivo (PDF, imagen, audio, video)'
+                ? `Clic para adjuntar archivo (${UPLOAD_HINT_MEDIA})`
                 : `${attachedFiles.length} archivo${attachedFiles.length!==1?'s':''} seleccionado${attachedFiles.length!==1?'s':''}`}
             </span>
             <input type="file" multiple className="hidden"
               accept=".pdf,.jpg,.jpeg,.png,.webp,.mp3,.mp4,.wav,.ogg"
               onChange={e => {
                 const files = Array.from(e.target.files);
-                setAttachedFiles(prev => [...prev, ...files]);
+                // Descartar los que excedan el límite y avisar por cada uno
+                const valid = [];
+                files.forEach(f => {
+                  const err = validateFileSize(f);
+                  if (err) toast.error(`${f.name}: ${err}`);
+                  else valid.push(f);
+                });
+                if (valid.length) setAttachedFiles(prev => [...prev, ...valid]);
                 e.target.value = '';
               }}/>
           </label>
@@ -622,6 +630,7 @@ const ClientInteractionsPage = () => {
                           {/* Subir evidencia */}
                           {isOwn && (
                             <label className="inline-flex items-center gap-1.5 mt-2 px-2 py-1 rounded text-xs cursor-pointer transition-colors hover:opacity-80"
+                              title={UPLOAD_HINT_MEDIA}
                               style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)', color:'var(--color-text-muted)' }}>
                               <Paperclip size={11}/>
                               Subir evidencia
@@ -630,6 +639,8 @@ const ClientInteractionsPage = () => {
                                 onChange={async e => {
                                   const file = e.target.files[0];
                                   if (!file) return;
+                                  const sizeErr = validateFileSize(file);
+                                  if (sizeErr) { toast.error(sizeErr); e.target.value = ''; return; }
                                   const fd = new FormData();
                                   fd.append('file', file);
                                   try {

@@ -10,6 +10,7 @@ import * as XLSX from 'xlsx';
 import Modal from '../../components/UI/Modal';
 import { format } from 'date-fns';
 import { formatDate, todayISO } from '../../utils/dates';
+import { UPLOAD_HINT, validateFileSize } from '../../utils/uploads';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import { getActiveTenantSlug } from '../../utils/tenant';
@@ -663,13 +664,15 @@ const CommissionRow = ({ comm, canEdit, onRefresh, compact=false }) => {
                 {canEdit && (
                   <div className="flex gap-1 flex-shrink-0">
                     <label className="btn btn-ghost btn-sm text-xs cursor-pointer"
-                      title={pendingFiles[pay.id]?`Evidencia lista: ${pendingFiles[pay.id].name}`:'Subir evidencia de pago'}
+                      title={pendingFiles[pay.id]?`Evidencia lista: ${pendingFiles[pay.id].name}`:`Subir evidencia de pago — ${UPLOAD_HINT}`}
                       style={{ color: pendingFiles[pay.id]?'var(--color-gold)':'var(--color-text-muted)' }}>
                       {pendingFiles[pay.id]?<CheckCircle size={12}/>:<Upload size={12}/>}
                       <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.webp"
                         onChange={async e => {
                           const file=e.target.files[0];
                           if (!file) return;
+                          const sizeErr = validateFileSize(file);
+                          if (sizeErr) { toast.error(sizeErr); e.target.value = ''; return; }
                           if (pay.is_paid) {
                             const fd=new FormData(); fd.append('file',file);
                             try {
