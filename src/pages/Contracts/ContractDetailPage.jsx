@@ -1404,7 +1404,9 @@ const ContractDetailPage = () => {
       <div className="card p-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium" style={{ color:'var(--color-text-secondary)' }}>
-            {paidCount} de {contract.installments_total} cuotas pagadas
+            {contract.installments_total > 0
+              ? `${paidCount} de ${contract.installments_total} cuotas pagadas`
+              : 'Pago único — sin plan de cuotas'}
           </span>
           <span className="text-sm font-bold font-mono"
             style={{ color: progressPct>=100 ? 'var(--color-gold)' : 'var(--color-navy)' }}>
@@ -1508,7 +1510,11 @@ const ContractDetailPage = () => {
                 </span>}/>
             )}
             <InfoBlock label="Tipo de pago"  value={PAYMENT_TYPE_LABELS[contract.payment_type] || contract.payment_type}/>
-            <InfoBlock label="Cuotas"        value={`${contract.installments_total} × ${formatCurrency(contract.installment_amount)}`} mono/>
+            <InfoBlock label="Cuotas"
+              value={contract.installments_total > 0
+                ? `${contract.installments_total} × ${formatCurrency(contract.installment_amount)}`
+                : 'Sin cuotas — pagado con la cuota inicial'}
+              mono={contract.installments_total > 0}/>
             {parseFloat(contract.notary_expenses || 0) > 0 && (
               <div className="col-span-2">
                 <div className="p-3 rounded-xl space-y-2"
