@@ -205,10 +205,16 @@ const ContractsPage = () => {
     URL.revokeObjectURL(url);
   };
 
-  const getProgressPct = (c) =>
-    c.installments_total > 0
-      ? Math.round((c.paid_installments / c.installments_total) * 100)
-      : 0;
+  // Avance por DINERO, no por número de cuotas. Es la misma fórmula que usa el
+  // detalle del contrato y cubre los casos que el conteo de cuotas no resuelve:
+  //   · contratos pagados por completo con la cuota inicial (0 cuotas)
+  //   · abonos parciales, que sí mueven el porcentaje
+  const getProgressPct = (c) => {
+    const net  = parseFloat(c.net_value  || 0);
+    const paid = parseFloat(c.total_paid || 0);
+    if (net <= 0) return 0;
+    return Math.min(Math.round((paid / net) * 100), 100);
+  };
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -475,7 +481,9 @@ const ContractsPage = () => {
                         </span>
                       </div>
                       <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
-                        {c.paid_installments}/{c.installments_total} cuotas
+                        {c.installments_total > 0
+                          ? `${c.paid_installments}/${c.installments_total} cuotas`
+                          : 'Pago único · sin cuotas'}
                       </p>
                     </td>
 
