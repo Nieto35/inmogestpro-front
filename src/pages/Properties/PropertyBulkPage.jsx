@@ -330,7 +330,9 @@ const PropertyBulkPage = () => {
                       className="input text-sm">
                       <option value="venta">Venta</option>
                       <option value="arriendo">Arriendo</option>
-                      <option value="ambos">Venta y Arriendo</option>
+                      {/* Debe ser venta_arriendo: 'ambos' no existe en el
+                          dominio de la columna purpose. */}
+                      <option value="venta_arriendo">Venta y Arriendo</option>
                     </select>
                   </Field>
 

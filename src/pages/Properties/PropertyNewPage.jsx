@@ -365,7 +365,9 @@ const PropertyNewPage = () => {
               className="input text-sm">
               <option value="venta">Venta</option>
               <option value="arriendo">Arriendo</option>
-              <option value="ambos">Venta y Arriendo</option>
+              {/* Debe ser venta_arriendo: 'ambos' no existe en el dominio de
+                  la columna purpose y rompía la migración de la base. */}
+              <option value="venta_arriendo">Venta y Arriendo</option>
             </select>
           </Field>
         </div>
