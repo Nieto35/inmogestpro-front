@@ -2,10 +2,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Save, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Save, RefreshCw, AlertTriangle, Building2, Settings2 } from 'lucide-react';
 import { contractsService, advisorsService, usersService } from '../../services/api.service';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/authStore';
+import ContractPropertiesModal from './ContractPropertiesModal';
 
 const formatCurrency = (v) =>
   new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0}).format(v||0);
@@ -63,6 +64,10 @@ const ContractEditPage = () => {
   const [form,    setForm]    = useState(null);
   const set = (k,v) => setForm(f => ({...f,[k]:v}));
 
+  // Gestión de inmuebles del contrato (quitar / agregar)
+  const [showProps, setShowProps] = useState(false);
+  const [savingProps, setSavingProps] = useState(false);
+
   // Cargar datos del contrato
   const { data, isLoading } = useQuery({
     queryKey: ['contract', id],
@@ -87,7 +92,27 @@ const ContractEditPage = () => {
   const abogados    = allUsers.filter(u => u.role === 'abogado'    && u.is_active);
   const supervisores = allUsers.filter(u => u.role === 'supervisor' && u.is_active);
 
-  const contract = data?.data?.data?.contract;
+  const contract   = data?.data?.data?.contract;
+  const properties = data?.data?.data?.all_properties || [];
+
+  const handleSaveProperties = async (ids) => {
+    setSavingProps(true);
+    try {
+      const res = await contractsService.updateProperties(id, ids);
+      toast.success(res?.data?.message || 'Inmuebles actualizados',
+        { duration:7000, style:{ maxWidth:'560px' } });
+      if (res?.data?.warning)
+        toast(res.data.warning, { icon:'⚠️', duration:11000, style:{ maxWidth:'560px' } });
+      queryClient.invalidateQueries({ queryKey:['contract', id] });
+      queryClient.invalidateQueries({ queryKey:['contracts'] });
+      queryClient.invalidateQueries({ queryKey:['properties'] });
+      setShowProps(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'No se pudieron actualizar los inmuebles');
+    } finally {
+      setSavingProps(false);
+    }
+  };
 
   // Pre-llenar formulario cuando llegan los datos
   useEffect(() => {
@@ -233,9 +258,10 @@ const ContractEditPage = () => {
         <AlertTriangle size={16} className="text-amber-400 flex-shrink-0 mt-0.5"/>
         <p className="text-sm" style={{ color:'var(--color-text-secondary)' }}>
           <strong style={{ color:'#f59e0b' }}>Atención:</strong> Editar un contrato ya creado
-          queda registrado en auditoría. No modifiques el inmueble ni el cliente — esos campos
-          no son editables para preservar la integridad. Si necesitas cambiarlos, cancela el
-          contrato y crea uno nuevo.
+          queda registrado en auditoría. El cliente y el número de contrato no son editables
+          para preservar la integridad; si necesitas cambiarlos, cancela el contrato y crea uno
+          nuevo. Los inmuebles sí puedes corregirlos desde <strong>Gestionar</strong>: los que
+          quites vuelven a quedar disponibles y los que agregues pasan a prometidos.
         </p>
       </div>
 
@@ -246,25 +272,11 @@ const ContractEditPage = () => {
           style={{ color:'var(--color-text-muted)' }}>
           Datos fijos (no editables)
         </p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
           <div>
             <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>Cliente</p>
             <p className="font-medium" style={{ color:'var(--color-text-primary)' }}>
               {contract?.client_name}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>Inmueble</p>
-            <p className="font-medium" style={{ color:'var(--color-text-primary)' }}>
-              {contract?.project_name}
-              {contract?.block_name && (
-                <span className="mx-1" style={{ color:'var(--color-text-muted)' }}>·</span>
-              )}
-              {contract?.block_name && (
-                <span style={{ color:'#c084fc' }}>{contract.block_name}</span>
-              )}
-              <span className="mx-1" style={{ color:'var(--color-text-muted)' }}>·</span>
-              Unidad {contract?.property_unit}
             </p>
           </div>
           <div>
@@ -279,6 +291,65 @@ const ContractEditPage = () => {
               {contract?.status}
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Inmuebles del contrato — se listan TODOS y se pueden quitar o agregar.
+          Antes solo se veía uno y no había forma de corregir una mala elección. */}
+      <div className="card p-4">
+        <div className="flex items-center justify-between mb-3 pb-3"
+          style={{ borderBottom:'1px solid var(--color-border)' }}>
+          <div className="flex items-center gap-2">
+            <Building2 size={15} style={{ color:'var(--color-text-accent)' }}/>
+            <h3 className="font-semibold text-sm" style={{ color:'var(--color-text-primary)' }}>
+              Inmuebles del contrato
+            </h3>
+            <span className="text-xs px-1.5 py-0.5 rounded"
+              style={{ background:'var(--color-bg-tertiary)', color:'var(--color-text-muted)' }}>
+              {properties.length}
+            </span>
+          </div>
+          {canEdit && contract?.status !== 'cancelado' && (
+            <button onClick={() => setShowProps(true)}
+              className="btn btn-secondary flex items-center gap-1.5 text-sm">
+              <Settings2 size={14}/> Gestionar
+            </button>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          {properties.map((p, i) => (
+            <div key={p.id || i} className="flex items-center gap-3 p-2.5 rounded"
+              style={{ background:'var(--color-bg-tertiary)' }}>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate"
+                  style={{ color:'var(--color-text-primary)' }}>
+                  {p.project_name}
+                  {p.block_name && (
+                    <>
+                      <span className="mx-1" style={{ color:'var(--color-text-muted)' }}>·</span>
+                      <span style={{ color:'#c084fc' }}>{p.block_name}</span>
+                    </>
+                  )}
+                  {p.project_name && (
+                    <span className="mx-1" style={{ color:'var(--color-text-muted)' }}>·</span>
+                  )}
+                  Unidad {p.unit_number}
+                  {i === 0 && properties.length > 1 && (
+                    <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wide"
+                      style={{ background:'rgba(200,168,75,0.15)', color:'#C8A84B' }}>
+                      Principal
+                    </span>
+                  )}
+                </p>
+                {p.base_price != null && (
+                  <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
+                    Precio de lista {formatCurrency(p.base_price)}
+                  </p>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -454,6 +525,16 @@ const ContractEditPage = () => {
           <Save size={15}/> {saving ? 'Guardando...' : 'Guardar Cambios'}
         </button>
       </div>
+
+      {showProps && (
+        <ContractPropertiesModal
+          contract={contract}
+          currentProperties={properties}
+          saving={savingProps}
+          onClose={() => setShowProps(false)}
+          onSave={handleSaveProperties}
+        />
+      )}
     </div>
   );
 };
