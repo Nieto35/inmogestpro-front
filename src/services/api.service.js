@@ -231,6 +231,7 @@ export const contractsService = {
   markOverdue:        ()       => api.post('/contracts/mark-overdue'),
   regenerateSchedule:  (id)     => api.post(`/contracts/${id}/regenerate-schedule`),
   updateSchedule:      (id,d)   => api.patch(`/contracts/${id}/payment-schedule`, d),
+  updateProperties:    (id,ids) => api.put(`/contracts/${id}/properties`, { property_ids: ids }),
   uploadNotaryDoc:     (id,fd)  => api.post(`/contracts/${id}/notary-upload`, fd, { headers:{'Content-Type':'multipart/form-data'} }),
   uploadDocument:     (id,fd)  => api.post(`/contracts/${id}/upload`,      fd, { headers:{'Content-Type':'multipart/form-data'} }),
 };
