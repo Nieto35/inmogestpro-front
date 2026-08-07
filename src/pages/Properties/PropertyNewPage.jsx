@@ -27,6 +27,12 @@ const PropertyNewPage = () => {
   const [saving, setSaving]     = useState(false);
   const [quantity, setQuantity] = useState('1');
 
+  // Un inmueble puede pertenecer a un proyecto (caso constructora) o ser
+  // independiente (caso inmobiliaria que administra el inmueble de un
+  // propietario particular). Por defecto se asume proyecto para no cambiar
+  // el flujo que ya usan las constructoras.
+  const [hasProject, setHasProject] = useState(true);
+
   const [form, setForm] = useState({
     project_id:        '',
     block_id:          '',
@@ -80,7 +86,7 @@ const PropertyNewPage = () => {
   const isBulk          = qty > 1;
 
   const handleSubmit = async () => {
-    if (!form.project_id || !form.block_id)
+    if (hasProject && (!form.project_id || !form.block_id))
       return toast.error('Proyecto y manzana son requeridos');
     if (!form.base_price)
       return toast.error('El precio es requerido');
@@ -88,6 +94,8 @@ const PropertyNewPage = () => {
       return toast.error('El número de unidad es requerido');
     if (isBulk && !form.base_unit_name)
       return toast.error('El nombre base de la unidad es requerido (ej: Apto, Casa, Local)');
+    if (isBulk && !hasProject)
+      return toast.error('La creación en lote requiere un proyecto y una manzana');
     if (overLimit)
       return toast.error(`Solo quedan ${available} cupos en esta manzana`);
 
@@ -97,6 +105,7 @@ const PropertyNewPage = () => {
         const res = await propertiesService.createBulk({
           project_id:        form.project_id,
           block_id:          form.block_id,
+          purpose:           form.purpose,
           quantity:          qty,
           base_unit_name:    form.base_unit_name,
           unit_start_number: parseInt(form.unit_start_number) || 1,
@@ -119,8 +128,9 @@ const PropertyNewPage = () => {
         toast.success(`✅ ${created} inmueble${created !== 1 ? 's' : ''} creado${created !== 1 ? 's' : ''} correctamente`);
       } else {
         await propertiesService.create({
-          project_id:      form.project_id,
-          block_id:        form.block_id,
+          project_id:      hasProject ? form.project_id : null,
+          block_id:        hasProject ? form.block_id   : null,
+          purpose:         form.purpose,
           unit_number:     form.unit_number,
           property_type:   form.property_type,
           m2_construction: form.m2_construction ? parseFloat(form.m2_construction) : null,
@@ -179,7 +189,33 @@ const PropertyNewPage = () => {
           Identificación
         </h3>
 
+        {/* ── ¿Pertenece a un proyecto? ── */}
+        <div className="p-3 rounded-lg" style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)' }}>
+          <div className="flex items-center gap-4 flex-wrap">
+            <span className="text-sm font-medium" style={{ color:'var(--color-text-secondary)' }}>
+              ¿El inmueble pertenece a un proyecto?
+            </span>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="radio" name="hasProject" checked={hasProject}
+                onChange={() => setHasProject(true)}/>
+              Sí, es de un proyecto
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="radio" name="hasProject" checked={!hasProject}
+                onChange={() => { setHasProject(false); set('project_id',''); set('block_id',''); }}/>
+              No, es independiente
+            </label>
+          </div>
+          {!hasProject && (
+            <p className="text-xs mt-2" style={{ color:'var(--color-text-muted)' }}>
+              Para inmuebles de propietarios particulares que no hacen parte de un
+              proyecto ni de una manzana. La creación en lote no aplica en este caso.
+            </p>
+          )}
+        </div>
+
         {/* ── Cascada: Proyecto → Manzana ── */}
+        {hasProject && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field label="Proyecto" required>
             <select value={form.project_id} onChange={e => handleProjectChange(e.target.value)}
@@ -221,9 +257,10 @@ const PropertyNewPage = () => {
             </select>
           </Field>
         </div>
+        )}
 
         {/* Capacidad de la manzana */}
-        {selectedBlock && maxUnits > 0 && (
+        {hasProject && selectedBlock && maxUnits > 0 && (
           <div className="px-4 py-3 rounded-xl text-sm"
             style={{
               background: overLimit ? 'rgba(239,68,68,0.07)' : available === 0 ? 'rgba(16,185,129,0.07)' : 'rgba(13,27,62,0.04)',

@@ -193,7 +193,7 @@ const EditPropertyModal = ({ property, onClose, onSaved }) => {
               Editar Inmueble
             </h2>
             <p className="text-xs mt-0.5" style={{ color:'rgba(200,168,75,0.7)' }}>
-              {property.project_name} · {property.unit_number}
+              {property.project_name ? `${property.project_name} · ` : ''}{property.unit_number}
             </p>
           </div>
           <button onClick={onClose} className="btn btn-ghost btn-sm"
@@ -370,7 +370,7 @@ const ReservationModal = ({ property, onClose, onSaved }) => {
               Registrar Reserva
             </h2>
             <p className="text-xs mt-0.5" style={{ color:'rgba(200,168,75,0.7)' }}>
-              {property.project_name} · Unidad {property.unit_number}
+              {property.project_name ? `${property.project_name} · ` : ''}Unidad {property.unit_number}
             </p>
           </div>
           <button onClick={onClose} className="btn btn-ghost btn-sm" style={{ color:'rgba(245,243,238,0.7)' }}>
@@ -921,10 +921,13 @@ const PropertiesPage = () => {
   });
   const filterProjects = projData?.data?.data || [];
 
+  // "Sin proyecto" no es un proyecto real: no tiene manzanas que consultar
+  const isRealProject = !!projectFilter && projectFilter !== '__sin_proyecto__';
+
   const { data: blocksData } = useQuery({
     queryKey: ['blocks', projectFilter],
     queryFn:  () => blocksService.getByProject(projectFilter),
-    enabled:  !!projectFilter,
+    enabled:  isRealProject,
   });
   const filterBlocks = (blocksData?.data?.data || []).sort((a, b) =>
     a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
@@ -942,7 +945,11 @@ const PropertiesPage = () => {
       search,
       status:     statusFilter     || undefined,
       block_id:   blockFilter      || undefined,
-      project_id: projectFilter    || undefined,
+      // El valor especial __sin_proyecto__ se traduce al filtro no_project
+      // del backend, que trae los inmuebles con project_id NULL.
+      project_id: projectFilter && projectFilter !== '__sin_proyecto__'
+                    ? projectFilter : undefined,
+      no_project: projectFilter === '__sin_proyecto__' ? 'true' : undefined,
     }),
   });
 
@@ -1115,6 +1122,8 @@ const PropertiesPage = () => {
           <select value={projectFilter} onChange={e => handleProjectFilterChange(e.target.value)}
             className="input text-sm" style={{ height:'36px', minWidth:'200px', flex:'1' }}>
             <option value="">Todos los proyectos</option>
+            {/* Inmuebles de propietarios particulares, sin proyecto asociado */}
+            <option value="__sin_proyecto__">— Sin proyecto —</option>
             {filterProjects.map(p => (
               <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
             ))}
@@ -1123,11 +1132,13 @@ const PropertiesPage = () => {
           <select
             value={blockFilter}
             onChange={e => setBlockFilter(e.target.value)}
-            disabled={!projectFilter}
+            disabled={!isRealProject}
             className="input text-sm"
-            style={{ height:'36px', minWidth:'200px', flex:'1', opacity: projectFilter ? 1 : 0.5 }}>
+            style={{ height:'36px', minWidth:'200px', flex:'1', opacity: isRealProject ? 1 : 0.5 }}>
             <option value="">
-              {projectFilter ? 'Todas las manzanas' : 'Selecciona un proyecto primero'}
+              {projectFilter === '__sin_proyecto__'
+                ? 'No aplica'
+                : isRealProject ? 'Todas las manzanas' : 'Selecciona un proyecto primero'}
             </option>
             {filterBlocks.map(b => (
               <option key={b.id} value={b.id}>
