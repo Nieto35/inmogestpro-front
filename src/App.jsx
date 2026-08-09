@@ -17,6 +17,7 @@ const ContractDetailPage     = lazy(() => import('./pages/Contracts/ContractDeta
 const ContractEditPage       = lazy(() => import('./pages/Contracts/ContractEditPage'));
 const ContractNewPage        = lazy(() => import('./pages/Contracts/ContractNewPage'));
 const ClientsPage            = lazy(() => import('./pages/Clients/ClientsPage'));
+const OwnersPage             = lazy(() => import('./pages/Owners/OwnersPage'));
 const ClientDetailPage       = lazy(() => import('./pages/Clients/ClientDetailPage'));
 const ClientNewPage          = lazy(() => import('./pages/Clients/ClientNewPage'));
 const ClientInteractionsPage = lazy(() => import('./pages/Clients/ClientInteractionsPage'));
@@ -45,7 +46,7 @@ const TenantLayout = () => {
   useEffect(() => {
     const reserved = new Set(['super-admin','login','dashboard','contracts','clients',
       'projects','properties','payments','advisors','commissions','reports',
-      'audit','users','profile','interactions','settings']);
+      'audit','users','profile','interactions','settings','owners','blocks']);
     if (!tenant || reserved.has(tenant)) return;
     saveTenantSlug(tenant);
     configService.get().then(res => {
@@ -105,6 +106,9 @@ const App = () => (
             <Route path="clients"     element={<S><ClientsPage/></S>}/>
             <Route path="clients/new" element={<ProtectedRoute roles={['admin','gerente','contador','asesor','abogado']}><S><ClientNewPage/></S></ProtectedRoute>}/>
             <Route path="clients/:id" element={<S><ClientDetailPage/></S>}/>
+
+            {/* Propietarios — solo en la pestaña de Arriendos */}
+            <Route path="owners" element={<ProtectedRoute roles={['admin','gerente','contador','asesor','readonly']}><S><OwnersPage/></S></ProtectedRoute>}/>
 
             {/* CRM */}
             <Route path="interactions" element={<ProtectedRoute roles={['admin','gerente','contador','asesor','abogado']}><S><ClientInteractionsPage/></S></ProtectedRoute>}/>

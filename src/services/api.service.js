@@ -200,6 +200,16 @@ export const blocksService = {
   delete:        (id)    => api.delete(`/blocks/${id}`),
 };
 
+export const ownersService = {
+  getAll:  (p)     => api.get('/owners',            { params:p }),
+  search:  (term)  => api.get('/owners/search',     { params:{ q:term } }),
+  getById: (id)    => api.get(`/owners/${id}`),
+  create:  (d)     => api.post('/owners', d),
+  update:  (id,d)  => api.put(`/owners/${id}`, d),
+  // Rechaza con 409 si el propietario tiene inmuebles vigentes.
+  delete:  (id)    => api.delete(`/owners/${id}`),
+};
+
 export const propertiesService = {
   getAll:       (p)          => api.get('/properties',            { params:p }),
   getById:      (id)         => api.get(`/properties/${id}`),

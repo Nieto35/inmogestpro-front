@@ -956,9 +956,24 @@ const PropertiesPage = () => {
   const allProps = (data?.data?.data || []).sort((a, b) =>
     String(a.unit_number).localeCompare(String(b.unit_number), undefined, { numeric: true, sensitivity: 'base' })
   );
-  const props = purposeFilter
-    ? allProps.filter(p => (p.features?.purpose || 'venta') === purposeFilter)
-    : allProps;
+  // La pestaña del menú (Ventas / Arriendos) separa las listas: los inmuebles
+  // en venta no se ven desde Arriendos y viceversa, para no confundir. Los
+  // marcados `venta_arriendo` aparecen en las dos porque sirven para ambas.
+  //
+  // Se lee la columna `purpose` y solo se cae a features si viene vacía: la
+  // columna es la fuente de verdad desde Fase 0.
+  const scope       = searchParams.get('scope') === 'arriendos' ? 'arriendos' : 'ventas';
+  const purposeOf   = (p) => p.purpose || p.features?.purpose || 'venta';
+  const inScope     = (p) => {
+    const purp = purposeOf(p);
+    if (purp === 'venta_arriendo') return true;
+    return scope === 'arriendos' ? purp === 'arriendo' : purp === 'venta';
+  };
+
+  const scoped = allProps.filter(inScope);
+  const props  = purposeFilter
+    ? scoped.filter(p => purposeOf(p) === purposeFilter)
+    : scoped;
 
   const handleStatusChange = async (property, newStatus) => {
     // Reservado requiere modal con datos adicionales
