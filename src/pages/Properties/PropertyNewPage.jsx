@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Save, AlertTriangle } from 'lucide-react';
-import { propertiesService, projectsService, blocksService } from '../../services/api.service';
+import { propertiesService, projectsService, blocksService, ownersService } from '../../services/api.service';
 import toast from 'react-hot-toast';
 
 const Field = ({ label, required, hint, children }) => (
@@ -50,6 +50,7 @@ const PropertyNewPage = () => {
     storage_room:      false,
     base_price:        '',
     rental_price:      '',
+    owner_id:          '',
     status:            'disponible',
     notes:             '',
   });
@@ -70,6 +71,15 @@ const PropertyNewPage = () => {
   });
   const blocks = blocksData?.data?.data || [];
 
+  // ── Propietarios ────────────────────────────────────────────
+  // Solo se consultan cuando el propósito incluye arriendo.
+  const { data: ownersData } = useQuery({
+    queryKey: ['owners','activos'],
+    queryFn:  () => ownersService.getAll({ active:'true', limit: 200 }),
+    enabled:  form.purpose !== 'venta',
+  });
+  const owners = ownersData?.data?.data || [];
+
   // Limpiar block_id al cambiar de proyecto
   const handleProjectChange = (pid) => {
     set('project_id', pid);
@@ -85,11 +95,22 @@ const PropertyNewPage = () => {
   const overLimit       = available !== null && qty > available;
   const isBulk          = qty > 1;
 
+  // Un inmueble que solo se arrienda no necesita declarar precio de venta;
+  // lo que necesita es el canon. Y sin propietario no hay a quién girarle.
+  const isRentalOnly = form.purpose === 'arriendo';
+  const needsOwner   = form.purpose !== 'venta';
+
   const handleSubmit = async () => {
     if (hasProject && (!form.project_id || !form.block_id))
       return toast.error('Proyecto y manzana son requeridos');
-    if (!form.base_price)
-      return toast.error('El precio es requerido');
+    if (isRentalOnly) {
+      if (!form.rental_price)
+        return toast.error('El canon de arriendo es requerido');
+    } else if (!form.base_price) {
+      return toast.error('El precio de venta es requerido');
+    }
+    if (needsOwner && !form.owner_id)
+      return toast.error('Un inmueble de arriendo debe tener propietario');
     if (!isBulk && !form.unit_number)
       return toast.error('El número de unidad es requerido');
     if (isBulk && !form.base_unit_name)
@@ -117,7 +138,9 @@ const PropertyNewPage = () => {
           bathrooms:         form.bathrooms       ? parseInt(form.bathrooms)          : null,
           parking_spots:     form.parking_spots   ? parseInt(form.parking_spots)      : 0,
           storage_room:      form.storage_room,
-          base_price:        parseFloat(form.base_price),
+          base_price:        form.base_price   ? parseFloat(form.base_price)   : null,
+          rental_price:      form.rental_price ? parseFloat(form.rental_price) : null,
+          owner_id:          form.owner_id || null,
           status:            form.status,
           features: {
             purpose:      form.purpose,
@@ -140,7 +163,9 @@ const PropertyNewPage = () => {
           bathrooms:       form.bathrooms       ? parseInt(form.bathrooms)          : null,
           parking_spots:   form.parking_spots   ? parseInt(form.parking_spots)      : 0,
           storage_room:    form.storage_room,
-          base_price:      parseFloat(form.base_price),
+          base_price:      form.base_price   ? parseFloat(form.base_price)   : null,
+          rental_price:    form.rental_price ? parseFloat(form.rental_price) : null,
+          owner_id:        form.owner_id || null,
           status:          form.status,
           features: {
             purpose:      form.purpose,
@@ -435,16 +460,37 @@ const PropertyNewPage = () => {
           style={{ color: 'var(--color-text-primary)', borderBottom: '1px solid var(--color-border)' }}>
           Precios
         </h3>
-        <Field label={form.purpose === 'arriendo' ? 'Valor comercial' : 'Precio de venta'} required>
+        {/* El precio de venta deja de ser obligatorio cuando el inmueble solo
+            se arrienda: ahí el dato que importa es el canon. */}
+        <Field
+          label={isRentalOnly ? 'Valor comercial' : 'Precio de venta'}
+          required={!isRentalOnly}
+          hint={isRentalOnly ? 'Opcional. Sirve de referencia si algún día se vende.' : undefined}
+        >
           <input type="number" value={form.base_price}
             onChange={e => set('base_price', e.target.value)}
             className="input text-sm" min="0" step="1000" placeholder="0" />
         </Field>
         {form.purpose !== 'venta' && (
-          <Field label="Canon de arriendo mensual">
+          <Field label="Canon de arriendo mensual" required={isRentalOnly}>
             <input type="number" value={form.rental_price}
               onChange={e => set('rental_price', e.target.value)}
               className="input text-sm" min="0" step="100" placeholder="0" />
+          </Field>
+        )}
+        {/* Sin propietario no hay a quién girarle el canon recaudado. */}
+        {needsOwner && (
+          <Field label="Propietario" required
+            hint="Es a quien se le gira el canon. Si no está en la lista, créalo en el módulo Propietarios.">
+            <select value={form.owner_id || ''} onChange={e => set('owner_id', e.target.value)}
+              className="input text-sm">
+              <option value="">Selecciona un propietario…</option>
+              {owners.map(o => (
+                <option key={o.id} value={o.id}>
+                  {o.full_name} — {o.document_type} {o.document_number}
+                </option>
+              ))}
+            </select>
           </Field>
         )}
         {!isBulk && (

@@ -3,32 +3,78 @@ import { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useParams } from 'react-router-dom';
 import useThemeStore from '../../store/themeStore';
 import {
-  LayoutDashboard, FileText, Users, Building2, Home,
+  LayoutDashboard, FileText, Users, Home,
   CreditCard, UserCheck, BarChart3, Shield, Settings,
   LogOut, Menu, X, ChevronDown, Building,
   ClipboardList, AlertTriangle, Phone, DollarSign,
-  Sun, Moon, Globe, Layers,
+  Sun, Moon, Globe, Layers, KeyRound, UserSquare2,
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import NotificationBell from '../UI/NotificationBell';
 import { getSavedTenantSlug } from '../../utils/tenant';
+// Logo real de la marca. El lockup completo se usa con el sidebar abierto;
+// colapsado solo cabe la marca. Ambos son SVG: nítidos a cualquier tamaño.
+import logoFull from '../../assets/logo-inmogest.svg';
+import logoMark from '../../assets/logo-mark.svg';
 
-const NAV_ITEMS = [
-  { path: 'dashboard',         label: 'Dashboard',      icon: LayoutDashboard, roles: ['admin','gerente','contador','asesor','abogado','readonly'] },
-  { path: 'contracts',         label: 'Contratos',      icon: FileText,        roles: ['admin','gerente','contador','asesor','abogado','readonly'] },
-  { path: 'clients',           label: 'Clientes',       icon: Users,           roles: ['admin','gerente','contador','asesor','abogado','readonly'] },
-  { path: 'projects',          label: 'Proyectos',      icon: Building,        roles: ['admin','gerente','contador','readonly'] },
-  { path: 'blocks',            label: 'Manzanas',       icon: Layers,          roles: ['admin','gerente','contador','readonly'] },
-  { path: 'properties',        label: 'Inmuebles',      icon: Home,            roles: ['admin','gerente','contador','asesor','abogado','readonly'] },
-  { path: 'payments',          label: 'Pagos',          icon: CreditCard,      roles: ['admin','gerente','contador'] },
-  { path: 'interactions',      label: 'Interacciones',  icon: Phone,           roles: ['admin','gerente','contador','asesor','abogado'] },
-  { path: 'advisors',          label: 'Asesores',       icon: UserCheck,       roles: ['admin','gerente','contador','readonly'] },
-  { path: 'commissions',       label: 'Comisiones',     icon: DollarSign,      roles: ['admin','gerente','contador','asesor'] },
-  { path: 'reports',           label: 'Reportes',       icon: BarChart3,       roles: ['admin','gerente','contador','readonly'] },
-  { path: 'audit',             label: 'Auditoría',      icon: Shield,          roles: ['gerente','abogado'] },
-  { path: 'users',             label: 'Usuarios',       icon: Settings,        roles: ['gerente'] },
-
+// Módulos comunes a las dos pestañas. `scope` los diferencia en la URL para
+// que Inmuebles muestre listas separadas: los de venta no se ven en Arriendos
+// y viceversa, tal como se definió.
+const SHARED_ITEMS = [
+  { path: 'dashboard',    label: 'Dashboard',     icon: LayoutDashboard, roles: ['admin','gerente','contador','asesor','abogado','readonly'] },
+  { path: 'contracts',    label: 'Contratos',     icon: FileText,        roles: ['admin','gerente','contador','asesor','abogado','readonly'] },
+  { path: 'clients',      label: 'Clientes',      icon: Users,           roles: ['admin','gerente','contador','asesor','abogado','readonly'] },
+  { path: 'properties',   label: 'Inmuebles',     icon: Home,            roles: ['admin','gerente','contador','asesor','abogado','readonly'] },
+  { path: 'payments',     label: 'Pagos',         icon: CreditCard,      roles: ['admin','gerente','contador'] },
+  { path: 'interactions', label: 'Interacciones', icon: Phone,           roles: ['admin','gerente','contador','asesor','abogado'] },
+  { path: 'advisors',     label: 'Asesores',      icon: UserCheck,       roles: ['admin','gerente','contador','readonly'] },
+  { path: 'commissions',  label: 'Comisiones',    icon: DollarSign,      roles: ['admin','gerente','contador','asesor'] },
+  { path: 'reports',      label: 'Reportes',      icon: BarChart3,       roles: ['admin','gerente','contador','readonly'] },
 ];
+
+// Módulos administrativos: no pertenecen a ninguna de las dos operaciones.
+const ADMIN_ITEMS = [
+  { path: 'audit', label: 'Auditoría', icon: Shield,   roles: ['gerente','abogado'] },
+  { path: 'users', label: 'Usuarios',  icon: Settings, roles: ['gerente'] },
+];
+
+// Proyectos y Manzanas solo existen en Ventas: agrupar por proyecto es cosa
+// de constructoras. Propietarios solo existe en Arriendos: es quien recibe
+// el canon, y en una venta no hay a quién girarle nada.
+const SCOPES = {
+  ventas: {
+    label: 'Ventas',
+    icon:  Building,
+    extra: [
+      { path: 'projects', label: 'Proyectos', icon: Building, roles: ['admin','gerente','contador','readonly'], after: 'clients' },
+      { path: 'blocks',   label: 'Manzanas',  icon: Layers,   roles: ['admin','gerente','contador','readonly'], after: 'projects' },
+    ],
+  },
+  arriendos: {
+    label: 'Arriendos',
+    icon:  KeyRound,
+    extra: [
+      { path: 'owners', label: 'Propietarios', icon: UserSquare2, roles: ['admin','gerente','contador','asesor','readonly'], after: 'clients' },
+    ],
+  },
+};
+
+// Construye el menú de una pestaña insertando sus módulos propios en el
+// orden acordado.
+//
+// La inserción es recursiva a propósito: un módulo propio puede colgar de
+// otro módulo propio. Manzanas va después de Proyectos, y Proyectos no es
+// compartido, así que recorrer solo SHARED_ITEMS dejaba a Manzanas fuera.
+const buildNav = (scope) => {
+  const { extra } = SCOPES[scope];
+  const out = [];
+  const pushWithChildren = (item) => {
+    out.push(item);
+    for (const ex of extra) if (ex.after === item.path) pushWithChildren(ex);
+  };
+  for (const item of SHARED_ITEMS) pushWithChildren(item);
+  return [...out, ...ADMIN_ITEMS];
+};
 
 const roleLabels = {
   admin: 'Administrador', gerente: 'Gerente', contador: 'Contador',
@@ -55,7 +101,26 @@ const Layout = () => {
   const slug = tenant || getSavedTenantSlug() || '';
   const prefix = slug ? `/${slug}` : '';
 
-  const filteredNav = NAV_ITEMS.filter(item => item.roles.includes(user?.role));
+  // Pestaña activa: Ventas o Arriendos. Se recuerda entre sesiones para que
+  // quien solo administra arriendos no tenga que cambiarla cada vez.
+  const [scope, setScope] = useState(
+    () => localStorage.getItem('inmogest_scope') === 'arriendos' ? 'arriendos' : 'ventas'
+  );
+  const changeScope = (next) => {
+    setScope(next);
+    localStorage.setItem('inmogest_scope', next);
+    navigate(`${prefix}/dashboard`);
+  };
+
+  const filteredNav = buildNav(scope).filter(item => item.roles.includes(user?.role));
+
+  // Inmuebles muestra listas separadas por pestaña; el resto de módulos
+  // comparte la misma información en ambas.
+  const SCOPED_PATHS = ['properties'];
+  const linkTo = (path) =>
+    SCOPED_PATHS.includes(path)
+      ? `${prefix}/${path}?scope=${scope}`
+      : `${prefix}/${path}`;
 
   const handleLogout = async () => {
     await logout();
@@ -75,46 +140,55 @@ const Layout = () => {
     >
       {/* Logo — azul noche con acento dorado */}
       <div
-        className="flex items-center gap-3 p-4"
+        className="flex items-center justify-center px-4"
         style={{
           background: 'var(--color-navy)',
           borderBottom: '3px solid var(--color-gold)',
+          height: '68px',
         }}
       >
-        <div
-          className="flex-shrink-0 w-9 h-9 flex items-center justify-center"
+        <img
+          src={(sidebarOpen || mobile) ? logoFull : logoMark}
+          alt="InmoGest Pro"
           style={{
-            border: '1.5px solid var(--color-gold)',
-            position: 'relative',
+            display: 'block',
+            width: (sidebarOpen || mobile) ? '100%' : '28px',
+            maxWidth: (sidebarOpen || mobile) ? '208px' : '28px',
           }}
-        >
-          <Building2 size={18} color="var(--color-gold)" />
-        </div>
-        {(sidebarOpen || mobile) && (
-          <div className="overflow-hidden">
-            <div
-              className="font-bold text-base leading-tight"
-              style={{
-                fontFamily: 'var(--font-display)',
-                color: '#F5F3EE',
-                letterSpacing: '0.02em',
-              }}
-            >
-              Inmo<span style={{ color: 'var(--color-gold)' }}>Gest</span>
-            </div>
-            <div
-              className="text-xs"
-              style={{
-                color: 'rgba(200,168,75,0.6)',
-                letterSpacing: '0.15em',
-                textTransform: 'uppercase',
-                fontSize: '0.6rem',
-                fontWeight: 600,
-              }}
-            >
-              Pro · v1.0
-            </div>
+        />
+      </div>
+
+      {/* Selector Ventas / Arriendos */}
+      <div className="px-2 pt-3">
+        {(sidebarOpen || mobile) ? (
+          <div
+            className="grid grid-cols-2 gap-1 p-1 rounded"
+            style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)' }}
+          >
+            {Object.entries(SCOPES).map(([key, cfg]) => (
+              <button
+                key={key}
+                onClick={() => changeScope(key)}
+                className="flex items-center justify-center gap-1.5 py-1.5 rounded text-xs font-semibold transition-all"
+                style={{
+                  background: scope === key ? 'var(--color-navy)' : 'transparent',
+                  color:      scope === key ? 'var(--color-gold)' : 'var(--color-text-muted)',
+                }}
+              >
+                <cfg.icon size={13} />
+                {cfg.label}
+              </button>
+            ))}
           </div>
+        ) : (
+          <button
+            onClick={() => changeScope(scope === 'ventas' ? 'arriendos' : 'ventas')}
+            title={`Pestaña: ${SCOPES[scope].label} — clic para cambiar`}
+            className="w-full flex justify-center py-2 rounded"
+            style={{ background: 'var(--color-navy)', color: 'var(--color-gold)' }}
+          >
+            {(() => { const I = SCOPES[scope].icon; return <I size={16} />; })()}
+          </button>
         )}
       </div>
 
@@ -123,7 +197,7 @@ const Layout = () => {
         {filteredNav.map((item) => (
           <NavLink
             key={item.path}
-            to={`${prefix}/${item.path}`}
+            to={linkTo(item.path)}
             onClick={() => mobile && setMobileOpen(false)}
             className={({ isActive }) => `
               flex items-center gap-3 px-3 py-2.5 rounded mb-0.5
