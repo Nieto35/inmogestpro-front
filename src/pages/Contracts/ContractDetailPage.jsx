@@ -1398,7 +1398,12 @@ const ContractDetailPage = () => {
           <button onClick={() => refetch()} className="btn btn-secondary btn-sm">
             <RefreshCw size={14} className={isFetching?'animate-spin':''}/>
           </button>
-          {hasRole('admin','gerente','contador') && contract.status !== 'cancelado' && (
+          {/* Editar no se ofrece en arriendos: ese formulario regenera el plan
+              con la lógica de venta y le borraría el periodo a cada cuota, con
+              lo que las liquidaciones dejarían de encontrar los pagos. El
+              backend también lo rechaza. El canon se ajusta desde Alertas. */}
+          {hasRole('admin','gerente','contador') && contract.status !== 'cancelado'
+            && contract.contract_type !== 'arriendo' && (
             <button onClick={() => navigate(to(`contracts/${id}/edit`))}
               className="btn btn-secondary btn-sm">
               <Edit size={14}/> Editar
@@ -1649,7 +1654,10 @@ const ContractDetailPage = () => {
             />
           </div>
 
-          {/* Hitos de entrega */}
+          {/* Hitos de entrega — solo en ventas.
+              Entregar terreno y servicios básicos no aplica a un arriendo:
+              el inmueble ya existe y está habitado. */}
+          {contract?.contract_type !== 'arriendo' && (
           <div className="pt-3" style={{ borderTop:'1px solid var(--color-border)' }}>
             <p className="text-xs font-semibold uppercase tracking-wide mb-3"
               style={{ color:'var(--color-gold)', letterSpacing:'0.08em' }}>
@@ -1664,6 +1672,7 @@ const ContractDetailPage = () => {
               milestones={contract.milestones || {}}
             />
           </div>
+          )}
         </SectionCard>
       </div>
 

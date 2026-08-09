@@ -144,6 +144,10 @@ const DashboardPage = () => {
 
   const d     = kpisData?.data?.data || {};
   const kpis  = d.kpis || {};
+  // Los KPI de arriba son SOLO de ventas: los reportes de venta excluyen los
+  // arriendos a propósito para no distorsionar cartera ni recaudo. El
+  // consolidado suma las dos operaciones.
+  const cons  = d.consolidado || null;
   const hasData = (kpis.total_contracts || 0) > 0 || (kpis.total_clients || 0) > 0;
 
   const monthlySales     = d.monthly_sales     || [];
@@ -223,6 +227,61 @@ const DashboardPage = () => {
           subtitle="Con contratos asignados"
           icon={UserCheck} color="navy" loading={isLoading}/>
       </div>
+
+      {/* Ingreso real: ventas + comisión de arriendos.
+          Los KPI de arriba son solo de ventas. Este bloque responde cuánto
+          gana la inmobiliaria en total, y separa la plata que está de paso.
+          Solo aparece cuando hay arriendos. */}
+      {cons && (cons.arriendos_total > 0 || cons.de_terceros_total > 0) && (
+        <div className="card p-4"
+          style={{ background:'rgba(200,168,75,0.05)', border:'1px solid rgba(200,168,75,0.25)' }}>
+          <h3 className="font-semibold text-sm mb-1"
+            style={{ color:'var(--color-navy)', fontFamily:'var(--font-display)' }}>
+            Ingreso real de la inmobiliaria
+          </h3>
+          <p className="text-xs mb-4" style={{ color:'var(--color-text-muted)' }}>
+            Ventas y arriendos sumados. De arriendos entra solo la comisión — el canon es del propietario.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>Ventas</p>
+              <p className="text-lg font-semibold" style={{ color:'var(--color-text-primary)' }}>
+                {formatCurrency(cons.ventas_total)}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
+                Este mes {formatCurrency(cons.ventas_mes)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>Arriendos (comisión)</p>
+              <p className="text-lg font-semibold" style={{ color:'#22c55e' }}>
+                {formatCurrency(cons.arriendos_total)}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
+                Este mes {formatCurrency(cons.arriendos_mes)}
+              </p>
+            </div>
+            <div className="md:pl-4" style={{ borderLeft:'1px solid rgba(200,168,75,0.3)' }}>
+              <p className="text-xs font-semibold" style={{ color:'#C8A84B' }}>TOTAL</p>
+              <p className="text-2xl font-bold" style={{ color:'var(--color-text-accent)' }}>
+                {formatCurrency(cons.total)}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
+                Este mes {formatCurrency(cons.mes)}
+              </p>
+            </div>
+          </div>
+
+          {cons.de_terceros_total > 0 && (
+            <p className="text-sm mt-4 pt-3" style={{
+              color:'var(--color-text-secondary)', borderTop:'1px solid rgba(200,168,75,0.25)' }}>
+              Además pasaron por tu cuenta <strong>{formatCurrency(cons.de_terceros_total)}</strong> de
+              propietarios. Ese dinero <strong>no es ingreso</strong>: hay que girarlo.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Gráficas — solo si hay datos */}
       {hasData && (
