@@ -40,12 +40,15 @@ const Field = ({ label, required, hint, children }) => (
 );
 
 // ── Modal: generar liquidación ────────────────────────────────
-const GenerateModal = ({ onClose, onSaved }) => {
+// `prefill` llega cuando se entra desde la lista de cobrado sin liquidar: ya
+// se sabe qué contrato y qué mes hay que liquidar, así que no tiene sentido
+// hacer que el usuario los vuelva a buscar.
+const GenerateModal = ({ onClose, onSaved, prefill }) => {
   const now = new Date();
   const [form, setForm] = useState({
-    rental_contract_id: '',
-    period_year:  String(now.getFullYear()),
-    period_month: String(now.getMonth() + 1),
+    rental_contract_id: prefill?.rental_contract_id || '',
+    period_year:  String(prefill?.period_year  || now.getFullYear()),
+    period_month: String(prefill?.period_month || now.getMonth() + 1),
     withholding_tax: '',
   });
   const [deducciones, setDeducciones] = useState([]);
@@ -285,8 +288,12 @@ const SettlementsPage = () => {
     queryKey: ['settlements','pending'],
     queryFn:  () => settlementsService.getPending(),
   });
-  const totalPorGirar = pendingData?.data?.data?.total_por_girar || 0;
-  const pendientes    = pendingData?.data?.data?.pendientes || [];
+  const p                = pendingData?.data?.data || {};
+  const totalPorGirar    = p.total_por_girar    || 0;
+  const pendientes       = p.pendientes         || [];
+  const sinLiquidar      = p.sin_liquidar       || [];
+  const totalSinLiquidar = p.total_sin_liquidar || 0;
+  const totalDeuda       = p.total_deuda        || 0;
 
   const { data, isLoading } = useQuery({
     queryKey: ['settlements', statusFilter],
@@ -339,19 +346,103 @@ const SettlementsPage = () => {
         )}
       </div>
 
-      {/* Alerta: plata ajena sin girar */}
-      {totalPorGirar > 0 && (
-        <div className="card p-4 flex items-start gap-3"
-          style={{ background:'rgba(245,158,11,0.07)', border:'1px solid rgba(245,158,11,0.25)' }}>
-          <AlertTriangle size={18} className="text-amber-400 flex-shrink-0 mt-0.5"/>
-          <div className="flex-1">
-            <p className="font-semibold text-sm" style={{ color:'#f59e0b' }}>
-              {fmt(totalPorGirar)} pendientes de girar a propietarios
+      {/* Lo que se le debe a los propietarios HOY.
+          La deuda nace al cobrar el canon, no cuando alguien genera la
+          liquidación. Por eso se suman las dos cosas: lo ya liquidado sin
+          girar y lo cobrado que nadie ha liquidado todavía. */}
+      {totalDeuda > 0 && (
+        <div className="card p-4"
+          style={{ background:'rgba(245,158,11,0.07)', border:'1px solid rgba(245,158,11,0.3)' }}>
+          <div className="flex items-start gap-3">
+            <AlertTriangle size={18} className="text-amber-400 flex-shrink-0 mt-0.5"/>
+            <div className="flex-1">
+              <p className="font-semibold" style={{ color:'#f59e0b' }}>
+                Le debes {fmt(totalDeuda)} a propietarios
+              </p>
+              <p className="text-sm mt-0.5" style={{ color:'var(--color-text-secondary)' }}>
+                Este dinero está en tu cuenta pero <strong>no es tuyo</strong>.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 pt-3"
+            style={{ borderTop:'1px solid rgba(245,158,11,0.25)' }}>
+            <div>
+              <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>Cobrado sin liquidar</p>
+              <p className="text-lg font-semibold" style={{ color:'var(--color-text-primary)' }}>
+                {fmt(totalSinLiquidar)}
+              </p>
+              <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>
+                {sinLiquidar.length} periodo(s) — hay que generar la liquidación
+              </p>
+            </div>
+            <div>
+              <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>Liquidado sin girar</p>
+              <p className="text-lg font-semibold" style={{ color:'var(--color-text-primary)' }}>
+                {fmt(totalPorGirar)}
+              </p>
+              <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>
+                {pendientes.length} liquidación(es) — falta enviar el dinero
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Canon cobrado que todavía no tiene liquidación */}
+      {sinLiquidar.length > 0 && (
+        <div className="card p-0 overflow-hidden">
+          <div className="px-4 py-3" style={{ borderBottom:'1px solid var(--color-border)' }}>
+            <h3 className="font-semibold text-sm" style={{ color:'var(--color-text-primary)' }}>
+              Cobrado sin liquidar
+            </h3>
+            <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
+              Ya recibiste este canon. Genera la liquidación para poder girarle al propietario.
             </p>
-            <p className="text-sm mt-0.5" style={{ color:'var(--color-text-secondary)' }}>
-              {pendientes.length} liquidación{pendientes.length === 1 ? '' : 'es'} sin pagar.
-              Este dinero está en tu cuenta pero <strong>no es tuyo</strong>.
-            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ background:'var(--color-bg-tertiary)' }}>
+                  {['Propietario','Periodo','Inmueble','Cobrado','Tu comisión','Le debes',''].map((h,i) => (
+                    <th key={i} className="text-left px-4 py-2.5 text-xs font-semibold uppercase tracking-wide"
+                      style={{ color:'var(--color-text-muted)' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sinLiquidar.map((r,i) => (
+                  <tr key={i} style={{ borderTop:'1px solid var(--color-border)' }}>
+                    <td className="px-4 py-3">
+                      <div className="font-medium" style={{ color:'var(--color-text-primary)' }}>{r.owner_name}</div>
+                      <div className="text-xs" style={{ color:'var(--color-text-muted)' }}>{r.contract_number}</div>
+                    </td>
+                    <td className="px-4 py-3" style={{ color:'var(--color-text-secondary)' }}>
+                      {MESES[r.period_month]} {r.period_year}
+                    </td>
+                    <td className="px-4 py-3" style={{ color:'var(--color-text-secondary)' }}>{r.unit_number}</td>
+                    <td className="px-4 py-3" style={{ color:'var(--color-text-secondary)' }}>{fmt(r.cobrado)}</td>
+                    <td className="px-4 py-3" style={{ color:'#22c55e' }}>{fmt(r.comision)}</td>
+                    <td className="px-4 py-3 font-semibold" style={{ color:'var(--color-text-accent)' }}>
+                      {fmt(r.para_propietario)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {canManage && (
+                        <button
+                          onClick={() => setShowGenerate({
+                            rental_contract_id: r.rental_contract_id,
+                            period_year:  r.period_year,
+                            period_month: r.period_month,
+                          })}
+                          className="btn btn-primary btn-sm">
+                          Liquidar
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -449,7 +540,13 @@ const SettlementsPage = () => {
         </div>
       )}
 
-      {showGenerate && <GenerateModal onClose={() => setShowGenerate(false)} onSaved={refresh}/>}
+      {showGenerate && (
+        <GenerateModal
+          prefill={typeof showGenerate === 'object' ? showGenerate : null}
+          onClose={() => setShowGenerate(false)}
+          onSaved={refresh}
+        />
+      )}
       {payTarget   && <PayModal settlement={payTarget} onClose={() => setPayTarget(null)} onSaved={refresh}/>}
     </div>
   );

@@ -7,11 +7,12 @@
 // ocupado sin contrato vigente. Esta pantalla es lo que hay que revisar
 // cada semana.
 import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Bell, TrendingUp, CalendarClock, AlertTriangle, X, Check, Loader2,
+  Bell, TrendingUp, CalendarClock, AlertTriangle, X, Check, Loader2, Wallet,
 } from 'lucide-react';
-import { rentalsService } from '../../services/api.service';
+import { rentalsService, settlementsService } from '../../services/api.service';
 import { formatDate, todayISO } from '../../utils/dates';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/authStore';
@@ -176,6 +177,9 @@ const IncrementModal = ({ contrato, onClose, onSaved }) => {
 
 const RentalAlertsPage = () => {
   const queryClient = useQueryClient();
+  const navigate    = useNavigate();
+  const { tenant }  = useParams();
+  const to = (x) => `/${tenant}/${x}`;
   const { hasRole } = useAuthStore();
   const canApply = hasRole('admin','gerente','contador');
   const [target, setTarget] = useState(null);
@@ -185,6 +189,14 @@ const RentalAlertsPage = () => {
     queryFn:  () => rentalsService.getAlerts(),
   });
   const d = data?.data?.data;
+
+  // Plata de propietarios. Va en Alertas y no solo en Liquidaciones porque es
+  // deuda: no puede depender de que alguien entre a buscarla.
+  const { data: pendData } = useQuery({
+    queryKey: ['settlements','pending'],
+    queryFn:  () => settlementsService.getPending(),
+  });
+  const deuda = pendData?.data?.data || {};
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey:['rentals'] });
@@ -231,6 +243,31 @@ const RentalAlertsPage = () => {
             : 'Todo al día'}
         </p>
       </div>
+
+      {/* Lo primero: plata que no es tuya y sigue en tu cuenta. */}
+      {deuda.total_deuda > 0 && (
+        <div className="card p-4 flex items-start gap-3"
+          style={{ background:'rgba(245,158,11,0.07)', border:'1px solid rgba(245,158,11,0.3)' }}>
+          <Wallet size={18} className="text-amber-400 flex-shrink-0 mt-0.5"/>
+          <div className="flex-1">
+            <p className="font-semibold" style={{ color:'#f59e0b' }}>
+              Le debes {fmt(deuda.total_deuda)} a propietarios
+            </p>
+            <p className="text-sm mt-0.5" style={{ color:'var(--color-text-secondary)' }}>
+              {deuda.total_sin_liquidar > 0 && (
+                <>{fmt(deuda.total_sin_liquidar)} de canon cobrado sin liquidar</>
+              )}
+              {deuda.total_sin_liquidar > 0 && deuda.total_por_girar > 0 && ' · '}
+              {deuda.total_por_girar > 0 && (
+                <>{fmt(deuda.total_por_girar)} liquidado sin girar</>
+              )}
+            </p>
+          </div>
+          <button onClick={() => navigate(to('settlements'))} className="btn btn-primary btn-sm">
+            Ir a Liquidaciones
+          </button>
+        </div>
+      )}
 
       <Bloque icon={TrendingUp} titulo="Canon por ajustar" color="#C8A84B"
         subtitulo="Aniversarios que ya llegaron o llegan en 30 días"
