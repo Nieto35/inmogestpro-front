@@ -12,7 +12,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Bell, TrendingUp, CalendarClock, AlertTriangle, X, Check, Loader2, Wallet,
 } from 'lucide-react';
-import { rentalsService, settlementsService } from '../../services/api.service';
+import { rentalsService, settlementsService, ownersService } from '../../services/api.service';
 import { formatDate, todayISO } from '../../utils/dates';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/authStore';
@@ -175,6 +175,131 @@ const IncrementModal = ({ contrato, onClose, onSaved }) => {
   );
 };
 
+// ── Modal: asignar propietario a un arriendo huérfano ─────────
+// Completa lo que le falta a un contrato creado antes del módulo. No toca el
+// contrato base ni sus pagos: solo agrega propietario, canon y comisión.
+const AdoptModal = ({ contrato, onClose, onSaved }) => {
+  const [form, setForm] = useState({
+    owner_id:'', canon_amount: String(Math.round(contrato.installment_amount || 0)),
+    fee_type:'porcentaje', fee_value:'10',
+    increment_frequency:'anual', increment_type:'ipc',
+  });
+  const [saving, setSaving] = useState(false);
+  const set = (k,v) => setForm(f => ({ ...f, [k]:v }));
+
+  const { data } = useQuery({
+    queryKey: ['owners','activos'],
+    queryFn:  () => ownersService.getAll({ active:'true', limit: 300 }),
+  });
+  const owners = data?.data?.data || [];
+
+  const canon = parseFloat(form.canon_amount) || 0;
+  const valor = parseFloat(form.fee_value)    || 0;
+  const comision = canon > 0
+    ? Math.min(Math.round(form.fee_type === 'fijo' ? valor : (canon*valor)/100), Math.round(canon))
+    : 0;
+
+  const submit = async () => {
+    if (!form.owner_id)  return toast.error('Selecciona el propietario');
+    if (!(canon > 0))    return toast.error('Indica el canon mensual');
+    setSaving(true);
+    try {
+      const res = await rentalsService.adopt(contrato.contract_id, {
+        ...form, canon_amount: canon, fee_value: valor,
+      });
+      toast.success(res?.data?.message || 'Contrato vinculado', { duration:8000, style:{ maxWidth:'560px' } });
+      if (res?.data?.warning)
+        toast(res.data.warning, { icon:'⚠️', duration:12000, style:{ maxWidth:'560px' } });
+      onSaved();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'No se pudo vincular', { duration:9000, style:{ maxWidth:'560px' } });
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background:'rgba(0,0,0,0.6)' }} onClick={onClose}>
+      <div className="card w-full max-w-lg max-h-[90vh] flex flex-col"
+        style={{ background:'var(--color-bg-secondary)' }} onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between pb-3 mb-4"
+          style={{ borderBottom:'1px solid var(--color-border)' }}>
+          <div>
+            <h3 className="font-semibold" style={{ color:'var(--color-text-primary)' }}>
+              Asignar propietario
+            </h3>
+            <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
+              {contrato.contract_number} · {contrato.unit_number} · {contrato.client_name}
+            </p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded hover:opacity-70"
+            style={{ color:'var(--color-text-muted)' }}><X size={18}/></button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto space-y-4">
+          <Field label="Propietario" hint="A quién le pertenece el canon de este inmueble">
+            <select value={form.owner_id} onChange={e => set('owner_id', e.target.value)}
+              className="input text-sm w-full">
+              <option value="">Selecciona…</option>
+              {owners.map(o => (
+                <option key={o.id} value={o.id}>{o.full_name} — {o.document_number}</option>
+              ))}
+            </select>
+          </Field>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Field label="Canon mensual">
+              <input type="number" value={form.canon_amount}
+                onChange={e => set('canon_amount', e.target.value)}
+                className="input text-sm w-full" min="0" step="1000"/>
+            </Field>
+            <Field label="Tipo comisión">
+              <select value={form.fee_type} onChange={e => set('fee_type', e.target.value)}
+                className="input text-sm w-full">
+                <option value="porcentaje">Porcentaje</option>
+                <option value="fijo">Monto fijo</option>
+              </select>
+            </Field>
+            <Field label={form.fee_type === 'fijo' ? 'Valor' : 'Porcentaje (%)'}>
+              <input type="number" value={form.fee_value}
+                onChange={e => set('fee_value', e.target.value)}
+                className="input text-sm w-full" min="0" step={form.fee_type==='fijo'?'1000':'0.1'}/>
+            </Field>
+          </div>
+
+          {canon > 0 && (
+            <div className="p-3 rounded grid grid-cols-3 gap-3"
+              style={{ background:'rgba(200,168,75,0.07)', border:'1px solid rgba(200,168,75,0.25)' }}>
+              {[['Canon', canon, 'var(--color-text-primary)'],
+                ['Tu comisión', comision, '#22c55e'],
+                ['Al propietario', canon - comision, 'var(--color-text-accent)']].map(([l,v,c]) => (
+                <div key={l}>
+                  <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>{l}</p>
+                  <p className="font-semibold" style={{ color:c }}>{fmt(v)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="p-3 rounded text-sm"
+            style={{ background:'rgba(59,130,246,0.07)', border:'1px solid rgba(59,130,246,0.2)',
+                     color:'var(--color-text-secondary)' }}>
+            Los <strong>{fmt(contrato.cobrado)}</strong> ya cobrados no se marcarán como dinero de
+            terceros: se recibieron bajo otras reglas y reescribirlos falsearía el histórico.
+            Solo los cobros de aquí en adelante separarán la comisión.
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-4 mt-4" style={{ borderTop:'1px solid var(--color-border)' }}>
+          <button onClick={onClose} className="btn btn-secondary" disabled={saving}>Cancelar</button>
+          <button onClick={submit} className="btn btn-primary" disabled={saving}>
+            {saving ? 'Vinculando…' : 'Vincular al módulo'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const RentalAlertsPage = () => {
   const queryClient = useQueryClient();
   const navigate    = useNavigate();
@@ -182,7 +307,8 @@ const RentalAlertsPage = () => {
   const to = (x) => `/${tenant}/${x}`;
   const { hasRole } = useAuthStore();
   const canApply = hasRole('admin','gerente','contador');
-  const [target, setTarget] = useState(null);
+  const [target, setTarget]   = useState(null);
+  const [adoptar, setAdoptar] = useState(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['rentals','alerts'],
@@ -202,6 +328,7 @@ const RentalAlertsPage = () => {
     queryClient.invalidateQueries({ queryKey:['rentals'] });
     queryClient.invalidateQueries({ queryKey:['contracts'] });
     setTarget(null);
+    setAdoptar(null);
   };
 
   const Bloque = ({ icon:Icon, titulo, subtitulo, color, rows, children }) => (
@@ -268,6 +395,33 @@ const RentalAlertsPage = () => {
           </button>
         </div>
       )}
+
+      {/* Arriendos sin propietario — lo más grave que puede quedar sin ver.
+          Son contratos creados antes del módulo: hay dinero cobrado que le
+          pertenece a alguien y el sistema no sabe a quién. */}
+      <Bloque icon={AlertTriangle} titulo="Arriendos sin propietario" color="#ef4444"
+        subtitulo="Creados antes del módulo. No se pueden liquidar ni girar hasta asignarles dueño."
+        rows={d?.sin_propietario || []}>
+        <div className="divide-y" style={{ borderColor:'var(--color-border)' }}>
+          {(d?.sin_propietario || []).map(r => (
+            <div key={r.contract_id} className="px-4 py-3 flex items-center gap-3 flex-wrap">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium" style={{ color:'var(--color-text-primary)' }}>
+                  {r.unit_number} · {r.client_name}
+                </p>
+                <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>
+                  {r.contract_number} · cobrado <strong>{fmt(r.cobrado)}</strong> sin saber a quién girarle
+                </p>
+              </div>
+              {canApply && (
+                <button onClick={() => setAdoptar(r)} className="btn btn-primary btn-sm">
+                  Asignar propietario
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </Bloque>
 
       <Bloque icon={TrendingUp} titulo="Canon por ajustar" color="#C8A84B"
         subtitulo="Aniversarios que ya llegaron o llegan en 30 días"
@@ -346,6 +500,9 @@ const RentalAlertsPage = () => {
 
       {target && (
         <IncrementModal contrato={target} onClose={() => setTarget(null)} onSaved={refresh}/>
+      )}
+      {adoptar && (
+        <AdoptModal contrato={adoptar} onClose={() => setAdoptar(null)} onSaved={refresh}/>
       )}
     </div>
   );

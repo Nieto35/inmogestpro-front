@@ -474,6 +474,12 @@ const SettlementsPage = () => {
         </div>
       ) : (
         <div className="card p-0 overflow-hidden">
+          {/* En pantallas angostas la tabla se corta y las acciones quedan
+              fuera de vista. Sin este aviso el usuario no sabe que existen. */}
+          <p className="md:hidden px-4 py-2 text-xs"
+            style={{ color:'var(--color-text-muted)', background:'var(--color-bg-tertiary)' }}>
+            Desliza la tabla hacia la derecha para ver las acciones →
+          </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
