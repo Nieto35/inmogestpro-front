@@ -410,4 +410,8 @@ export const superAdminService = {
   suspendTenant:        (s)   => saApi.post(`/tenants/${s}/suspend`),
   activateTenant:       (s)   => saApi.post(`/tenants/${s}/activate`),
   getPlans:             ()    => saApi.get('/plans'),
+  // Bitacora del super-admin: acciones que ocurren por encima de las
+  // empresas y que por eso no caben en la auditoria de ninguna.
+  getAudit:             (p)   => saApi.get('/audit', { params:p }),
+  verifyAudit:          ()    => saApi.get('/audit/verify'),
 };

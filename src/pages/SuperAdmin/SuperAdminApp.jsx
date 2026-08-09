@@ -373,10 +373,144 @@ const TenantCard = ({ tenant, onRefresh }) => {
   );
 };
 
+// ── Bitácora del super-admin ──────────────────────────────
+//
+// Las acciones de este panel ocurren POR ENCIMA de todas las empresas, así
+// que no caben en la auditoría de ninguna. Aquí es donde se ven.
+//
+// La más sensible es el restablecimiento de contraseña: quien la ejecuta
+// puede entrar como ese usuario, y la auditoría de la empresa diría que fue
+// el usuario mismo. Sin este registro no habría cómo demostrar lo contrario.
+const SAAuditoria = () => {
+  const [filtro, setFiltro] = useState('');
+  const [page, setPage]     = useState(1);
+
+  const { data, isFetching } = useQuery({
+    queryKey: ['sa-audit', filtro, page],
+    queryFn:  () => superAdminService.getAudit({ action: filtro || undefined, page, limit: 50 }),
+  });
+  const { data: verifyData } = useQuery({
+    queryKey: ['sa-audit-verify'],
+    queryFn:  () => superAdminService.verifyAudit(),
+  });
+
+  const rows = data?.data?.data || [];
+  const pag  = data?.data?.pagination || { total:0, pages:1, page:1 };
+  const integridad = verifyData?.data?.data;
+
+  const ACCIONES = {
+    LOGIN:               { label:'Acceso al panel',        color:'#94a3b8' },
+    LOGIN_FAILED:        { label:'Acceso fallido',         color:'#C0392B' },
+    TENANT_CREATE:       { label:'Empresa creada',         color:'#22c55e' },
+    TENANT_UPDATE:       { label:'Empresa actualizada',    color:'#3b82f6' },
+    TENANT_SUSPEND:      { label:'Empresa suspendida',     color:'#f59e0b' },
+    TENANT_ACTIVATE:     { label:'Empresa reactivada',     color:'#22c55e' },
+    RESET_USER_PASSWORD: { label:'Contraseña restablecida',color:'#C0392B' },
+  };
+
+  const card = { background:'#1A2F5E', border:'1px solid rgba(200,168,75,0.2)', borderRadius:8 };
+
+  return (
+    <div>
+      {/* Estado de la cadena de integridad */}
+      {integridad && (
+        <div style={{ ...card, padding:'14px 20px', marginBottom:20,
+          borderLeft:`4px solid ${integridad.integridad_ok ? '#22c55e' : '#C0392B'}` }}>
+          <p style={{ color: integridad.integridad_ok ? '#22c55e' : '#C0392B', fontWeight:700, fontSize:14 }}>
+            {integridad.integridad_ok ? '🔒 Cadena íntegra' : '⚠️ Cadena alterada'}
+          </p>
+          <p style={{ color:'rgba(245,243,238,0.6)', fontSize:13, marginTop:2 }}>
+            {integridad.integridad_ok
+              ? `${integridad.total_revisados} registro(s) verificados. Cada uno firma al anterior: borrar o modificar uno rompería la cadena.`
+              : `${integridad.registros_alterados.length} registro(s) no coinciden con su firma. Alguien modificó la bitácora.`}
+          </p>
+        </div>
+      )}
+
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, flexWrap:'wrap', gap:12 }}>
+        <h2 style={{ fontSize:18, fontWeight:700, fontFamily:'Georgia,serif', color:'#F5F3EE' }}>
+          🛡️ Bitácora de Super-Admin
+        </h2>
+        <select value={filtro} onChange={e => { setFiltro(e.target.value); setPage(1); }}
+          style={{ background:'#0D1B3E', border:'1px solid rgba(200,168,75,0.3)', color:'#F5F3EE',
+                   borderRadius:4, padding:'7px 12px', fontSize:13 }}>
+          <option value="">Todas las acciones</option>
+          {Object.entries(ACCIONES).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+        </select>
+      </div>
+
+      {isFetching && rows.length === 0 ? (
+        <div style={{ ...card, padding:40, textAlign:'center', color:'rgba(245,243,238,0.5)' }}>
+          Cargando…
+        </div>
+      ) : rows.length === 0 ? (
+        <div style={{ ...card, padding:40, textAlign:'center' }}>
+          <p style={{ color:'rgba(245,243,238,0.6)', fontSize:14 }}>
+            Todavía no hay movimientos registrados.
+          </p>
+          <p style={{ color:'rgba(200,168,75,0.5)', fontSize:13, marginTop:6 }}>
+            A partir de ahora, cada acción de este panel queda aquí.
+          </p>
+        </div>
+      ) : (
+        <div style={{ ...card, overflow:'hidden' }}>
+          {rows.map((r, i) => {
+            const cfg = ACCIONES[r.action] || { label:r.action, color:'#94a3b8' };
+            return (
+              <div key={r.id} style={{ padding:'14px 20px',
+                borderTop: i === 0 ? 'none' : '1px solid rgba(200,168,75,0.12)' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', marginBottom:4 }}>
+                  <span style={{ background:`${cfg.color}22`, color:cfg.color, fontSize:11,
+                    fontWeight:700, padding:'3px 8px', borderRadius:4, textTransform:'uppercase',
+                    letterSpacing:'0.04em' }}>
+                    {cfg.label}
+                  </span>
+                  {r.tenant_name && (
+                    <span style={{ color:'#C8A84B', fontSize:13 }}>{r.tenant_name}</span>
+                  )}
+                  <span style={{ color:'rgba(245,243,238,0.4)', fontSize:12, marginLeft:'auto' }}>
+                    {new Date(r.occurred_at).toLocaleString('es-CO')}
+                  </span>
+                </div>
+                <p style={{ color:'#F5F3EE', fontSize:14 }}>{r.description}</p>
+                <p style={{ color:'rgba(245,243,238,0.4)', fontSize:12, marginTop:3 }}>
+                  {r.username}{r.ip_address ? ` · IP ${r.ip_address}` : ''}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {pag.pages > 1 && (
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:16 }}>
+          <span style={{ color:'rgba(245,243,238,0.5)', fontSize:13 }}>
+            Página {pag.page} de {pag.pages} · {pag.total} registro(s)
+          </span>
+          <div style={{ display:'flex', gap:8 }}>
+            <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={pag.page <= 1}
+              style={{ background:'#1A2F5E', border:'1px solid rgba(200,168,75,0.3)', color:'#F5F3EE',
+                       borderRadius:4, padding:'6px 14px', cursor:'pointer', opacity: pag.page<=1?0.4:1 }}>
+              Anterior
+            </button>
+            <button onClick={() => setPage(p => Math.min(pag.pages, p+1))} disabled={pag.page >= pag.pages}
+              style={{ background:'#1A2F5E', border:'1px solid rgba(200,168,75,0.3)', color:'#F5F3EE',
+                       borderRadius:4, padding:'6px 14px', cursor:'pointer', opacity: pag.page>=pag.pages?0.4:1 }}>
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── Panel principal ───────────────────────────────────────
 const SADashboard = ({ user, onLogout }) => {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
+  // Pestañas del panel: empresas (lo de siempre) y la bitácora.
+  const [tab, setTab] = useState('empresas');
 
   const { data, refetch, isFetching } = useQuery({
     queryKey: ['sa-dashboard'],
@@ -433,6 +567,28 @@ const SADashboard = ({ user, onLogout }) => {
       </div>
 
       <div style={{ padding:32 }}>
+
+        {/* Pestañas */}
+        <div style={{ display:'flex', gap:4, marginBottom:24,
+          borderBottom:'1px solid rgba(200,168,75,0.2)' }}>
+          {[['empresas','🏢 Empresas'],['auditoria','🛡️ Bitácora']].map(([id,label]) => (
+            <button key={id} onClick={() => setTab(id)}
+              style={{
+                background:'transparent', border:'none', cursor:'pointer',
+                padding:'10px 18px', fontSize:14,
+                fontWeight: tab === id ? 700 : 400,
+                color:      tab === id ? '#C8A84B' : 'rgba(245,243,238,0.5)',
+                borderBottom: `2px solid ${tab === id ? '#C8A84B' : 'transparent'}`,
+                marginBottom:-1,
+              }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'auditoria' && <SAAuditoria/>}
+
+        {tab === 'empresas' && <>
         {/* KPIs globales */}
         {dashboard && (
           <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:32 }}>
@@ -474,6 +630,7 @@ const SADashboard = ({ user, onLogout }) => {
             ))}
           </div>
         )}
+        </>}
       </div>
     </div>
   );
