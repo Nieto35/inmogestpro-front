@@ -255,8 +255,12 @@ const ContractsPage = () => {
             </button>
           )}
           {canCreate && (
-            <button onClick={() => navigate(to('contracts/new'))} className="btn btn-primary btn-sm">
-              <Plus size={14}/> Nuevo Contrato
+            // La pestaña ya dice qué tipo de contrato se está creando: en
+            // Arriendos preguntarlo otra vez sobraría.
+            <button
+              onClick={() => navigate(to(scope === 'arriendos' ? 'rentals/new' : 'contracts/new'))}
+              className="btn btn-primary btn-sm">
+              <Plus size={14}/> {scope === 'arriendos' ? 'Nuevo Arriendo' : 'Nuevo Contrato'}
             </button>
           )}
         </div>

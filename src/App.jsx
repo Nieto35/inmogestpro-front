@@ -19,6 +19,7 @@ const ContractNewPage        = lazy(() => import('./pages/Contracts/ContractNewP
 const ClientsPage            = lazy(() => import('./pages/Clients/ClientsPage'));
 const OwnersPage             = lazy(() => import('./pages/Owners/OwnersPage'));
 const SettlementsPage        = lazy(() => import('./pages/Settlements/SettlementsPage'));
+const RentalNewPage          = lazy(() => import('./pages/Rentals/RentalNewPage'));
 const ClientDetailPage       = lazy(() => import('./pages/Clients/ClientDetailPage'));
 const ClientNewPage          = lazy(() => import('./pages/Clients/ClientNewPage'));
 const ClientInteractionsPage = lazy(() => import('./pages/Clients/ClientInteractionsPage'));
@@ -114,6 +115,9 @@ const App = () => (
 
             {/* Liquidaciones al propietario — solo en Arriendos */}
             <Route path="settlements" element={<ProtectedRoute roles={['admin','gerente','contador','readonly']}><S><SettlementsPage/></S></ProtectedRoute>}/>
+
+            {/* Crear contrato de arriendo */}
+            <Route path="rentals/new" element={<ProtectedRoute roles={['admin','gerente','contador','asesor']}><S><RentalNewPage/></S></ProtectedRoute>}/>
 
             {/* CRM */}
             <Route path="interactions" element={<ProtectedRoute roles={['admin','gerente','contador','asesor','abogado']}><S><ClientInteractionsPage/></S></ProtectedRoute>}/>
