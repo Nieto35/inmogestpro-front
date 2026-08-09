@@ -8,7 +8,7 @@ import {
 import {
   TrendingUp, Home, AlertTriangle, DollarSign, Users,
   Building, FileText, RefreshCw, ChevronDown, ChevronUp,
-  Calendar
+  Calendar, KeyRound, Wallet
 } from 'lucide-react';
 import { reportsService } from '../../services/api.service';
 import { format } from 'date-fns';
@@ -68,6 +68,10 @@ const TABS = [
   { id:'cartera',          label:'Estado Cartera',      icon:FileText     },
   { id:'liquidacion-dia',  label:'Liquidación Diaria',  icon:DollarSign   },
   { id:'liquidacion',      label:'Liquidación Mensual', icon:DollarSign   },
+  // Los reportes de ventas excluyen los arriendos a propósito, porque
+  // mezclarlos distorsionaría la cartera y el recaudo. Pero esa plata existe
+  // y tiene que verse: esta es su sección.
+  { id:'arriendos',        label:'Arriendos',           icon:KeyRound     },
 ];
 
 // ── Tooltip personalizado ─────────────────────────────────────
@@ -1072,6 +1076,150 @@ const TabLiquidacionDiaria = () => {
   );
 };
 
+// ── Tab: Arriendos ────────────────────────────────────────────
+//
+// La distinción que sostiene el módulo: de lo que entra por canon, solo la
+// comisión es ingreso de la inmobiliaria. El resto es plata del propietario
+// que está de paso — deuda, no utilidad.
+const TabArriendos = () => {
+  const hoy = new Date();
+  const [month, setMonth] = useState(hoy.getMonth() + 1);
+  const [year,  setYear]  = useState(hoy.getFullYear());
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['reports','arriendos', month, year],
+    queryFn:  () => reportsService.getArriendos({ month, year }),
+  });
+  const d = data?.data?.data;
+
+  if (isLoading) return (
+    <div className="card p-8 text-center" style={{ color:'var(--color-text-muted)' }}>Cargando…</div>
+  );
+  if (!d) return (
+    <div className="card p-8 text-center">
+      <KeyRound size={32} className="mx-auto mb-3" style={{ color:'var(--color-text-muted)', opacity:.4 }}/>
+      <p className="text-sm" style={{ color:'var(--color-text-secondary)' }}>
+        Todavía no hay información de arriendos.
+      </p>
+    </div>
+  );
+
+  const Card = ({ label, value, color, hint }) => (
+    <div className="card p-4">
+      <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>{label}</p>
+      <p className="text-xl font-semibold mt-1" style={{ color: color || 'var(--color-text-primary)' }}>
+        {fm(value)}
+      </p>
+      {hint && <p className="text-xs mt-1" style={{ color:'var(--color-text-muted)' }}>{hint}</p>}
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="card p-3 flex items-center gap-3 flex-wrap">
+        <Calendar size={15} style={{ color:'var(--color-text-muted)' }}/>
+        <select value={month} onChange={e => setMonth(parseInt(e.target.value))} className="input text-sm">
+          {['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
+            'Septiembre','Octubre','Noviembre','Diciembre'].map((m,i) =>
+            <option key={i+1} value={i+1}>{m}</option>)}
+        </select>
+        <input type="number" value={year} onChange={e => setYear(parseInt(e.target.value))}
+          className="input text-sm" style={{ width:110 }} min="2000" max="2100"/>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card label="Canon cobrado en el mes" value={d.mes.canon_cobrado}
+          hint={`${d.mes.num_pagos} pago${d.mes.num_pagos === 1 ? '' : 's'} registrado${d.mes.num_pagos === 1 ? '' : 's'}`}/>
+        <Card label="Ingreso de la inmobiliaria" value={d.mes.comision} color="#22c55e"
+          hint="Tu comisión — esto sí es utilidad"/>
+        <Card label="Del propietario" value={d.mes.de_terceros} color="var(--color-text-accent)"
+          hint="Entró a tu cuenta pero no es tuyo"/>
+      </div>
+
+      {/* Plata de terceros sin girar */}
+      {parseFloat(d.liquidaciones?.por_girar || 0) > 0 && (
+        <div className="card p-4 flex items-start gap-3"
+          style={{ background:'rgba(245,158,11,0.07)', border:'1px solid rgba(245,158,11,0.25)' }}>
+          <Wallet size={18} className="text-amber-400 flex-shrink-0 mt-0.5"/>
+          <div>
+            <p className="font-semibold text-sm" style={{ color:'#f59e0b' }}>
+              {fm(d.liquidaciones.por_girar)} sin girar a propietarios
+            </p>
+            <p className="text-sm mt-0.5" style={{ color:'var(--color-text-secondary)' }}>
+              {d.liquidaciones.pendientes} liquidación(es) pendiente(s). Ya se giraron{' '}
+              {fm(d.liquidaciones.girado)} en total.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          ['Contratos vigentes',  d.contratos?.vigentes   ?? 0],
+          ['Por vencer (60 días)',d.contratos?.por_vencer ?? 0],
+          ['Terminados',          d.contratos?.terminados ?? 0],
+        ].map(([l,v]) => (
+          <div key={l} className="card p-4">
+            <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>{l}</p>
+            <p className="text-xl font-semibold mt-1" style={{ color:'var(--color-text-primary)' }}>{v}</p>
+          </div>
+        ))}
+        <div className="card p-4">
+          <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>Canon mensual vigente</p>
+          <p className="text-xl font-semibold mt-1" style={{ color:'var(--color-text-accent)' }}>
+            {fm(d.contratos?.canon_mensual_vigente)}
+          </p>
+        </div>
+      </div>
+
+      {d.detalle?.length > 0 && (
+        <div className="card p-0 overflow-hidden">
+          <div className="px-4 py-3" style={{ borderBottom:'1px solid var(--color-border)' }}>
+            <h3 className="font-semibold text-sm" style={{ color:'var(--color-text-primary)' }}>
+              Detalle por contrato
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ background:'var(--color-bg-tertiary)' }}>
+                  {['Contrato','Arrendatario','Propietario','Unidad','Canon',
+                    'Cobrado en el mes','Tu comisión','Estado'].map((h,i) => (
+                    <th key={i} className="text-left px-4 py-2.5 text-xs font-semibold uppercase tracking-wide"
+                      style={{ color:'var(--color-text-muted)' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {d.detalle.map((r,i) => (
+                  <tr key={i} style={{ borderTop:'1px solid var(--color-border)' }}>
+                    <td className="px-4 py-3 font-mono text-xs" style={{ color:'var(--color-text-accent)' }}>
+                      {r.contract_number}
+                    </td>
+                    <td className="px-4 py-3" style={{ color:'var(--color-text-primary)' }}>{r.client_name}</td>
+                    <td className="px-4 py-3" style={{ color:'var(--color-text-secondary)' }}>{r.owner_name}</td>
+                    <td className="px-4 py-3" style={{ color:'var(--color-text-secondary)' }}>{r.unit_number}</td>
+                    <td className="px-4 py-3" style={{ color:'var(--color-text-secondary)' }}>{fm(r.canon_amount)}</td>
+                    <td className="px-4 py-3" style={{ color:'var(--color-text-primary)' }}>{fm(r.cobrado_mes)}</td>
+                    <td className="px-4 py-3" style={{ color:'#22c55e' }}>{fm(r.comision_mes)}</td>
+                    <td className="px-4 py-3 text-xs" style={{ color:'var(--color-text-muted)' }}>{r.rental_status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <div className="card p-3 text-sm" style={{ color:'var(--color-text-muted)' }}>
+        Acumulado histórico: se ha cobrado <strong>{fm(d.acumulado.canon_cobrado)}</strong> en
+        canon, de los cuales <strong style={{ color:'#22c55e' }}>{fm(d.acumulado.comision)}</strong>{' '}
+        son ingreso de la inmobiliaria.
+      </div>
+    </div>
+  );
+};
+
 // ── Página principal ──────────────────────────────────────────
 const ReportsPage = () => {
   const [activeTab, setActiveTab] = useState('resumen');
@@ -1119,6 +1267,7 @@ const ReportsPage = () => {
       {activeTab === 'cartera'         && <TabCartera/>}
       {activeTab === 'liquidacion-dia' && <TabLiquidacionDiaria/>}
       {activeTab === 'liquidacion'     && <TabLiquidacion/>}
+      {activeTab === 'arriendos'       && <TabArriendos/>}
 
     </div>
   );

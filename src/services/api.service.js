@@ -293,6 +293,9 @@ export const reportsService = {
   getLiquidacion:     (p) => api.get('/reports/liquidacion-mensual', { params:p }),
   getLiquidacionDiaria:(p) => api.get('/reports/liquidacion-diaria',  { params:p }),
   getCartera:         ()  => api.get('/reports/cartera'),
+  // Ingresos de arriendo. Los reportes de ventas excluyen los arriendos a
+  // proposito; esta es su seccion aparte.
+  getArriendos:       (p) => api.get('/reports/arriendos',           { params:p }),
 };
 
 export const auditService = {

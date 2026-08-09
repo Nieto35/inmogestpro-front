@@ -1070,6 +1070,12 @@ const ContractDetailPage = () => {
 
   const d                = data?.data?.data;
   const contract         = d?.contract;
+
+  // Volver a la pestaña correcta. Se deduce del propio contrato y no de un
+  // parámetro en la URL, para que también funcione al entrar por enlace
+  // directo o desde el historial del navegador.
+  const backToList = () =>
+    to(contract?.contract_type === 'arriendo' ? 'contracts?scope=arriendos' : 'contracts');
   const payment_schedule = d?.payment_schedule || [];
   const allProperties    = d?.all_properties  || [];
   const payments         = d?.payments         || [];
@@ -1368,7 +1374,7 @@ const ContractDetailPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(to('contracts'))} className="btn btn-ghost btn-sm">
+          <button onClick={() => navigate(backToList())} className="btn btn-ghost btn-sm">
             <ArrowLeft size={16}/>
           </button>
           <div>
