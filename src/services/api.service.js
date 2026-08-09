@@ -205,6 +205,11 @@ export const rentalsService = {
   getById:   (id)    => api.get(`/rentals/${id}`),
   create:    (d)     => api.post('/rentals', d),
   terminate: (id,d)  => api.patch(`/rentals/${id}/terminate`, d),
+  // Aniversarios de incremento, contratos por vencer y arrendatarios en mora.
+  getAlerts: ()      => api.get('/rentals/alerts'),
+  // Aplicar el ajuste del canon, o dejar constancia de que se decidio no subir.
+  applyIncrement: (id,d) => api.post(`/rentals/${id}/increment`, d),
+  getIncrements:  (id)   => api.get(`/rentals/${id}/increments`),
 };
 
 export const settlementsService = {

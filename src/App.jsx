@@ -20,6 +20,7 @@ const ClientsPage            = lazy(() => import('./pages/Clients/ClientsPage'))
 const OwnersPage             = lazy(() => import('./pages/Owners/OwnersPage'));
 const SettlementsPage        = lazy(() => import('./pages/Settlements/SettlementsPage'));
 const RentalNewPage          = lazy(() => import('./pages/Rentals/RentalNewPage'));
+const RentalAlertsPage       = lazy(() => import('./pages/Rentals/RentalAlertsPage'));
 const ClientDetailPage       = lazy(() => import('./pages/Clients/ClientDetailPage'));
 const ClientNewPage          = lazy(() => import('./pages/Clients/ClientNewPage'));
 const ClientInteractionsPage = lazy(() => import('./pages/Clients/ClientInteractionsPage'));
@@ -49,7 +50,7 @@ const TenantLayout = () => {
     const reserved = new Set(['super-admin','login','dashboard','contracts','clients',
       'projects','properties','payments','advisors','commissions','reports',
       'audit','users','profile','interactions','settings','owners','blocks',
-      'rentals','settlements']);
+      'rentals','settlements','rental-alerts']);
     if (!tenant || reserved.has(tenant)) return;
     saveTenantSlug(tenant);
     configService.get().then(res => {
@@ -118,6 +119,9 @@ const App = () => (
 
             {/* Crear contrato de arriendo */}
             <Route path="rentals/new" element={<ProtectedRoute roles={['admin','gerente','contador','asesor']}><S><RentalNewPage/></S></ProtectedRoute>}/>
+
+            {/* Alertas de arriendo: incrementos, vencimientos y mora */}
+            <Route path="rental-alerts" element={<ProtectedRoute roles={['admin','gerente','contador','asesor','readonly']}><S><RentalAlertsPage/></S></ProtectedRoute>}/>
 
             {/* CRM */}
             <Route path="interactions" element={<ProtectedRoute roles={['admin','gerente','contador','asesor','abogado']}><S><ClientInteractionsPage/></S></ProtectedRoute>}/>

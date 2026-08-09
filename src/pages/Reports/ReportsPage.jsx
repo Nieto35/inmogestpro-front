@@ -128,6 +128,7 @@ const TabResumen = () => {
   });
 
   const kpis    = kpiData?.data?.data?.kpis || {};
+  const cons    = kpiData?.data?.data?.consolidado || null;
   const monthly = monthData?.data?.data     || [];
   const advisors= advData?.data?.data       || [];
 
@@ -159,6 +160,66 @@ const TabResumen = () => {
         <KPI icon={AlertTriangle}label="Cuotas en mora"        value={kpis.overdue_count||0}          color="#C0392B" loading={loadKpi}/>
         <KPI icon={Home}         label="Inmuebles disponibles" value={kpis.available_properties||0}  color="#2D7A3A" loading={loadKpi}/>
       </div>
+
+      {/* Consolidado: ventas + arriendos.
+          Las cifras de arriba son SOLO de ventas, porque los reportes de
+          venta excluyen los arriendos a propósito. Este bloque responde la
+          pregunta que de verdad importa: cuánto gana la inmobiliaria en
+          total, sumando las dos operaciones. */}
+      {cons && (cons.arriendos_total > 0 || cons.de_terceros_total > 0) && (
+        <div className="card p-4"
+          style={{ background:'rgba(200,168,75,0.05)', border:'1px solid rgba(200,168,75,0.25)' }}>
+          <h3 className="font-semibold text-sm mb-1" style={{ color:'var(--color-text-primary)' }}>
+            Ingreso real de la inmobiliaria
+          </h3>
+          <p className="text-xs mb-4" style={{ color:'var(--color-text-muted)' }}>
+            Las dos operaciones sumadas. De arriendos entra solo la comisión — el canon es del propietario.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>Ventas</p>
+              <p className="text-lg font-semibold" style={{ color:'var(--color-text-primary)' }}>
+                {fm(cons.ventas_total)}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
+                Este mes {fm(cons.ventas_mes)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs" style={{ color:'var(--color-text-muted)' }}>Arriendos (comisión)</p>
+              <p className="text-lg font-semibold" style={{ color:'#22c55e' }}>
+                {fm(cons.arriendos_total)}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
+                Este mes {fm(cons.arriendos_mes)}
+              </p>
+            </div>
+            <div className="md:pl-4" style={{ borderLeft:'1px solid rgba(200,168,75,0.3)' }}>
+              <p className="text-xs font-semibold" style={{ color:'#C8A84B' }}>TOTAL</p>
+              <p className="text-2xl font-bold" style={{ color:'var(--color-text-accent)' }}>
+                {fm(cons.total)}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
+                Este mes {fm(cons.mes)}
+              </p>
+            </div>
+          </div>
+
+          {/* La distinción que evita el error clásico del negocio */}
+          {cons.de_terceros_total > 0 && (
+            <div className="mt-4 pt-3 flex items-start gap-2"
+              style={{ borderTop:'1px solid rgba(200,168,75,0.25)' }}>
+              <Wallet size={15} className="flex-shrink-0 mt-0.5" style={{ color:'var(--color-text-muted)' }}/>
+              <p className="text-sm" style={{ color:'var(--color-text-secondary)' }}>
+                Además pasaron por tu cuenta <strong>{fm(cons.de_terceros_total)}</strong> de
+                propietarios. Ese dinero <strong>no es ingreso</strong>: hay que girarlo.
+                En total movió tu cuenta {fm(cons.caja_total)}.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Contratos y recaudo por mes */}
       <div className="card">
