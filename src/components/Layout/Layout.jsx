@@ -7,7 +7,7 @@ import {
   CreditCard, UserCheck, BarChart3, Shield, Settings,
   LogOut, Menu, X, ChevronDown, Building,
   ClipboardList, AlertTriangle, Phone, DollarSign,
-  Sun, Moon, Globe, Layers, KeyRound, UserSquare2,
+  Sun, Moon, Globe, Layers, KeyRound, UserSquare2, Wallet,
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import NotificationBell from '../UI/NotificationBell';
@@ -54,7 +54,10 @@ const SCOPES = {
     label: 'Arriendos',
     icon:  KeyRound,
     extra: [
-      { path: 'owners', label: 'Propietarios', icon: UserSquare2, roles: ['admin','gerente','contador','asesor','readonly'], after: 'clients' },
+      { path: 'owners',      label: 'Propietarios',  icon: UserSquare2, roles: ['admin','gerente','contador','asesor','readonly'], after: 'clients' },
+      // Liquidaciones va junto a Pagos: es la contraparte del cobro. Ahí se
+      // ve lo que hay que girarle al propietario de lo ya recaudado.
+      { path: 'settlements', label: 'Liquidaciones', icon: Wallet,      roles: ['admin','gerente','contador','readonly'],          after: 'payments' },
     ],
   },
 };

@@ -200,6 +200,25 @@ export const blocksService = {
   delete:        (id)    => api.delete(`/blocks/${id}`),
 };
 
+export const rentalsService = {
+  getAll:    (p)     => api.get('/rentals',          { params:p }),
+  getById:   (id)    => api.get(`/rentals/${id}`),
+  create:    (d)     => api.post('/rentals', d),
+  terminate: (id,d)  => api.patch(`/rentals/${id}/terminate`, d),
+};
+
+export const settlementsService = {
+  getAll:    (p)     => api.get('/settlements',          { params:p }),
+  // Plata de terceros que sigue en la cuenta de la inmobiliaria.
+  getPending:()      => api.get('/settlements/pending'),
+  getById:   (id)    => api.get(`/settlements/${id}`),
+  generate:  (d)     => api.post('/settlements/generate', d),
+  approve:   (id)    => api.patch(`/settlements/${id}/approve`),
+  // Marcar que ya se le giró el dinero al propietario.
+  pay:       (id,d)  => api.patch(`/settlements/${id}/pay`, d),
+  void:      (id,r)  => api.patch(`/settlements/${id}/void`, { reason:r }),
+};
+
 export const ownersService = {
   getAll:  (p)     => api.get('/owners',            { params:p }),
   search:  (term)  => api.get('/owners/search',     { params:{ q:term } }),
