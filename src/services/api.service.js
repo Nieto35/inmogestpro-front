@@ -210,6 +210,9 @@ export const rentalsService = {
   // Aplicar el ajuste del canon, o dejar constancia de que se decidio no subir.
   applyIncrement: (id,d) => api.post(`/rentals/${id}/increment`, d),
   getIncrements:  (id)   => api.get(`/rentals/${id}/increments`),
+  // Vincula al modulo un contrato de arriendo creado antes de que existiera:
+  // le asigna propietario, canon y comision.
+  adopt:          (contractId, d) => api.post(`/rentals/adopt/${contractId}`, d),
 };
 
 export const settlementsService = {
