@@ -117,9 +117,13 @@ const Layout = () => {
 
   const filteredNav = buildNav(scope).filter(item => item.roles.includes(user?.role));
 
-  // Inmuebles muestra listas separadas por pestaña; el resto de módulos
-  // comparte la misma información en ambas.
-  const SCOPED_PATHS = ['properties'];
+  // Módulos con listas separadas por pestaña. Un contrato de arriendo no
+  // puede aparecer en Ventas, ni sus cobros de canon en los pagos de venta.
+  //
+  // Clientes, Asesores, Comisiones e Interacciones NO están aquí a
+  // propósito: comparten la misma información en ambas pestañas, como se
+  // definió en el reparto de módulos.
+  const SCOPED_PATHS = ['properties', 'contracts', 'payments', 'reports'];
   const linkTo = (path) =>
     SCOPED_PATHS.includes(path)
       ? `${prefix}/${path}?scope=${scope}`

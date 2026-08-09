@@ -1,6 +1,6 @@
 // src/pages/Contracts/ContractsPage.jsx
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Plus, Search, Download, Eye, FileText,
@@ -144,22 +144,29 @@ const ContractsPage = () => {
 
   // `view`: 'active' = contratos en curso (default), 'completed' = contratos pagos y culminados.
   // Los culminados (cuotas saldadas + 3 hitos hechos) salen de la lista principal a su propia pestaña.
+  const [searchParams] = useSearchParams();
   const [view, setView] = useState('active');
   const [filters, setFilters] = useState({
     search:'', status:'', payment_type:'', page:1, limit:20,
   });
   const [cancelTarget, setCancelTarget] = useState(null);
 
+  // Pestaña del menú: los contratos de arriendo no se muestran en Ventas y
+  // viceversa. Sin esto, el primer arriendo que se cree apareceria en la
+  // lista de ventas.
+  const scope = searchParams.get('scope') === 'arriendos' ? 'arriendos' : 'ventas';
+
   const { data, isPending: isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['contracts', filters, view],
-    queryFn:  () => contractsService.getAll({ ...filters, view }),
+    queryKey: ['contracts', filters, view, scope],
+    queryFn:  () => contractsService.getAll({ ...filters, view, scope }),
   });
 
   // Conteo de la pestaña opuesta para mostrar en el tab
   const { data: otherViewData } = useQuery({
-    queryKey: ['contracts-count', view === 'active' ? 'completed' : 'active'],
+    queryKey: ['contracts-count', view === 'active' ? 'completed' : 'active', scope],
     queryFn:  () => contractsService.getAll({
       view: view === 'active' ? 'completed' : 'active',
+      scope,
       page: 1, limit: 1,
     }),
   });

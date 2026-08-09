@@ -15,7 +15,7 @@ import Modal from '../../components/UI/Modal';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://back.inmogestpro.com';
 const formatCurrency = v =>
@@ -540,14 +540,19 @@ const PaymentsPage = () => {
   const [search,    setSearch]    = useState('');
   const [showModal, setShowModal] = useState(false);
 
+  // Pestaña del menú: los cobros de canon no se listan en Ventas ni los
+  // pagos de venta en Arriendos. La mora también se separa.
+  const [searchParams] = useSearchParams();
+  const scope = searchParams.get('scope') === 'arriendos' ? 'arriendos' : 'ventas';
+
   const { data: paymentsData, refetch, isFetching } = useQuery({
-    queryKey: ['payments', search],
-    queryFn:  () => paymentsService.getAll({ search }),
+    queryKey: ['payments', search, scope],
+    queryFn:  () => paymentsService.getAll({ search, scope }),
   });
 
   const { data: overdueData } = useQuery({
-    queryKey: ['payments-overdue'],
-    queryFn:  () => paymentsService.getOverdue(),
+    queryKey: ['payments-overdue', scope],
+    queryFn:  () => paymentsService.getOverdue(scope),
   });
 
   const payments = paymentsData?.data?.data || [];
