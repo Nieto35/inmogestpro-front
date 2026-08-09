@@ -277,7 +277,8 @@ const DashboardPage = () => {
             <p className="text-sm mt-4 pt-3" style={{
               color:'var(--color-text-secondary)', borderTop:'1px solid rgba(200,168,75,0.25)' }}>
               Además pasaron por tu cuenta <strong>{formatCurrency(cons.de_terceros_total)}</strong> de
-              propietarios. Ese dinero <strong>no es ingreso</strong>: hay que girarlo.
+              propietarios. Ese dinero <strong>no es tuyo</strong>: pertenece a los propietarios. Lo que
+              falta por girarles hoy se ve en <strong>Liquidaciones</strong>.
             </p>
           )}
         </div>

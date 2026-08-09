@@ -213,7 +213,8 @@ const TabResumen = () => {
               <Wallet size={15} className="flex-shrink-0 mt-0.5" style={{ color:'var(--color-text-muted)' }}/>
               <p className="text-sm" style={{ color:'var(--color-text-secondary)' }}>
                 Además pasaron por tu cuenta <strong>{fm(cons.de_terceros_total)}</strong> de
-                propietarios. Ese dinero <strong>no es ingreso</strong>: hay que girarlo.
+                propietarios. Ese dinero <strong>no es tuyo</strong>: pertenece a los propietarios. Lo que
+              falta por girarles hoy se ve en <strong>Liquidaciones</strong>.
                 En total movió tu cuenta {fm(cons.caja_total)}.
               </p>
             </div>

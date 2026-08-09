@@ -7,7 +7,7 @@ import {
   Calendar, DollarSign, CheckCircle, Clock, AlertTriangle,
   RefreshCw, Plus, X, Save, Paperclip, Info, Upload, ExternalLink, Edit, Download
 } from 'lucide-react';
-import { contractsService, usersService, configService, paymentsService } from '../../services/api.service';
+import { contractsService, usersService, configService, paymentsService, rentalsService } from '../../services/api.service';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { todayISO } from '../../utils/dates';
@@ -160,7 +160,11 @@ const PaymentModal = ({ tenant, contract, schedule, onClose, onSaved }) => {
         msg += ' — Pago parcial registrado';
 
       toast.success(msg, { duration:5000 });
-      onSaved();
+      // Si con este pago se saldó el plazo del arriendo, el backend lo avisa.
+      // Hay que decidir ahí mismo: renovar o cerrar. Si nadie decide, el
+      // contrato se queda activo para siempre y el inmueble sigue ocupado en
+      // el sistema aunque el inquilino ya se haya ido.
+      onSaved(res.data?.data?.cierre_arriendo || null);
       onClose();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error al registrar el pago');
@@ -1049,6 +1053,110 @@ const ExportScheduleModal = ({
 // ── Página principal ──────────────────────────────────────────
 
 
+// ── Modal: se pagó la última cuota de un arriendo ─────────────
+//
+// Un arriendo que llega al final del plazo no se cierra solo. O se renueva,
+// o se termina y el inmueble vuelve al inventario. Si nadie decide, el
+// contrato se queda "activo" para siempre y el inmueble sigue figurando
+// ocupado aunque el inquilino ya se haya ido.
+//
+// Por eso la pregunta aparece en el momento exacto: justo cuando se recibe
+// el último pago, que es cuando quien cobra tiene el dato fresco.
+const CierreArriendoModal = ({ cierre, contractNumber, onClose, onDone }) => {
+  const [modo, setModo]     = useState(null);   // 'terminar' | 'renovar'
+  const [motivo, setMotivo] = useState('Finalización del plazo pactado');
+  const [saving, setSaving] = useState(false);
+
+  const terminar = async () => {
+    if (!motivo.trim()) return toast.error('Indica el motivo de terminación');
+    setSaving(true);
+    try {
+      const res = await rentalsService.terminate(cierre.rental_id, {
+        termination_reason: motivo.trim(),
+      });
+      toast.success(res?.data?.message || 'Arriendo terminado',
+        { duration:8000, style:{ maxWidth:'560px' } });
+      if (res?.data?.warning)
+        toast(res.data.warning, { icon:'⚠️', duration:11000, style:{ maxWidth:'560px' } });
+      onDone();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'No se pudo terminar el arriendo');
+    } finally { setSaving(false); }
+  };
+
+  const Opcion = ({ id, titulo, texto }) => (
+    <button onClick={() => setModo(id)}
+      className="w-full text-left p-3 rounded transition-all"
+      style={{
+        background: modo === id ? 'rgba(200,168,75,0.1)' : 'var(--color-bg-tertiary)',
+        border: `1px solid ${modo === id ? 'rgba(200,168,75,0.5)' : 'var(--color-border)'}`,
+      }}>
+      <div className="flex items-center gap-2">
+        <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{ border:`2px solid ${modo === id ? '#C8A84B' : 'var(--color-text-muted)'}` }}>
+          {modo === id && <div className="w-1.5 h-1.5 rounded-full" style={{ background:'#C8A84B' }}/>}
+        </div>
+        <span className="text-sm font-medium" style={{ color:'var(--color-text-primary)' }}>{titulo}</span>
+      </div>
+      <p className="text-xs mt-1 pl-5" style={{ color:'var(--color-text-muted)' }}>{texto}</p>
+    </button>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background:'rgba(0,0,0,0.6)' }}>
+      <div className="card w-full max-w-lg" style={{ background:'var(--color-bg-secondary)' }}>
+        <div className="pb-3 mb-4" style={{ borderBottom:'1px solid var(--color-border)' }}>
+          <h3 className="font-semibold" style={{ color:'var(--color-text-primary)' }}>
+            Se pagó la última cuota
+          </h3>
+          <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
+            {contractNumber} · propietario {cierre.owner_name}
+          </p>
+        </div>
+
+        <p className="text-sm mb-4" style={{ color:'var(--color-text-secondary)' }}>
+          El arrendatario completó el plazo pactado. <strong>¿El contrato se renueva o se termina?</strong>
+        </p>
+
+        <div className="space-y-2">
+          <Opcion id="renovar" titulo="Continúa"
+            texto="El contrato sigue activo. Podrás ajustar el canon y el plazo desde Alertas."/>
+          <Opcion id="terminar" titulo="Se termina"
+            texto="El contrato pasa a terminado y el inmueble vuelve a quedar disponible."/>
+        </div>
+
+        {modo === 'terminar' && (
+          <div className="mt-4">
+            <label className="block text-sm font-medium mb-1.5"
+              style={{ color:'var(--color-text-secondary)' }}>
+              Motivo de terminación <span className="text-red-400">*</span>
+            </label>
+            <input value={motivo} onChange={e => setMotivo(e.target.value)}
+              className="input text-sm w-full"/>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2 pt-4 mt-4"
+          style={{ borderTop:'1px solid var(--color-border)' }}>
+          <button onClick={onClose} className="btn btn-secondary" disabled={saving}>
+            Decidir después
+          </button>
+          <button
+            onClick={() => modo === 'terminar' ? terminar() : onClose()}
+            disabled={!modo || saving}
+            className="btn btn-primary">
+            {saving ? 'Guardando…'
+              : modo === 'terminar' ? 'Terminar arriendo'
+              : modo === 'renovar'  ? 'Mantener activo'
+              : 'Confirmar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ContractDetailPage = () => {
   const { id, tenant }         = useParams();
   const navigate       = useNavigate();
@@ -1060,6 +1168,9 @@ const ContractDetailPage = () => {
   const canUpload      = hasRole('admin','gerente','contador','asesor');
   const isAsesor       = user?.role === 'asesor';
   const [showPayModal, setShowPayModal]         = useState(false);
+  // Cuando se salda la última cuota de un arriendo hay que decidir: renovar
+  // o cerrar. El backend lo avisa en la respuesta del pago.
+  const [cierre, setCierre]                     = useState(null);
   const [showExportModal, setShowExportModal]   = useState(false);
   const [showEditSchedule, setShowEditSchedule] = useState(false);
 
@@ -1097,11 +1208,13 @@ const ContractDetailPage = () => {
     || allUsers.find(u => String(u.id) === String(contract?.supervisor_id))?.full_name
     || null;
 
-  const handlePaymentSaved = () => {
+  const handlePaymentSaved = (cierreArriendo) => {
     queryClient.invalidateQueries({ queryKey:['contract', id] });
     queryClient.invalidateQueries({ queryKey:['payments'] });
     queryClient.invalidateQueries({ queryKey:['dashboard-kpis'] });
     refetch();
+    // El backend avisa cuando se salda la última cuota de un arriendo.
+    if (cierreArriendo) setCierre(cierreArriendo);
   };
 
   // ── Exportar Plan de Cuotas a Excel con encabezado + firmas ─
@@ -1348,6 +1461,15 @@ const ContractDetailPage = () => {
           schedule={payment_schedule}
           onClose={() => setShowPayModal(false)}
           onSaved={handlePaymentSaved}
+        />
+      )}
+
+      {cierre && (
+        <CierreArriendoModal
+          cierre={cierre}
+          contractNumber={contract?.contract_number}
+          onClose={() => setCierre(null)}
+          onDone={() => { setCierre(null); refetch(); }}
         />
       )}
 
