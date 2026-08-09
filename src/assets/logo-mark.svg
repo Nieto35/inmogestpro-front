@@ -1,17 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="InmoGest Pro">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="140 52 736 800" width="736" height="800" role="img" aria-label="InmoGest Pro">
   <title>InmoGest Pro</title>
-  <!-- Fondo azul noche redondeado: da contraste para que el ícono se lea
-       nítido en la pestaña del navegador a 16px. -->
-  <rect width="1024" height="1024" rx="196" ry="196" fill="#0D1B3E"/>
+  <!-- Solo la marca, sin fondo ni texto: se usa cuando el sidebar está
+       colapsado y no hay espacio para el lockup completo. -->
 
-  <!-- Tres edificios en degradé de dorado, de menor a mayor altura -->
-  <g>
-    <rect x="160" y="608" width="126" height="224" fill="#8A7A47"/>
-    <rect x="354" y="447" width="126" height="385" fill="#B99C46"/>
-    <rect x="548" y="287" width="126" height="545" fill="#C8A84B"/>
-  </g>
+  <rect x="160" y="608" width="126" height="224" fill="#8A7A47"/>
+  <rect x="354" y="447" width="126" height="385" fill="#B99C46"/>
+  <rect x="548" y="287" width="126" height="545" fill="#C8A84B"/>
 
-  <!-- Ventanas: cuadrados en el mismo azul del fondo -->
   <g fill="#0D1B3E">
     <rect x="186" y="642" width="30" height="30"/><rect x="230" y="642" width="30" height="30"/>
     <rect x="186" y="704" width="30" height="30"/><rect x="230" y="704" width="30" height="30"/>
@@ -32,9 +27,7 @@
     <rect x="574" y="693" width="30" height="30"/><rect x="618" y="693" width="30" height="30"/>
   </g>
 
-  <!-- Flecha ascendente en marfil, por delante de los edificios -->
-  <g fill="none" stroke="#F5F3EE" stroke-width="54" stroke-linecap="round">
-    <path d="M188 650 C 400 580, 600 420, 782 172"/>
-  </g>
+  <path d="M188 650 C 400 580, 600 420, 782 172"
+        fill="none" stroke="#F5F3EE" stroke-width="54" stroke-linecap="round"/>
   <path d="M852 78 L 845 217 L 721 123 Z" fill="#F5F3EE"/>
 </svg>

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1250 258" width="1250" height="258" role="img" aria-label="InmoGest Pro — Software Inmobiliario">
+  <title>InmoGest Pro</title>
+  <!-- Lockup horizontal SIN fondo: se usa sobre el azul noche del sidebar.
+       Si algún día el encabezado cambia de color, el logo sigue sirviendo. -->
+
+  <!-- Marca: edificios + flecha, reescalada desde el ícono de 1024 -->
+  <g transform="translate(12.2 27.9) scale(0.224)">
+    <rect x="160" y="608" width="126" height="224" fill="#8A7A47"/>
+    <rect x="354" y="447" width="126" height="385" fill="#B99C46"/>
+    <rect x="548" y="287" width="126" height="545" fill="#C8A84B"/>
+
+    <g fill="#0D1B3E">
+      <rect x="186" y="642" width="30" height="30"/><rect x="230" y="642" width="30" height="30"/>
+      <rect x="186" y="704" width="30" height="30"/><rect x="230" y="704" width="30" height="30"/>
+      <rect x="186" y="766" width="30" height="30"/><rect x="230" y="766" width="30" height="30"/>
+
+      <rect x="380" y="481" width="30" height="30"/><rect x="424" y="481" width="30" height="30"/>
+      <rect x="380" y="543" width="30" height="30"/><rect x="424" y="543" width="30" height="30"/>
+      <rect x="380" y="605" width="30" height="30"/><rect x="424" y="605" width="30" height="30"/>
+      <rect x="380" y="667" width="30" height="30"/><rect x="424" y="667" width="30" height="30"/>
+      <rect x="380" y="729" width="30" height="30"/><rect x="424" y="729" width="30" height="30"/>
+
+      <rect x="574" y="321" width="30" height="30"/><rect x="618" y="321" width="30" height="30"/>
+      <rect x="574" y="383" width="30" height="30"/><rect x="618" y="383" width="30" height="30"/>
+      <rect x="574" y="445" width="30" height="30"/><rect x="618" y="445" width="30" height="30"/>
+      <rect x="574" y="507" width="30" height="30"/><rect x="618" y="507" width="30" height="30"/>
+      <rect x="574" y="569" width="30" height="30"/><rect x="618" y="569" width="30" height="30"/>
+      <rect x="574" y="631" width="30" height="30"/><rect x="618" y="631" width="30" height="30"/>
+      <rect x="574" y="693" width="30" height="30"/><rect x="618" y="693" width="30" height="30"/>
+    </g>
+
+    <path d="M188 650 C 400 580, 600 420, 782 172"
+          fill="none" stroke="#F5F3EE" stroke-width="54" stroke-linecap="round"/>
+    <path d="M852 78 L 845 217 L 721 123 Z" fill="#F5F3EE"/>
+  </g>
+
+  <!-- Nombre: Inmo en marfil, Gest en dorado -->
+  <text x="270" y="132"
+        font-family="Georgia, 'Playfair Display', 'Times New Roman', serif"
+        font-size="104" font-weight="700" letter-spacing="-1">
+    <tspan fill="#F5F3EE">Inmo</tspan><tspan fill="#C8A84B">Gest</tspan>
+  </text>
+
+  <!-- Bajada -->
+  <text x="276" y="196"
+        font-family="'Helvetica Neue', Arial, sans-serif"
+        font-size="29" font-weight="600" letter-spacing="7.5" fill="#9A8B5F">
+    PRO · SOFTWARE INMOBILIARIO
+  </text>
+</svg>
