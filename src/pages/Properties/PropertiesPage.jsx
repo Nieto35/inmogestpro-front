@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search, RefreshCw, Plus, Building, Edit, X, Save, LayoutGrid, List, Layers,
          Home, AlertTriangle, Calendar, Download, Trash2 } from 'lucide-react';
-import { propertiesService, projectsService, blocksService, clientsService, reservationsService } from '../../services/api.service';
+import { propertiesService, projectsService, blocksService, clientsService, reservationsService, ownersService } from '../../services/api.service';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { todayISO } from '../../utils/dates';
@@ -142,14 +142,35 @@ const EditPropertyModal = ({ property, onClose, onSaved }) => {
     parking_spots:   String(property.parking_spots    || '0'),
     storage_room:    property.storage_room            || false,
     base_price:      String(property.base_price       || ''),
-    rental_price:    String(property.features?.rental_price || ''),
-    purpose:         property.features?.purpose       || 'venta',
+    // La columna es la fuente de verdad desde Fase 0; features es respaldo.
+    rental_price:    String(property.rental_price ?? property.features?.rental_price ?? ''),
+    purpose:         property.purpose || property.features?.purpose || 'venta',
+    owner_id:        property.owner_id || '',
     notes:           property.features?.notes         || '',
   });
   const set = (k, v) => setForm(f => ({...f, [k]:v}));
 
+  // Un inmueble de arriendo necesita canon y propietario. Antes el formulario
+  // de edición no tenía campo de propietario, así que se podía convertir un
+  // inmueble a arriendo dejándolo sin dueño y sin a quién girarle el canon.
+  const isRentalOnly = form.purpose === 'arriendo';
+  const needsOwner   = form.purpose !== 'venta';
+
+  const { data: ownersData } = useQuery({
+    queryKey: ['owners','activos'],
+    queryFn:  () => ownersService.getAll({ active:'true', limit: 300 }),
+    enabled:  needsOwner,
+  });
+  const owners = ownersData?.data?.data || [];
+
   const handleSave = async () => {
-    if (!form.base_price) return toast.error('El precio es requerido');
+    if (isRentalOnly) {
+      if (!form.rental_price) return toast.error('El canon de arriendo es requerido');
+    } else if (!form.base_price) {
+      return toast.error('El precio de venta es requerido');
+    }
+    if (needsOwner && !form.owner_id)
+      return toast.error('Un inmueble de arriendo debe tener propietario');
     setSaving(true);
     try {
       await propertiesService.update(property.id, {
@@ -162,7 +183,10 @@ const EditPropertyModal = ({ property, onClose, onSaved }) => {
         bathrooms:       form.bathrooms       ? parseInt(form.bathrooms)          : null,
         parking_spots:   form.parking_spots   ? parseInt(form.parking_spots)      : 0,
         storage_room:    form.storage_room,
-        base_price:      parseFloat(form.base_price),
+        base_price:      form.base_price   ? parseFloat(form.base_price)   : null,
+        rental_price:    form.rental_price ? parseFloat(form.rental_price) : null,
+        purpose:         form.purpose,
+        owner_id:        form.owner_id || null,
         status:          property.status,
         features: {
           purpose:      form.purpose,
@@ -275,14 +299,15 @@ const EditPropertyModal = ({ property, onClose, onSaved }) => {
             <p className="text-xs font-semibold uppercase tracking-wide mb-3"
               style={{ color:'var(--color-gold)', letterSpacing:'0.08em' }}>Precios</p>
             <div className="grid grid-cols-2 gap-3">
-              <Field label={form.purpose === 'arriendo' ? 'Valor comercial (COP)' : 'Precio de venta (COP)'}
-                hint="Requerido">
+              <Field label={isRentalOnly ? 'Valor comercial (COP)' : 'Precio de venta (COP)'}
+                hint={isRentalOnly ? 'Opcional en arriendo' : 'Requerido'}>
                 <input type="number" value={form.base_price}
                   onChange={e => set('base_price', e.target.value)}
                   className="input text-sm" placeholder="120000000" min="0" step="1000"/>
               </Field>
-              {(form.purpose === 'arriendo' || form.purpose === 'venta_arriendo') && (
-                <Field label="Canon de arriendo mensual (COP)">
+              {needsOwner && (
+                <Field label="Canon de arriendo mensual (COP)"
+                  hint={isRentalOnly ? 'Requerido' : undefined}>
                   <input type="number" value={form.rental_price}
                     onChange={e => set('rental_price', e.target.value)}
                     className="input text-sm" placeholder="1500000" min="0"/>
@@ -290,6 +315,26 @@ const EditPropertyModal = ({ property, onClose, onSaved }) => {
               )}
             </div>
           </div>
+
+          {/* Sin propietario no hay a quién girarle el canon cobrado. */}
+          {needsOwner && (
+            <div className="pt-2 pb-1">
+              <p className="text-xs font-semibold uppercase tracking-wide mb-3"
+                style={{ color:'var(--color-gold)', letterSpacing:'0.08em' }}>Propietario</p>
+              <Field label="Dueño del inmueble"
+                hint="Es a quien se le gira el canon. Créalo en el módulo Propietarios si no aparece.">
+                <select value={form.owner_id} onChange={e => set('owner_id', e.target.value)}
+                  className="input text-sm w-full">
+                  <option value="">Selecciona un propietario…</option>
+                  {owners.map(o => (
+                    <option key={o.id} value={o.id}>
+                      {o.full_name} — {o.document_type} {o.document_number}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+          )}
 
           <Field label="Observaciones del inmueble">
             <textarea value={form.notes} onChange={e => set('notes', e.target.value)}
