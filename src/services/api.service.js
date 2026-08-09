@@ -269,7 +269,7 @@ export const paymentsService = {
   getAll:     (p)     => api.get('/payments',              { params:p }),
   create:     (d)     => api.post('/payments', d),
   uploadFile: (id,fd) => api.post(`/payments/${id}/upload`,fd, { headers:{'Content-Type':'multipart/form-data'} }),
-  getOverdue: ()      => api.get('/payments/overdue'),
+  getOverdue: (scope) => api.get('/payments/overdue', { params: scope ? { scope } : undefined }),
   void:       (id,r)  => api.patch(`/payments/${id}/void`, { reason:r }),
 };
 
