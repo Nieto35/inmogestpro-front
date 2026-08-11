@@ -17,24 +17,31 @@ import { getSavedTenantSlug } from '../../utils/tenant';
 import logoFull from '../../assets/logo-inmogest.svg';
 import logoMark from '../../assets/logo-mark.svg';
 
+// El rol `supervisor` estaba en la base y en las rutas del backend —que ya
+// filtra sus contratos asignados y lo deja marcar hitos de entrega— pero no
+// figuraba en NINGUNA entrada del menú. Entraba y veía la pantalla vacía.
+//
 // Módulos comunes a las dos pestañas. `scope` los diferencia en la URL para
 // que Inmuebles muestre listas separadas: los de venta no se ven en Arriendos
 // y viceversa, tal como se definió.
 const SHARED_ITEMS = [
-  { path: 'dashboard',    label: 'Dashboard',     icon: LayoutDashboard, roles: ['admin','gerente','contador','asesor','abogado','readonly'] },
-  { path: 'contracts',    label: 'Contratos',     icon: FileText,        roles: ['admin','gerente','contador','asesor','abogado','readonly'] },
+  { path: 'dashboard',    label: 'Dashboard',     icon: LayoutDashboard, roles: ['admin','gerente','contador','asesor','abogado','readonly','supervisor'] },
+  { path: 'contracts',    label: 'Contratos',     icon: FileText,        roles: ['admin','gerente','contador','asesor','abogado','readonly','supervisor'] },
   { path: 'clients',      label: 'Clientes',      icon: Users,           roles: ['admin','gerente','contador','asesor','abogado','readonly'] },
-  { path: 'properties',   label: 'Inmuebles',     icon: Home,            roles: ['admin','gerente','contador','asesor','abogado','readonly'] },
+  { path: 'properties',   label: 'Inmuebles',     icon: Home,            roles: ['admin','gerente','contador','asesor','abogado','readonly','supervisor'] },
   { path: 'payments',     label: 'Pagos',         icon: CreditCard,      roles: ['admin','gerente','contador'] },
-  { path: 'interactions', label: 'Interacciones', icon: Phone,           roles: ['admin','gerente','contador','asesor','abogado'] },
+  { path: 'interactions', label: 'Interacciones', icon: Phone,           roles: ['admin','gerente','contador','asesor','abogado','supervisor'] },
   { path: 'advisors',     label: 'Asesores',      icon: UserCheck,       roles: ['admin','gerente','contador','readonly'] },
-  { path: 'commissions',  label: 'Comisiones',    icon: DollarSign,      roles: ['admin','gerente','contador','asesor'] },
+  { path: 'commissions',  label: 'Comisiones',    icon: DollarSign,      roles: ['admin','gerente','contador','asesor','supervisor'] },
   { path: 'reports',      label: 'Reportes',      icon: BarChart3,       roles: ['admin','gerente','contador','readonly'] },
 ];
 
 // Módulos administrativos: no pertenecen a ninguna de las dos operaciones.
 const ADMIN_ITEMS = [
-  { path: 'audit', label: 'Auditoría', icon: Shield,   roles: ['gerente','abogado'] },
+  // Auditoría es solo del gerente: el backend lo impone con
+  // `router.use(authorize('gerente'))`. El menú listaba también al abogado,
+  // así que le mostraba un enlace que terminaba en pantalla bloqueada.
+  { path: 'audit', label: 'Auditoría', icon: Shield,   roles: ['gerente'] },
   { path: 'users', label: 'Usuarios',  icon: Settings, roles: ['gerente'] },
 ];
 
@@ -46,7 +53,7 @@ const SCOPES = {
     label: 'Ventas',
     icon:  Building,
     extra: [
-      { path: 'projects', label: 'Proyectos', icon: Building, roles: ['admin','gerente','contador','readonly'], after: 'clients' },
+      { path: 'projects', label: 'Proyectos', icon: Building, roles: ['admin','gerente','contador','readonly','supervisor'], after: 'clients' },
       { path: 'blocks',   label: 'Manzanas',  icon: Layers,   roles: ['admin','gerente','contador','readonly'], after: 'projects' },
     ],
   },
@@ -84,6 +91,7 @@ const buildNav = (scope) => {
 const roleLabels = {
   admin: 'Administrador', gerente: 'Gerente', contador: 'Contador',
   asesor: 'Asesor', abogado: 'Abogado', readonly: 'Solo Lectura',
+  supervisor: 'Supervisor',
 };
 
 // Badges de rol — tonos semánticos sobre fondo claro
@@ -93,6 +101,7 @@ const roleBadgeColors = {
   contador: 'bg-blue-100 text-blue-700',
   asesor:   'bg-emerald-100 text-emerald-700',
   abogado:  'bg-amber-100 text-amber-700',
+  supervisor: 'bg-cyan-100 text-cyan-700',
   readonly: 'bg-gray-100 text-gray-500',
 };
 
