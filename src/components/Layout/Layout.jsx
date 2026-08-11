@@ -54,7 +54,7 @@ const SCOPES = {
     icon:  Building,
     extra: [
       { path: 'projects', label: 'Proyectos', icon: Building, roles: ['admin','gerente','contador','readonly','supervisor'], after: 'clients' },
-      { path: 'blocks',   label: 'Manzanas',  icon: Layers,   roles: ['admin','gerente','contador','readonly'], after: 'projects' },
+      { path: 'blocks',   label: 'Manzanas',  icon: Layers,   roles: ['admin','gerente','contador','readonly','supervisor'], after: 'projects' },
     ],
   },
   arriendos: {

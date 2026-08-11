@@ -1191,12 +1191,17 @@ const ContractDetailPage = () => {
   const allProperties    = d?.all_properties  || [];
   const payments         = d?.payments         || [];
 
-  // Cargar usuarios para resolver nombres de abogado y supervisor
-  // Solo roles con permiso de ver usuarios (asesores no tienen acceso)
+  // Respaldo para resolver nombres de abogado y supervisor. Rara vez se usa:
+  // GET /contracts/:id ya los trae por JOIN (abogado_name, supervisor_name).
+  //
+  // La condición era `!isAsesor`, que dejaba pasar a abogado, supervisor y
+  // readonly — y GET /users solo autoriza a admin, gerente y contador. Los
+  // tres veían "No tienes permisos" al abrir cualquier contrato, por una
+  // consulta que ni siquiera necesitaban.
   const { data: usersData } = useQuery({
     queryKey: ['users'],
     queryFn:  () => usersService.getAll(),
-    enabled:  !isAsesor,
+    enabled:  hasRole('admin','gerente','contador'),
   });
   const allUsers = usersData?.data?.data || [];
 
