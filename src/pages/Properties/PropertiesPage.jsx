@@ -26,7 +26,14 @@ const CHANGE_TO = {
   disponible:  ['reservado'],
   reservado:   ['disponible','prometido'],
   prometido:   ['disponible','escriturado'],
-  escriturado: [],
+  // Escriturar es un hecho jurídico y no se deshace a la ligera, pero tampoco
+  // puede ser un callejón sin salida: un clic equivocado dejaba el inmueble
+  // marcado para siempre, sin forma de corregirlo ni por interfaz ni por API.
+  //
+  // Volver a "prometido" es la reversión natural: el contrato sigue vivo, solo
+  // que la escritura aún no se firmó. El backend exige motivo y lo limita al
+  // gerente, y la interfaz solo se lo ofrece a él.
+  escriturado: ['prometido'],
   cancelado:   ['disponible'],
 };
 
@@ -516,7 +523,7 @@ const ReservationModal = ({ property, onClose, onSaved }) => {
 // ── Modal: motivo de cancelación de reserva ──────────────────
 // Cuando un inmueble reservado se libera (a cualquier otro estado), exigimos
 // un motivo. El dinero de la reserva queda registrado como ingreso retenido.
-const CancelReservationModal = ({ property, newStatus, onClose, onConfirmed }) => {
+const CancelReservationModal = ({ property, newStatus, revertingDeed, onClose, onConfirmed }) => {
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -555,7 +562,9 @@ const CancelReservationModal = ({ property, newStatus, onClose, onConfirmed }) =
         <div className="p-5 space-y-4">
           <div className="p-3 rounded-lg text-sm"
             style={{ background:'rgba(239,68,68,0.07)', border:'1px solid rgba(239,68,68,0.2)', color:'#fca5a5' }}>
-            ⚠️ El dinero de la reserva NO se devuelve al cliente. Quedará registrado como ingreso retenido de la empresa y aparecerá en los reportes.
+            {revertingDeed
+              ? '⚠️ Estás revirtiendo una escrituración. Solo hazlo si se marcó por error: quedará registrado en auditoría con tu nombre y el motivo.'
+              : '⚠️ El dinero de la reserva NO se devuelve al cliente. Quedará registrado como ingreso retenido de la empresa y aparecerá en los reportes.'}
           </div>
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color:'var(--color-text-secondary)' }}>
@@ -934,6 +943,8 @@ const PropertiesPage = () => {
   const canCreate       = hasRole('admin','gerente','contador');
   const canEdit         = hasRole('admin','gerente','contador');
   const canChangeStatus = hasRole('admin','gerente','contador');
+  // Revertir una escritura es afirmar que la anterior fue un error.
+  const canRevertDeed   = hasRole('admin','gerente');
 
   const [searchParams] = useSearchParams();
   // Si venimos desde una manzana (ej: /properties?block_id=xxx), pre-seleccionamos
@@ -1032,6 +1043,12 @@ const PropertiesPage = () => {
       setCancelReservationTarget({ property, newStatus });
       return;
     }
+    // Revertir una escritura también exige motivo: es afirmar que la anterior
+    // fue un error. Se reutiliza el mismo modal, que ya pide justificación.
+    if (property.status === 'escriturado' && newStatus !== 'escriturado') {
+      setCancelReservationTarget({ property, newStatus, revertingDeed: true });
+      return;
+    }
     setChangingId(property.id);
     try {
       await propertiesService.updateStatus(property.id, newStatus);
@@ -1072,6 +1089,7 @@ const PropertiesPage = () => {
         <CancelReservationModal
           property={cancelReservationTarget.property}
           newStatus={cancelReservationTarget.newStatus}
+          revertingDeed={cancelReservationTarget.revertingDeed}
           onClose={() => setCancelReservationTarget(null)}
           onConfirmed={handleSaved}
         />
@@ -1399,6 +1417,9 @@ const PropertiesPage = () => {
                         )}
                         {canChange && CHANGE_TO[p.status]
                           .filter(newStatus => !(newStatus === 'disponible' && hasActiveContract))
+                          // Revertir una escritura solo lo ofrece el gerente:
+                          // es afirmar que la anterior fue un error.
+                          .filter(() => p.status !== 'escriturado' || canRevertDeed)
                           .map(newStatus => (
                             <StatusButton
                               key={newStatus}
