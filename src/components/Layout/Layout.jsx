@@ -27,7 +27,7 @@ import logoMark from '../../assets/logo-mark.svg';
 const SHARED_ITEMS = [
   { path: 'dashboard',    label: 'Dashboard',     icon: LayoutDashboard, roles: ['admin','gerente','contador','asesor','abogado','readonly','supervisor'] },
   { path: 'contracts',    label: 'Contratos',     icon: FileText,        roles: ['admin','gerente','contador','asesor','abogado','readonly','supervisor'] },
-  { path: 'clients',      label: 'Clientes',      icon: Users,           roles: ['admin','gerente','contador','asesor','abogado','readonly'] },
+  { path: 'clients',      label: 'Clientes',      icon: Users,           roles: ['admin','gerente','contador','abogado','readonly'] },
   { path: 'properties',   label: 'Inmuebles',     icon: Home,            roles: ['admin','gerente','contador','asesor','abogado','readonly','supervisor'] },
   { path: 'payments',     label: 'Pagos',         icon: CreditCard,      roles: ['admin','gerente','contador'] },
   { path: 'interactions', label: 'Interacciones', icon: Phone,           roles: ['admin','gerente','contador','asesor','abogado','supervisor'] },

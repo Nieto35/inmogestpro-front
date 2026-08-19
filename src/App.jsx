@@ -107,9 +107,9 @@ const App = () => (
             <Route path="contracts/:id/edit" element={<ProtectedRoute roles={['admin','gerente','contador']}><S><ContractEditPage/></S></ProtectedRoute>}/>
 
             {/* Clientes */}
-            <Route path="clients"     element={<S><ClientsPage/></S>}/>
-            <Route path="clients/new" element={<ProtectedRoute roles={['admin','gerente','contador','asesor','abogado']}><S><ClientNewPage/></S></ProtectedRoute>}/>
-            <Route path="clients/:id" element={<S><ClientDetailPage/></S>}/>
+            <Route path="clients"     element={<ProtectedRoute roles={['admin','gerente','contador','abogado','readonly']}><S><ClientsPage/></S></ProtectedRoute>}/>
+            <Route path="clients/new" element={<ProtectedRoute roles={['admin','gerente','contador','abogado']}><S><ClientNewPage/></S></ProtectedRoute>}/>
+            <Route path="clients/:id" element={<ProtectedRoute roles={['admin','gerente','contador','abogado','readonly']}><S><ClientDetailPage/></S></ProtectedRoute>}/>
 
             {/* Propietarios — solo en la pestaña de Arriendos */}
             <Route path="owners" element={<ProtectedRoute roles={['admin','gerente','contador','asesor','readonly']}><S><OwnersPage/></S></ProtectedRoute>}/>
