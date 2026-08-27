@@ -90,18 +90,15 @@ const Layout = () => {
   });
   const overrides = permsData?.data?.data?.overrides || [];
 
-  // Nivel efectivo del rol sobre un módulo: la excepción de esta empresa, o
-  // el valor del código si no hay ninguna.
-  const nivelDe = (modulo, rolesPorDefecto) => {
-    const ex = overrides.find(o => o.role === user?.role && o.module === modulo);
-    if (ex) return ex.level;
-    return rolesPorDefecto.includes(user?.role) ? 'total' : 'sin_acceso';
-  };
-
   // En el menú solo importa si el módulo se ve o no. La diferencia entre
   // `lectura` y `total` la aplican las pantallas y el backend.
+  //
+  // El `.map(conIcono)` NO es opcional: el catálogo compartido no trae
+  // iconos, así que sin esto cada ítem llega con `icon` undefined y React
+  // tumba la aplicación entera con el error #130.
   const filteredNav = buildNav(scope)
-    .filter(item => nivelDe(item.path, item.roles) !== 'sin_acceso');
+    .filter(item => nivelDeModulo(item.path, user?.role, overrides) !== 'sin_acceso')
+    .map(conIcono);
 
   // Módulos con listas separadas por pestaña. Un contrato de arriendo no
   // puede aparecer en Ventas, ni sus cobros de canon en los pagos de venta.
