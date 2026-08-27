@@ -179,7 +179,7 @@ export const clientsService = {
   getById:  (id)   => api.get(`/clients/${id}`),
   create:   (d)    => api.post('/clients', d),
   update:   (id,d) => api.put(`/clients/${id}`, d),
-  search:   (q)    => api.get('/clients',        { params:{ search:q, limit:10 } }),
+  search:   (q)    => api.get('/clients/search', { params:{ q } }),
   delete:   (id)   => api.delete(`/clients/${id}`),
 };
 
