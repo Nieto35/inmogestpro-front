@@ -367,6 +367,10 @@ const TenantCard = ({ tenant, onRefresh }) => {
           {tenant.notes && (
             <p style={{ color:'rgba(200,168,75,0.4)', fontSize:12, marginTop:8 }}>📝 {tenant.notes}</p>
           )}
+
+          {/* Qué ve cada rol en ESTA empresa. Lo que a una inmobiliaria le
+              sirve a otra no, por eso se configura una por una. */}
+          <SAPermisos tenant={tenant}/>
         </div>
       )}
     </div>
@@ -501,6 +505,168 @@ const SAAuditoria = () => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+// ── Permisos por empresa ──────────────────────────────────
+//
+// Matriz de módulos × roles. En cada casilla, uno de tres niveles:
+//
+//   Sin acceso    el módulo no existe para ese rol
+//   Solo lectura  ve el listado, no entra al detalle de un registro
+//   Total         ve, entra, crea, edita y borra
+//
+// Un clic avanza al siguiente nivel. Las casillas que difieren del valor
+// por defecto quedan marcadas, para distinguir de un vistazo qué se tocó
+// en esta empresa y qué viene de fábrica.
+const NIVELES = ['sin_acceso','lectura','total'];
+const NIVEL_CFG = {
+  sin_acceso: { corto:'—', label:'Sin acceso',   bg:'rgba(120,120,130,0.15)', color:'#8a8a95' },
+  lectura:    { corto:'L', label:'Solo lectura', bg:'rgba(59,130,246,0.18)',  color:'#6aa9ff' },
+  total:      { corto:'✓', label:'Total',        bg:'rgba(200,168,75,0.22)',  color:'#C8A84B' },
+};
+
+const SAPermisos = ({ tenant }) => {
+  const qc = useQueryClient();
+  const [guardando, setGuardando] = useState(null);
+
+  const { data, isFetching } = useQuery({
+    queryKey: ['sa-permisos', tenant.slug],
+    queryFn:  () => superAdminService.getTenantPermissions(tenant.slug),
+  });
+  const d       = data?.data?.data;
+  const roles   = d?.roles  || [];
+  const matriz  = d?.matriz || [];
+  const tocadas = d?.excepciones ?? 0;
+
+  const cambiar = async (modulo, rol, nivelActual) => {
+    const siguiente = NIVELES[(NIVELES.indexOf(nivelActual) + 1) % NIVELES.length];
+    setGuardando(`${modulo}:${rol}`);
+    try {
+      const res = await superAdminService.setTenantPermission(tenant.slug, {
+        role: rol, module: modulo, level: siguiente,
+      });
+      toast.success(res?.data?.message || 'Guardado');
+      qc.invalidateQueries({ queryKey:['sa-permisos', tenant.slug] });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'No se pudo guardar');
+    } finally { setGuardando(null); }
+  };
+
+  const AMBITO = {
+    ambas:     { label:'En ambas pestañas', color:'#F5F3EE' },
+    ventas:    { label:'Solo en Ventas',    color:'#6aa9ff' },
+    arriendos: { label:'Solo en Arriendos', color:'#C8A84B' },
+    admin:     { label:'Administración',    color:'#c084fc' },
+  };
+
+  const filas = [];
+  for (const amb of ['ambas','ventas','arriendos','admin']) {
+    const mods = matriz.filter(m => m.scope === amb);
+    if (mods.length) filas.push({ separador: AMBITO[amb] }, ...mods);
+  }
+
+  return (
+    <div style={{ marginTop:16, background:'#12224A', border:'1px solid rgba(200,168,75,0.25)',
+                  borderRadius:8, padding:20 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start',
+                    flexWrap:'wrap', gap:12, marginBottom:16 }}>
+        <div>
+          <h3 style={{ color:'#F5F3EE', fontSize:16, fontWeight:700, fontFamily:'Georgia,serif' }}>
+            Permisos por rol
+          </h3>
+          <p style={{ color:'rgba(245,243,238,0.5)', fontSize:13, marginTop:2 }}>
+            Clic en una casilla para cambiar el nivel · {tocadas === 0
+              ? 'esta empresa usa la configuración por defecto'
+              : `${tocadas} ajuste${tocadas === 1 ? '' : 's'} propio${tocadas === 1 ? '' : 's'}`}
+          </p>
+        </div>
+        <div style={{ display:'flex', gap:14, flexWrap:'wrap' }}>
+          {NIVELES.map(n => (
+            <span key={n} style={{ display:'flex', alignItems:'center', gap:6, fontSize:12,
+                                   color:'rgba(245,243,238,0.65)' }}>
+              <span style={{ width:22, height:22, borderRadius:4, display:'flex',
+                             alignItems:'center', justifyContent:'center', fontWeight:700,
+                             background:NIVEL_CFG[n].bg, color:NIVEL_CFG[n].color }}>
+                {NIVEL_CFG[n].corto}
+              </span>
+              {NIVEL_CFG[n].label}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {isFetching && !matriz.length ? (
+        <p style={{ color:'rgba(245,243,238,0.5)', padding:'24px 0', textAlign:'center' }}>Cargando…</p>
+      ) : (
+        <div style={{ overflowX:'auto' }}>
+          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign:'left', padding:'6px 10px', color:'rgba(200,168,75,0.7)',
+                             fontSize:11, textTransform:'uppercase', letterSpacing:'0.06em' }}>
+                  Módulo
+                </th>
+                {roles.map(r => (
+                  <th key={r} style={{ padding:'6px 4px', color:'rgba(200,168,75,0.7)', fontSize:11,
+                                       textTransform:'uppercase', letterSpacing:'0.04em', minWidth:64 }}>
+                    {r.slice(0,4)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filas.map((f, i) => f.separador ? (
+                <tr key={'sep'+i}>
+                  <td colSpan={roles.length + 1}
+                      style={{ padding:'14px 10px 6px', color:f.separador.color, fontSize:11,
+                               fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em' }}>
+                    {f.separador.label}
+                  </td>
+                </tr>
+              ) : (
+                <tr key={f.module} style={{ borderTop:'1px solid rgba(200,168,75,0.1)' }}>
+                  <td style={{ padding:'8px 10px', color:'#F5F3EE' }}>{f.label}</td>
+                  {roles.map(rol => {
+                    const c   = f.niveles[rol];
+                    const cfg = NIVEL_CFG[c.level];
+                    const key = `${f.module}:${rol}`;
+                    return (
+                      <td key={rol} style={{ padding:'4px 3px', textAlign:'center' }}>
+                        <button
+                          onClick={() => cambiar(f.module, rol, c.level)}
+                          disabled={guardando === key}
+                          title={`${f.label} · ${rol} — ${cfg.label}${c.is_default ? ' (por defecto)' : ' (ajustado)'}`}
+                          style={{
+                            width:'100%', minWidth:54, padding:'7px 0', cursor:'pointer',
+                            background:cfg.bg, color:cfg.color, fontWeight:700, fontSize:13,
+                            border:`1px solid ${c.is_default ? 'transparent' : cfg.color}`,
+                            borderRadius:4, opacity: guardando === key ? 0.4 : 1,
+                            position:'relative',
+                          }}>
+                          {guardando === key ? '·' : cfg.corto}
+                          {!c.is_default && (
+                            <span style={{ position:'absolute', top:2, right:4, fontSize:9,
+                                           color:cfg.color, opacity:0.8 }}>•</span>
+                          )}
+                        </button>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p style={{ color:'rgba(245,243,238,0.4)', fontSize:12, marginTop:14, lineHeight:1.5 }}>
+        El punto marca las casillas ajustadas para esta empresa; sin punto, viene del valor por
+        defecto. <strong style={{ color:'rgba(245,243,238,0.6)' }}>Solo lectura</strong> permite ver
+        el listado pero no abrir un registro. Las acciones de borrado conservan además sus propias
+        restricciones: dar acceso total no habilita borrar lo que hoy solo puede el gerente.
+      </p>
     </div>
   );
 };

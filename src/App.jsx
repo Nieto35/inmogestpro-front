@@ -2,6 +2,9 @@
 import { BrowserRouter, Routes, Route, Navigate, useParams, Outlet } from 'react-router-dom';
 import { Suspense, lazy, useEffect } from 'react';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
+// Guarda que consulta los permisos configurados para la empresa, en vez de
+// una lista fija de roles. Ver components/Auth/ModuloRoute.jsx
+import ModuloRoute    from './components/Auth/ModuloRoute';
 import LoadingScreen  from './components/UI/LoadingScreen';
 import Layout         from './components/Layout/Layout';
 import SuperAdminApp  from './pages/SuperAdmin/SuperAdminApp';
@@ -99,65 +102,65 @@ const App = () => (
             <Route path="dashboard" element={<S><DashboardPage/></S>}/>
 
             {/* Contratos */}
-            <Route path="contracts"          element={<S><ContractsPage/></S>}/>
-            <Route path="contracts/new"      element={<ProtectedRoute roles={['admin','gerente','contador','abogado']}><S><ContractNewPage/></S></ProtectedRoute>}/>
-            <Route path="contracts/:id"      element={<S><ContractDetailPage/></S>}/>
+            <Route path="contracts"          element={<ModuloRoute modulo="contracts"><S><ContractsPage/></S></ModuloRoute>}/>
+            <Route path="contracts/new"      element={<ModuloRoute modulo="contracts" requiere="total" escritura={['admin','gerente','contador','abogado']}><S><ContractNewPage/></S></ModuloRoute>}/>
+            <Route path="contracts/:id"      element={<ModuloRoute modulo="contracts" requiere="total"><S><ContractDetailPage/></S></ModuloRoute>}/>
             {/* Editar contrato mueve dinero (la cuota inicial se registra como
                 pago real), por eso queda solo para los roles financieros */}
-            <Route path="contracts/:id/edit" element={<ProtectedRoute roles={['admin','gerente','contador']}><S><ContractEditPage/></S></ProtectedRoute>}/>
+            <Route path="contracts/:id/edit" element={<ModuloRoute modulo="contracts" requiere="total" escritura={['admin','gerente','contador']}><S><ContractEditPage/></S></ModuloRoute>}/>
 
             {/* Clientes */}
-            <Route path="clients"     element={<ProtectedRoute roles={['admin','gerente','contador','abogado','readonly']}><S><ClientsPage/></S></ProtectedRoute>}/>
-            <Route path="clients/new" element={<ProtectedRoute roles={['admin','gerente','contador','abogado']}><S><ClientNewPage/></S></ProtectedRoute>}/>
-            <Route path="clients/:id" element={<ProtectedRoute roles={['admin','gerente','contador','abogado','readonly']}><S><ClientDetailPage/></S></ProtectedRoute>}/>
+            <Route path="clients"     element={<ModuloRoute modulo="clients"><S><ClientsPage/></S></ModuloRoute>}/>
+            <Route path="clients/new" element={<ModuloRoute modulo="clients" requiere="total" escritura={['admin','gerente','contador','abogado']}><S><ClientNewPage/></S></ModuloRoute>}/>
+            <Route path="clients/:id" element={<ModuloRoute modulo="clients" requiere="total" escritura={['admin','gerente','contador','abogado','readonly']}><S><ClientDetailPage/></S></ModuloRoute>}/>
 
             {/* Propietarios — solo en la pestaña de Arriendos */}
-            <Route path="owners" element={<ProtectedRoute roles={['admin','gerente','contador','asesor','readonly']}><S><OwnersPage/></S></ProtectedRoute>}/>
+            <Route path="owners" element={<ModuloRoute modulo="owners"><S><OwnersPage/></S></ModuloRoute>}/>
 
             {/* Liquidaciones al propietario — solo en Arriendos */}
-            <Route path="settlements" element={<ProtectedRoute roles={['admin','gerente','contador','readonly']}><S><SettlementsPage/></S></ProtectedRoute>}/>
+            <Route path="settlements" element={<ModuloRoute modulo="settlements"><S><SettlementsPage/></S></ModuloRoute>}/>
 
             {/* Crear contrato de arriendo */}
-            <Route path="rentals/new" element={<ProtectedRoute roles={['admin','gerente','contador','asesor']}><S><RentalNewPage/></S></ProtectedRoute>}/>
+            <Route path="rentals/new" element={<ModuloRoute modulo="contracts" requiere="total" escritura={['admin','gerente','contador','asesor']}><S><RentalNewPage/></S></ModuloRoute>}/>
 
             {/* Alertas de arriendo: incrementos, vencimientos y mora */}
-            <Route path="rental-alerts" element={<ProtectedRoute roles={['admin','gerente','contador','asesor','readonly']}><S><RentalAlertsPage/></S></ProtectedRoute>}/>
+            <Route path="rental-alerts" element={<ModuloRoute modulo="rental-alerts"><S><RentalAlertsPage/></S></ModuloRoute>}/>
 
             {/* CRM */}
-            <Route path="interactions" element={<ProtectedRoute roles={['admin','gerente','contador','asesor','abogado','supervisor']}><S><ClientInteractionsPage/></S></ProtectedRoute>}/>
+            <Route path="interactions" element={<ModuloRoute modulo="interactions"><S><ClientInteractionsPage/></S></ModuloRoute>}/>
 
             {/* Proyectos */}
-            <Route path="projects"     element={<ProtectedRoute roles={['admin','gerente','contador','readonly','abogado','supervisor']}><S><ProjectsPage/></S></ProtectedRoute>}/>
-            <Route path="projects/new" element={<ProtectedRoute roles={['admin','gerente','contador']}><S><ProjectNewPage/></S></ProtectedRoute>}/>
+            <Route path="projects"     element={<ModuloRoute modulo="projects"><S><ProjectsPage/></S></ModuloRoute>}/>
+            <Route path="projects/new" element={<ModuloRoute modulo="projects" requiere="total" escritura={['admin','gerente','contador']}><S><ProjectNewPage/></S></ModuloRoute>}/>
 
             {/* Manzanas / Edificios */}
-            <Route path="blocks"     element={<ProtectedRoute roles={['admin','gerente','contador','readonly','supervisor']}><S><BlocksPage/></S></ProtectedRoute>}/>
-            <Route path="blocks/new" element={<ProtectedRoute roles={['admin','gerente','contador']}><S><BlockNewPage/></S></ProtectedRoute>}/>
+            <Route path="blocks"     element={<ModuloRoute modulo="blocks"><S><BlocksPage/></S></ModuloRoute>}/>
+            <Route path="blocks/new" element={<ModuloRoute modulo="blocks" requiere="total" escritura={['admin','gerente','contador']}><S><BlockNewPage/></S></ModuloRoute>}/>
 
             {/* Inmuebles */}
-            <Route path="properties"      element={<S><PropertiesPage/></S>}/>
-            <Route path="properties/new"  element={<ProtectedRoute roles={['admin','gerente','contador']}><S><PropertyNewPage/></S></ProtectedRoute>}/>
-            <Route path="properties/bulk" element={<ProtectedRoute roles={['admin','gerente','contador']}><S><PropertyBulkPage/></S></ProtectedRoute>}/>
+            <Route path="properties"      element={<ModuloRoute modulo="properties"><S><PropertiesPage/></S></ModuloRoute>}/>
+            <Route path="properties/new"  element={<ModuloRoute modulo="properties" requiere="total" escritura={['admin','gerente','contador']}><S><PropertyNewPage/></S></ModuloRoute>}/>
+            <Route path="properties/bulk" element={<ModuloRoute modulo="properties" requiere="total" escritura={['admin','gerente','contador']}><S><PropertyBulkPage/></S></ModuloRoute>}/>
 
             {/* Pagos */}
-            <Route path="payments" element={<ProtectedRoute roles={['admin','gerente','contador']}><S><PaymentsPage/></S></ProtectedRoute>}/>
+            <Route path="payments" element={<ModuloRoute modulo="payments"><S><PaymentsPage/></S></ModuloRoute>}/>
 
             {/* Asesores y comisiones */}
-            <Route path="advisors"     element={<ProtectedRoute roles={['admin','gerente','contador','readonly','abogado','supervisor']}><S><AdvisorsPage/></S></ProtectedRoute>}/>
-            <Route path="advisors/new" element={<ProtectedRoute roles={['admin','gerente','contador']}><S><AdvisorNewPage/></S></ProtectedRoute>}/>
-            <Route path="commissions"  element={<ProtectedRoute roles={['admin','gerente','contador','asesor','supervisor']}><S><CommissionsPage/></S></ProtectedRoute>}/>
+            <Route path="advisors"     element={<ModuloRoute modulo="advisors"><S><AdvisorsPage/></S></ModuloRoute>}/>
+            <Route path="advisors/new" element={<ModuloRoute modulo="advisors" requiere="total" escritura={['admin','gerente','contador']}><S><AdvisorNewPage/></S></ModuloRoute>}/>
+            <Route path="commissions"  element={<ModuloRoute modulo="commissions"><S><CommissionsPage/></S></ModuloRoute>}/>
 
             {/* Reportes */}
-            <Route path="reports" element={<ProtectedRoute roles={['admin','gerente','contador','readonly','abogado','supervisor']}><S><ReportsPage/></S></ProtectedRoute>}/>
+            <Route path="reports" element={<ModuloRoute modulo="reports"><S><ReportsPage/></S></ModuloRoute>}/>
 
             {/* Auditoría — solo gerente */}
-            <Route path="audit" element={<ProtectedRoute roles={['gerente']}><S><AuditPage/></S></ProtectedRoute>}/>
+            <Route path="audit" element={<ModuloRoute modulo="audit"><S><AuditPage/></S></ModuloRoute>}/>
 
             {/* Configuración
             <Route path="settings/currency" element={<ProtectedRoute roles={['gerente']}><S><CurrencySettingsPage/></S></ProtectedRoute>}/>*/}
 
             {/* Usuarios — solo gerente */}
-            <Route path="users" element={<ProtectedRoute roles={['gerente']}><S><UsersPage/></S></ProtectedRoute>}/>
+            <Route path="users" element={<ModuloRoute modulo="users"><S><UsersPage/></S></ModuloRoute>}/>
 
             {/* Perfil */}
             <Route path="profile" element={<S><ProfilePage/></S>}/>

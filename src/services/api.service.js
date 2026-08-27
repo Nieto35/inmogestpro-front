@@ -323,6 +323,9 @@ export const usersService = {
 };
 
 export const configService = {
+  // Excepciones de modulo de esta empresa. Devuelve SOLO lo que difiere del
+  // codigo; si falla, el menu usa su matriz por defecto y sale como siempre.
+  getPermissions: () => api.get('/config/permissions'),
   get:    ()      => api.get('/config'),
   update: (data)  => api.patch('/config', data),
 };
@@ -413,6 +416,10 @@ export const superAdminService = {
   suspendTenant:        (s)   => saApi.post(`/tenants/${s}/suspend`),
   activateTenant:       (s)   => saApi.post(`/tenants/${s}/activate`),
   getPlans:             ()    => saApi.get('/plans'),
+  // Permisos de modulo por empresa. Devuelve solo las excepciones: sin filas,
+  // la empresa se comporta con los valores por defecto del codigo.
+  getTenantPermissions: (s)   => saApi.get(`/tenants/${s}/permissions`),
+  setTenantPermission:  (s,d) => saApi.put(`/tenants/${s}/permissions`, d),
   // Bitacora del super-admin: acciones que ocurren por encima de las
   // empresas y que por eso no caben en la auditoria de ninguna.
   getAudit:             (p)   => saApi.get('/audit', { params:p }),
