@@ -1,5 +1,6 @@
 // src/components/Layout/Layout.jsx
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Outlet, NavLink, useNavigate, useParams } from 'react-router-dom';
 import useThemeStore from '../../store/themeStore';
 import {
@@ -12,81 +13,31 @@ import {
 import useAuthStore from '../../store/authStore';
 import NotificationBell from '../UI/NotificationBell';
 import { getSavedTenantSlug } from '../../utils/tenant';
+import { SCOPES, buildNav, nivelDeModulo } from '../../config/modules';
+import { configService } from '../../services/api.service';
 // Logo real de la marca. El lockup completo se usa con el sidebar abierto;
 // colapsado solo cabe la marca. Ambos son SVG: nítidos a cualquier tamaño.
 import logoFull from '../../assets/logo-inmogest.svg';
 import logoMark from '../../assets/logo-mark.svg';
 
-// El rol `supervisor` estaba en la base y en las rutas del backend —que ya
-// filtra sus contratos asignados y lo deja marcar hitos de entrega— pero no
-// figuraba en NINGUNA entrada del menú. Entraba y veía la pantalla vacía.
+// El catálogo de módulos y sus permisos por defecto vive en
+// src/config/modules.js — un solo lugar, compartido con las guardas de ruta.
+// Aquí solo se le ponen los iconos, que son presentación.
 //
-// Módulos comunes a las dos pestañas. `scope` los diferencia en la URL para
-// que Inmuebles muestre listas separadas: los de venta no se ven en Arriendos
-// y viceversa, tal como se definió.
-const SHARED_ITEMS = [
-  { path: 'dashboard',    label: 'Dashboard',     icon: LayoutDashboard, roles: ['admin','gerente','contador','asesor','abogado','readonly','supervisor'] },
-  { path: 'contracts',    label: 'Contratos',     icon: FileText,        roles: ['admin','gerente','contador','asesor','abogado','readonly','supervisor'] },
-  { path: 'clients',      label: 'Clientes',      icon: Users,           roles: ['admin','gerente','contador','abogado','readonly'] },
-  { path: 'properties',   label: 'Inmuebles',     icon: Home,            roles: ['admin','gerente','contador','asesor','abogado','readonly','supervisor'] },
-  { path: 'payments',     label: 'Pagos',         icon: CreditCard,      roles: ['admin','gerente','contador'] },
-  { path: 'interactions', label: 'Interacciones', icon: Phone,           roles: ['admin','gerente','contador','asesor','abogado','supervisor'] },
-  { path: 'advisors',     label: 'Asesores',      icon: UserCheck,       roles: ['admin','gerente','contador','readonly'] },
-  { path: 'commissions',  label: 'Comisiones',    icon: DollarSign,      roles: ['admin','gerente','contador','asesor','supervisor'] },
-  { path: 'reports',      label: 'Reportes',      icon: BarChart3,       roles: ['admin','gerente','contador','readonly'] },
-];
-
-// Módulos administrativos: no pertenecen a ninguna de las dos operaciones.
-const ADMIN_ITEMS = [
-  // Auditoría es solo del gerente: el backend lo impone con
-  // `router.use(authorize('gerente'))`. El menú listaba también al abogado,
-  // así que le mostraba un enlace que terminaba en pantalla bloqueada.
-  { path: 'audit', label: 'Auditoría', icon: Shield,   roles: ['gerente'] },
-  { path: 'users', label: 'Usuarios',  icon: Settings, roles: ['gerente'] },
-];
-
-// Proyectos y Manzanas solo existen en Ventas: agrupar por proyecto es cosa
-// de constructoras. Propietarios solo existe en Arriendos: es quien recibe
-// el canon, y en una venta no hay a quién girarle nada.
-const SCOPES = {
-  ventas: {
-    label: 'Ventas',
-    icon:  Building,
-    extra: [
-      { path: 'projects', label: 'Proyectos', icon: Building, roles: ['admin','gerente','contador','readonly','supervisor'], after: 'clients' },
-      { path: 'blocks',   label: 'Manzanas',  icon: Layers,   roles: ['admin','gerente','contador','readonly','supervisor'], after: 'projects' },
-    ],
-  },
-  arriendos: {
-    label: 'Arriendos',
-    icon:  KeyRound,
-    extra: [
-      { path: 'owners',      label: 'Propietarios',  icon: UserSquare2, roles: ['admin','gerente','contador','asesor','readonly'], after: 'clients' },
-      // Liquidaciones va junto a Pagos: es la contraparte del cobro. Ahí se
-      // ve lo que hay que girarle al propietario de lo ya recaudado.
-      { path: 'settlements', label: 'Liquidaciones', icon: Wallet,      roles: ['admin','gerente','contador','readonly'],          after: 'payments' },
-      // Aniversarios de canon, contratos por vencer y arrendatarios en mora.
-      { path: 'rental-alerts', label: 'Alertas',     icon: Bell,        roles: ['admin','gerente','contador','asesor','readonly'], after: 'settlements' },
-    ],
-  },
+// Antes cada archivo tenía su propia lista y se desincronizaban: por eso
+// aparecían enlaces en el menú que terminaban en pantalla bloqueada.
+const ICONOS = {
+  dashboard: LayoutDashboard, contracts: FileText,   clients: Users,
+  properties: Home,           payments: CreditCard,  interactions: Phone,
+  advisors: UserCheck,        commissions: DollarSign, reports: BarChart3,
+  audit: Shield,              users: Settings,       projects: Building,
+  blocks: Layers,             owners: UserSquare2,   settlements: Wallet,
+  'rental-alerts': Bell,
 };
 
-// Construye el menú de una pestaña insertando sus módulos propios en el
-// orden acordado.
-//
-// La inserción es recursiva a propósito: un módulo propio puede colgar de
-// otro módulo propio. Manzanas va después de Proyectos, y Proyectos no es
-// compartido, así que recorrer solo SHARED_ITEMS dejaba a Manzanas fuera.
-const buildNav = (scope) => {
-  const { extra } = SCOPES[scope];
-  const out = [];
-  const pushWithChildren = (item) => {
-    out.push(item);
-    for (const ex of extra) if (ex.after === item.path) pushWithChildren(ex);
-  };
-  for (const item of SHARED_ITEMS) pushWithChildren(item);
-  return [...out, ...ADMIN_ITEMS];
-};
+const ICONO_PESTANA = { ventas: Building, arriendos: KeyRound };
+
+const conIcono = (item) => ({ ...item, icon: ICONOS[item.path] || FileText });
 
 const roleLabels = {
   admin: 'Administrador', gerente: 'Gerente', contador: 'Contador',
@@ -126,7 +77,31 @@ const Layout = () => {
     navigate(`${prefix}/dashboard`);
   };
 
-  const filteredNav = buildNav(scope).filter(item => item.roles.includes(user?.role));
+  // Excepciones de módulo configuradas para esta empresa desde el panel de
+  // super-admin. Solo llegan las que DIFIEREN del código.
+  //
+  // Si la consulta falla —tabla sin crear, master caído, red— `overrides`
+  // queda vacío y el menú sale exactamente como siempre. Nunca vacío.
+  const { data: permsData } = useQuery({
+    queryKey: ['config-permissions'],
+    queryFn:  () => configService.getPermissions(),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+  const overrides = permsData?.data?.data?.overrides || [];
+
+  // Nivel efectivo del rol sobre un módulo: la excepción de esta empresa, o
+  // el valor del código si no hay ninguna.
+  const nivelDe = (modulo, rolesPorDefecto) => {
+    const ex = overrides.find(o => o.role === user?.role && o.module === modulo);
+    if (ex) return ex.level;
+    return rolesPorDefecto.includes(user?.role) ? 'total' : 'sin_acceso';
+  };
+
+  // En el menú solo importa si el módulo se ve o no. La diferencia entre
+  // `lectura` y `total` la aplican las pantallas y el backend.
+  const filteredNav = buildNav(scope)
+    .filter(item => nivelDe(item.path, item.roles) !== 'sin_acceso');
 
   // Módulos con listas separadas por pestaña. Un contrato de arriendo no
   // puede aparecer en Ventas, ni sus cobros de canon en los pagos de venta.
@@ -193,7 +168,7 @@ const Layout = () => {
                   color:      scope === key ? 'var(--color-gold)' : 'var(--color-text-muted)',
                 }}
               >
-                <cfg.icon size={13} />
+                {(() => { const I = ICONO_PESTANA[key]; return <I size={13}/>; })()}
                 {cfg.label}
               </button>
             ))}
@@ -205,7 +180,7 @@ const Layout = () => {
             className="w-full flex justify-center py-2 rounded"
             style={{ background: 'var(--color-navy)', color: 'var(--color-gold)' }}
           >
-            {(() => { const I = SCOPES[scope].icon; return <I size={16} />; })()}
+            {(() => { const I = ICONO_PESTANA[scope]; return <I size={16}/>; })()}
           </button>
         )}
       </div>
