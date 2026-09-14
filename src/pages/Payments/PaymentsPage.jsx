@@ -2,16 +2,20 @@
 import { useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  Ban,
   CreditCard, AlertTriangle, CheckCircle, RefreshCw,
-  Search, Plus, X, Save, Paperclip, ExternalLink,
+  Search, Plus, X, Save, Paperclip, ExternalLink, ChevronLeft, ChevronRight,
   Info
 } from 'lucide-react';
 import { paymentsService, contractsService } from '../../services/api.service';
+import { PAYMENT_METHODS, methodLabel } from '../../config/paymentMethods';
 import { getActiveTenantSlug } from '../../utils/tenant';
 import { todayISO } from '../../utils/dates';
 import { UPLOAD_HINT, validateFileSize } from '../../utils/uploads';
 import { format, parseISO } from 'date-fns';
 import Modal from '../../components/UI/Modal';
+import VoidPaymentModal from '../../components/Payments/VoidPaymentModal';
+import useAuthStore from '../../store/authStore';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -21,13 +25,8 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://back.inmogestpro.com';
 const formatCurrency = v =>
   new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0}).format(v||0);
 
-const PAYMENT_METHODS = [
-  { value:'transferencia', label:'Transferencia bancaria' },
-  { value:'pse',           label:'PSE'                   },
-  { value:'efectivo',      label:'Efectivo'               },
-  { value:'cheque',        label:'Cheque'                 },
-  { value:'tarjeta',       label:'Tarjeta'                },
-];
+// La lista vive en src/config/paymentMethods.js, compartida con el detalle
+// del contrato y con Liquidaciones.
 
 // Subir comprobante
 const uploadPaymentFile = async (tenantSlug, paymentId, file) => {
@@ -58,7 +57,7 @@ const MethodBadge = ({ method }) => (
     border: '1px solid rgba(13,27,62,0.15)',
     letterSpacing: '0.01em',
   }}>
-    {method}
+    {methodLabel(method)}
   </span>
 );
 
@@ -545,18 +544,58 @@ const PaymentsPage = () => {
   const [searchParams] = useSearchParams();
   const scope = searchParams.get('scope') === 'arriendos' ? 'arriendos' : 'ventas';
 
-  const { data: paymentsData, refetch, isFetching } = useQuery({
-    queryKey: ['payments', search, scope],
-    queryFn:  () => paymentsService.getAll({ search, scope }),
+  // Anular pagos: mismos roles que el backend exige en PATCH /payments/:id/void
+  const { hasRole } = useAuthStore();
+  const canVoid = hasRole('admin', 'gerente', 'contador');
+  const [voidTarget, setVoidTarget] = useState(null);
+
+  // Paginación igual que Contratos: 20 por página, cada pestaña con la suya.
+  const LIMIT = 20;
+  const [page,        setPage]        = useState(1);
+  const [overduePage, setOverduePage] = useState(1);
+
+  const { data: paymentsData, refetch, isFetching, isError: paymentsError } = useQuery({
+    queryKey: ['payments', search, scope, page],
+    queryFn:  () => paymentsService.getAll({ search, scope, page, limit: LIMIT }),
+    keepPreviousData: true,
   });
 
-  const { data: overdueData } = useQuery({
-    queryKey: ['payments-overdue', scope],
-    queryFn:  () => paymentsService.getOverdue(scope),
+  const { data: overdueData, isError: overdueError } = useQuery({
+    queryKey: ['payments-overdue', scope, overduePage],
+    queryFn:  () => paymentsService.getOverdue(scope, { page: overduePage, limit: LIMIT }),
+    keepPreviousData: true,
   });
 
-  const payments = paymentsData?.data?.data || [];
-  const overdue  = overdueData?.data?.data  || [];
+  const payments   = paymentsData?.data?.data       || [];
+  const pagination = paymentsData?.data?.pagination || {};
+  const overdue    = overdueData?.data?.data        || [];
+  const overduePag = overdueData?.data?.pagination  || {};
+  // Los totales de mora vienen del backend: no dependen de la página
+  const overdueTotal  = overduePag.total ?? overdue.length;
+  const overdueAmount = overduePag.total_amount ?? overdue.reduce((a,o)=>a+parseFloat(o.amount||0),0);
+
+  // Pie de página compartido por las dos pestañas — mismo que Contratos
+  const Paginador = ({ pag, current, onChange }) => pag.pages > 1 ? (
+    <div className="flex items-center justify-between">
+      <p className="text-sm" style={{ color:'var(--color-text-muted)' }}>
+        Mostrando {((pag.page-1)*pag.limit)+1}–{Math.min(pag.page*pag.limit, pag.total)} de {pag.total}
+      </p>
+      <div className="flex items-center gap-1">
+        <button onClick={() => onChange(current-1)} disabled={current <= 1}
+          className="btn btn-secondary btn-sm"><ChevronLeft size={14}/></button>
+        {Array.from({ length: Math.min(pag.pages, 5) }, (_,i) => {
+          const n = i + 1;
+          return (
+            <button key={n} onClick={() => onChange(n)}
+              className={`btn btn-sm ${current===n ? 'btn-primary':'btn-secondary'}`}
+              style={{ minWidth:'34px' }}>{n}</button>
+          );
+        })}
+        <button onClick={() => onChange(current+1)} disabled={current >= pag.pages}
+          className="btn btn-secondary btn-sm"><ChevronRight size={14}/></button>
+      </div>
+    </div>
+  ) : null;
 
   const handleSaved = () => {
     queryClient.invalidateQueries({ queryKey:['payments'] });
@@ -620,7 +659,7 @@ const PaymentsPage = () => {
                   o.due_date ? format(parseISO(o.due_date),'dd/MM/yyyy') : '',
                   o.days_overdue||0,
                 ]));
-                overdueRows.push(['','','','','','','TOTAL MORA', overdue.reduce((s,o)=>s+fm(o.amount),0),'']);
+                overdueRows.push(['','','','','','','TOTAL MORA (todas)', overdueAmount,'']);
                 const ws2 = XLSX.utils.aoa_to_sheet(overdueRows);
                 ws2['!cols'] = [16,22,14,18,18,8,16,14,10].map(w=>({wch:w}));
                 XLSX.utils.book_append_sheet(wb, ws2, 'Cartera Vencida');
@@ -642,7 +681,7 @@ const PaymentsPage = () => {
       </div>
 
       {/* Alerta mora — rojo semántico */}
-      {overdue.length > 0 && (
+      {overdueTotal > 0 && (
         <div className="flex items-start gap-3 p-4 rounded-xl"
           style={{
             background: 'var(--color-danger-bg)',
@@ -652,11 +691,11 @@ const PaymentsPage = () => {
           <AlertTriangle size={18} style={{ color:'var(--color-danger)', flexShrink:0, marginTop:'0.125rem' }}/>
           <div>
             <p className="font-semibold text-sm" style={{ color:'var(--color-danger)' }}>
-              {overdue.length} cuota{overdue.length>1?'s':''} en mora
+              {overdueTotal} cuota{overdueTotal>1?'s':''} en mora
             </p>
             <p className="text-xs mt-0.5" style={{ color:'var(--color-text-muted)' }}>
               {overdue.slice(0,3).map(o => `${o.client_name} (${o.days_overdue} días)`).join(' · ')}
-              {overdue.length > 3 && ` · y ${overdue.length-3} más`}
+              {overdueTotal > 3 && ` · y ${overdueTotal-3} más`}
             </p>
           </div>
         </div>
@@ -674,10 +713,10 @@ const PaymentsPage = () => {
               borderBottom: tab===key ? '2px solid var(--color-gold)' : '2px solid transparent',
             }}>
             {label}
-            {key==='overdue' && overdue.length > 0 && (
+            {key==='overdue' && overdueTotal > 0 && (
               <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-xs"
                 style={{ background:'var(--color-danger)', color:'white' }}>
-                {overdue.length}
+                {overdueTotal}
               </span>
             )}
           </button>
@@ -692,12 +731,25 @@ const PaymentsPage = () => {
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2"
                 style={{ color:'var(--color-text-muted)' }}/>
               <input placeholder="Buscar por contrato, cliente o recibo (PA-XXXX)..." value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={e => { setSearch(e.target.value); setPage(1); }}
                 className="input pl-9 text-sm" style={{ height:'36px' }}/>
             </div>
           </div>
 
-          {payments.length === 0 ? (
+          {paymentsError ? (
+            <div className="card flex flex-col items-center py-16 gap-3">
+              <AlertTriangle size={40} style={{ color:'var(--color-danger)' }}/>
+              <p className="font-medium" style={{ color:'var(--color-danger)' }}>
+                No se pudieron cargar los pagos
+              </p>
+              <p className="text-sm" style={{ color:'var(--color-text-muted)' }}>
+                Vuelve a intentarlo. Si persiste, avisa al administrador.
+              </p>
+              <button onClick={() => refetch()} className="btn btn-secondary btn-sm">
+                <RefreshCw size={13}/> Reintentar
+              </button>
+            </div>
+          ) : payments.length === 0 ? (
             <div className="card flex flex-col items-center py-16 gap-4">
               <CreditCard size={48} style={{ color:'var(--color-text-muted)' }}/>
               <div className="text-center">
@@ -726,6 +778,7 @@ const PaymentsPage = () => {
                     <th>Referencia</th>
                     <th>Por</th>
                     <th>Comprobante</th>
+                    {canVoid && <th></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -777,11 +830,28 @@ const PaymentsPage = () => {
                           )}
                         </div>
                       </td>
+                      {canVoid && (
+                        <td>
+                          <button onClick={() => setVoidTarget(p)}
+                            className="btn btn-ghost btn-sm" title="Anular este pago"
+                            style={{ color:'var(--color-danger)' }}>
+                            <Ban size={13}/>
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+          )}
+          <Paginador pag={pagination} current={page} onChange={setPage} />
+          {voidTarget && (
+            <VoidPaymentModal
+              payment={voidTarget}
+              onClose={() => setVoidTarget(null)}
+              onVoided={() => { refetch(); queryClient.invalidateQueries({ queryKey:['payments-overdue'] }); }}
+            />
           )}
         </>
       )}
@@ -789,7 +859,12 @@ const PaymentsPage = () => {
       {/* Tab Cartera vencida */}
       {tab === 'overdue' && (
         <div className="table-container">
-          {overdue.length === 0 ? (
+          {overdueError ? (
+            <div className="p-12 text-center">
+              <AlertTriangle size={40} className="mx-auto mb-3" style={{ color:'var(--color-danger)' }}/>
+              <p style={{ color:'var(--color-danger)' }}>No se pudo cargar la cartera vencida</p>
+            </div>
+          ) : overdueTotal === 0 ? (
             <div className="p-12 text-center">
               <CheckCircle size={40} className="mx-auto mb-3" style={{ color:'var(--color-success)' }}/>
               <p style={{ color:'var(--color-text-secondary)' }}>
@@ -838,6 +913,11 @@ const PaymentsPage = () => {
                 ))}
               </tbody>
             </table>
+          )}
+          {!overdueError && overdueTotal > 0 && (
+            <div className="p-4" style={{ borderTop:'1px solid var(--color-border)' }}>
+              <Paginador pag={overduePag} current={overduePage} onChange={setOverduePage} />
+            </div>
           )}
         </div>
       )}

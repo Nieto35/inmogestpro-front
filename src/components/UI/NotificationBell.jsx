@@ -23,7 +23,9 @@ const NotificationBell = () => {
   // Cargar cuotas vencidas y próximas a vencer
   const { data: overdueData } = useQuery({
     queryKey: ['notif-overdue'],
-    queryFn:  () => paymentsService.getOverdue(),
+    // Solo hacen falta las 3 más antiguas para el resumen; los totales
+    // vienen en `pagination` y no dependen de cuántas filas se pidan.
+    queryFn:  () => paymentsService.getOverdue(undefined, { limit: 3 }),
     refetchInterval: 5 * 60 * 1000,   // cada 5 minutos
     refetchIntervalInBackground: false, // NO polling en background
   });
@@ -43,7 +45,11 @@ const NotificationBell = () => {
     refetchIntervalInBackground: false,
   });
 
-  const overdue = overdueData?.data?.data || [];
+  const overdue      = overdueData?.data?.data || [];
+  const overduePag   = overdueData?.data?.pagination || {};
+  // Antes: overdue.length. Con el listado paginado eso daría 3.
+  const overdueTotal = overduePag.total ?? overdue.length;
+  const recentTotal  = overduePag.recent_count ?? overdue.filter(o => o.days_overdue <= 7 && o.days_overdue > 0).length;
   const kpis    = kpisData?.data?.data?.kpis || {};
 
   // Cuotas de comisión VENCIDAS (ya pasó su fecha y no están pagadas)
@@ -58,29 +64,30 @@ const NotificationBell = () => {
   const notifications = [];
 
   // Cuotas en mora
-  if (overdue.length > 0) {
+  if (overdueTotal > 0) {
     notifications.push({
       id:    'mora-summary',
       type:  'mora',
-      title: `${overdue.length} cuota${overdue.length>1?'s':''} en mora`,
+      title: `${overdueTotal} cuota${overdueTotal>1?'s':''} en mora`,
       body:  overdue.slice(0,3).map(o =>
         `${o.client_name} — ${formatCurrency(o.amount)} (${o.days_overdue} días)`
       ).join('\n'),
       time:  'Actualizado ahora',
-      count: overdue.length,
+      count: overdueTotal,
     });
   }
 
   // Cuotas vencidas hace poco (1-7 días)
-  const recent = overdue.filter(o => o.days_overdue <= 7 && o.days_overdue > 0);
-  if (recent.length > 0 && recent.length !== overdue.length) {
+  if (recentTotal > 0 && recentTotal !== overdueTotal) {
     notifications.push({
       id:    'mora-recent',
       type:  'vence',
-      title: `${recent.length} cuota${recent.length>1?'s':''} vencida${recent.length>1?'s':''} recientemente`,
-      body:  recent.map(o => `${o.client_name} — vencida hace ${o.days_overdue} día${o.days_overdue>1?'s':''}`).join('\n'),
+      title: `${recentTotal} cuota${recentTotal>1?'s':''} vencida${recentTotal>1?'s':''} recientemente`,
+      // El detalle por cliente está en Pagos → Cartera vencida. Aquí solo el
+      // conteo: con el listado paginado no se traen esas filas a la campana.
+      body:  `Vencieron en los últimos 7 días. Revísalas en Pagos → Cartera vencida.`,
       time:  'Últimos 7 días',
-      count: recent.length,
+      count: recentTotal,
     });
   }
 

@@ -12,6 +12,7 @@ import {
   Loader2, X, FileText,
 } from 'lucide-react';
 import { settlementsService, rentalsService } from '../../services/api.service';
+import { SETTLEMENT_METHODS } from '../../config/paymentMethods';
 import { formatDate, todayISO } from '../../utils/dates';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/authStore';
@@ -242,10 +243,9 @@ const PayModal = ({ settlement, onClose, onSaved }) => {
             <Field label="Medio" required>
               <select value={form.payment_method} onChange={e => set('payment_method', e.target.value)}
                 className="input text-sm w-full">
-                <option value="transferencia">Transferencia</option>
-                <option value="efectivo">Efectivo</option>
-                <option value="cheque">Cheque</option>
-                <option value="otro">Otro</option>
+                {SETTLEMENT_METHODS.map(m => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
               </select>
             </Field>
             <Field label="Fecha del giro">

@@ -5,8 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, FileText, User, Home, CreditCard, Shield,
   Calendar, DollarSign, CheckCircle, Clock, AlertTriangle,
-  RefreshCw, Plus, X, Save, Paperclip, Info, Upload, ExternalLink, Edit, Download
-} from 'lucide-react';
+  RefreshCw, Plus, X, Save, Paperclip, Info, Upload, ExternalLink, Edit, Download, Ban } from 'lucide-react';
 import { contractsService, usersService, configService, paymentsService, rentalsService } from '../../services/api.service';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -16,6 +15,8 @@ import toast from 'react-hot-toast';
 import useAuthStore from '../../store/authStore';
 import * as XLSX from 'xlsx';
 import Modal from '../../components/UI/Modal';
+import { PAYMENT_METHODS, methodLabel } from '../../config/paymentMethods';
+import VoidPaymentModal from '../../components/Payments/VoidPaymentModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://back.inmogestpro.com';
 const formatCurrency = (v) =>
@@ -41,13 +42,8 @@ const PAYMENT_TYPE_LABELS = {
   financiado:     'Financiado',
 };
 
-const PAYMENT_METHODS = [
-  { value:'transferencia', label:'Transferencia' },
-  { value:'pse',           label:'PSE'           },
-  { value:'efectivo',      label:'Efectivo'      },
-  { value:'cheque',        label:'Cheque'        },
-  { value:'tarjeta',       label:'Tarjeta'       },
-];
+// La lista vive en src/config/paymentMethods.js, compartida con Pagos y
+// con Liquidaciones.
 
 const InfoBlock = ({ label, value, mono, extra }) => (
   <div>
@@ -1165,6 +1161,7 @@ const ContractDetailPage = () => {
   const to = (path) => `/${tenant}/${path}`;
   const apiBase = () => `${API_URL}/api/v1/${tenant}`;
   const canPay         = hasRole('admin','gerente','contador');
+  const [voidTarget, setVoidTarget] = useState(null);   // anular pago
   const canUpload      = hasRole('admin','gerente','contador','asesor');
   const isAsesor       = user?.role === 'asesor';
   const [showPayModal, setShowPayModal]         = useState(false);
@@ -2063,6 +2060,7 @@ const ContractDetailPage = () => {
                 <tr>
                   <th>Recibo</th><th>Fecha</th><th>Monto</th><th>Método</th>
                   <th>Banco</th><th>Referencia</th><th>Por</th><th>Comprobante</th>
+                  {canPay && <th></th>}
                 </tr>
               </thead>
               <tbody>
@@ -2083,7 +2081,7 @@ const ContractDetailPage = () => {
                     <td className="text-sm font-mono font-bold" style={{ color:'var(--color-navy)' }}>
                       {formatCurrency(p.amount)}
                     </td>
-                    <td><span className="badge badge-activo text-xs">{p.payment_method}</span></td>
+                    <td><span className="badge badge-activo text-xs">{methodLabel(p.payment_method)}</span></td>
                     <td className="text-sm" style={{ color:'var(--color-text-secondary)' }}>
                       {p.bank_name||'—'}
                     </td>
@@ -2135,11 +2133,27 @@ const ContractDetailPage = () => {
                         </label>
                       </div>
                     </td>
+                    {canPay && (
+                      <td>
+                        <button onClick={() => setVoidTarget({ ...p, contract_number: contract?.contract_number })}
+                          className="btn btn-ghost btn-sm" title="Anular este pago"
+                          style={{ color:'var(--color-danger)' }}>
+                          <Ban size={13}/>
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+        )}
+        {voidTarget && (
+          <VoidPaymentModal
+            payment={voidTarget}
+            onClose={() => setVoidTarget(null)}
+            onVoided={refetch}
+          />
         )}
       </div>
     </div>

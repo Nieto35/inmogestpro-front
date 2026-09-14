@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Layers, RefreshCw, Plus, Edit, X, Save, Building2, LayoutGrid, List, Home } from 'lucide-react';
+import { Layers, RefreshCw, Plus, Edit, X, Save, Building2, LayoutGrid, List, Home, Trash2 } from 'lucide-react';
 import Modal from '../../components/UI/Modal';
 import { blocksService, projectsService } from '../../services/api.service';
 import useAuthStore from '../../store/authStore';
@@ -138,6 +138,9 @@ const BlocksPage = () => {
   const { hasRole } = useAuthStore();
   const canCreate = hasRole('admin', 'gerente', 'contador');
   const canEdit   = hasRole('admin', 'gerente', 'contador');
+  // Borrar es más restringido que editar: el backend solo lo permite a
+  // admin y gerente, y solo si la manzana no tiene inmuebles.
+  const canDelete = hasRole('admin', 'gerente');
 
   const [projectId,  setProjectId]  = useState('');
   const [editTarget, setEditTarget] = useState(null);
@@ -171,6 +174,21 @@ const BlocksPage = () => {
   const handleSaved = () => {
     queryClient.invalidateQueries({ queryKey: ['blocks', projectId] });
     refetch();
+  };
+
+  // Solo se ofrece para manzanas sin inmuebles. Si aun así el backend se
+  // niega (alguien creó un inmueble entre tanto), se muestra su motivo.
+  const handleDelete = async (b) => {
+    if (!window.confirm(`¿Eliminar la manzana "${b.name}"?
+
+No tiene inmuebles, así que no se pierde nada. Quedará registrado en auditoría.`)) return;
+    try {
+      const r = await blocksService.delete(b.id);
+      toast.success(r.data?.message || `Manzana "${b.name}" eliminada`);
+      handleSaved();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'No se pudo eliminar');
+    }
   };
 
   const BLOCK_TYPE_LABEL = {
@@ -258,9 +276,16 @@ const BlocksPage = () => {
                   Faltan {selectedProject.total_blocks - blocks.length} manzana{selectedProject.total_blocks - blocks.length !== 1 ? 's' : ''} por crear
                 </span>
               )}
-              {selectedProject.total_blocks && blocks.length >= selectedProject.total_blocks && (
+              {selectedProject.total_blocks && blocks.length === selectedProject.total_blocks && (
                 <span style={{ color: 'var(--color-success)', fontWeight: 600 }}>
                   ✓ Todas las manzanas creadas
+                </span>
+              )}
+              {/* Más creadas que definidas: antes esto mostraba el check verde y el
+                  error pasaba desapercibido. Ahora avisa, para que se borre la sobrante. */}
+              {selectedProject.total_blocks && blocks.length > selectedProject.total_blocks && (
+                <span style={{ color: 'var(--color-danger)', fontWeight: 600 }}>
+                  ⚠ Sobra{blocks.length - selectedProject.total_blocks !== 1 ? 'n' : ''} {blocks.length - selectedProject.total_blocks} manzana{blocks.length - selectedProject.total_blocks !== 1 ? 's' : ''} respecto a lo definido
                 </span>
               )}
             </div>
@@ -401,6 +426,14 @@ const BlocksPage = () => {
                       <Edit size={12} /> Editar
                     </button>
                   )}
+                  {canDelete && current === 0 && (
+                    <button onClick={() => handleDelete(b)}
+                      title="Eliminar manzana vacía"
+                      className="btn btn-outline btn-sm text-xs"
+                      style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}>
+                      <Trash2 size={12} />
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
@@ -479,6 +512,14 @@ const BlocksPage = () => {
                     <button onClick={() => setEditTarget(b)}
                       className="btn btn-secondary btn-sm text-xs">
                       <Edit size={12} /> Editar
+                    </button>
+                  )}
+                  {canDelete && current === 0 && (
+                    <button onClick={() => handleDelete(b)}
+                      title="Eliminar manzana vacía"
+                      className="btn btn-outline btn-sm text-xs"
+                      style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}>
+                      <Trash2 size={12} /> Eliminar
                     </button>
                   )}
                 </div>
