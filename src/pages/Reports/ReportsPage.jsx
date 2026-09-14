@@ -11,6 +11,7 @@ import {
   Calendar, KeyRound, Wallet
 } from 'lucide-react';
 import { reportsService } from '../../services/api.service';
+import { methodLabel } from '../../config/paymentMethods';
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
 import { es } from 'date-fns/locale';
@@ -724,8 +725,8 @@ const TabLiquidacion = () => {
             {Object.entries(byMethod).map(([method, total], i) => (
               <div key={method} className="rounded-xl p-3 text-center"
                 style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)' }}>
-                <p className="text-xs capitalize mb-1" style={{ color:'var(--color-text-muted)' }}>
-                  {method}
+                <p className="text-xs mb-1" style={{ color:'var(--color-text-muted)' }}>
+                  {methodLabel(method)}
                 </p>
                 <p className="font-bold font-mono text-sm" style={{ color:'var(--color-navy)' }}>
                   {fmM(total)}
