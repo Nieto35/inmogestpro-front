@@ -43,6 +43,18 @@ const uploadPaymentFile = async (tenantSlug, paymentId, file) => {
 };
 
 // Badge de método de pago — estilo marca, sin verde
+// Formatea una fecha sin que una mala tumbe la página. Hubo un contrato con
+// año 0026 en producción: `format()` lanza RangeError con fechas fuera de
+// rango y React se cae entero. Aquí se muestra la fecha cruda y se sigue.
+const fechaSegura = (v) => {
+  if (!v) return '—';
+  try {
+    const d = parseISO(v);
+    if (isNaN(d.getTime()) || d.getFullYear() < 1900 || d.getFullYear() > 2200) return String(v).slice(0, 10);
+    return format(d, 'dd/MM/yyyy');
+  } catch { return String(v).slice(0, 10); }
+};
+
 const MethodBadge = ({ method }) => (
   <span style={{
     display: 'inline-flex',
@@ -323,7 +335,7 @@ const PaymentModal = ({ onClose, onSaved }) => {
                       return (
                         <option key={s.id} value={s.id}>
                           Cuota #{s.installment_number}
-                          {' · '}Vence: {s.due_date ? format(parseISO(s.due_date),'dd/MM/yyyy') : '—'}
+                          {' · '}Vence: {fechaSegura(s.due_date)}
                           {' · '}{isPart ? `Pendiente: ${formatCurrency(remain)} (pagado ${formatCurrency(paid)} de ${formatCurrency(total)})` : formatCurrency(total)}
                           {isPart ? ' ⚡ PARCIAL' : ''}
                         </option>
@@ -636,7 +648,7 @@ const PaymentsPage = () => {
                 p.receipt_number||'',
                 p.contract_number||'',
                 p.client_name||'',
-                p.payment_date ? format(parseISO(p.payment_date),'dd/MM/yyyy') : '',
+                (p.payment_date ? fechaSegura(p.payment_date) : ''),
                 fm(p.amount),
                 p.payment_method||'',
                 p.recorded_by_name||'',
@@ -656,7 +668,7 @@ const PaymentsPage = () => {
                   o.advisor_name||'',
                   o.installment_number||'',
                   fm(o.amount),
-                  o.due_date ? format(parseISO(o.due_date),'dd/MM/yyyy') : '',
+                  (o.due_date ? fechaSegura(o.due_date) : ''),
                   o.days_overdue||0,
                 ]));
                 overdueRows.push(['','','','','','','TOTAL MORA (todas)', overdueAmount,'']);
@@ -798,7 +810,7 @@ const PaymentsPage = () => {
                         {p.client_name}
                       </td>
                       <td className="text-sm" style={{ color:'var(--color-text-secondary)', whiteSpace:'nowrap' }}>
-                        {p.payment_date ? format(parseISO(p.payment_date),'dd/MM/yyyy') : '—'}
+                        {fechaSegura(p.payment_date)}
                       </td>
                       {/* Monto — azul noche, mono. Sin verde. */}
                       <td className="text-sm font-mono font-bold"
@@ -899,7 +911,7 @@ const PaymentsPage = () => {
                       {o.installment_number}
                     </td>
                     <td className="text-sm" style={{ color:'var(--color-text-secondary)', whiteSpace:'nowrap' }}>
-                      {o.due_date ? format(parseISO(o.due_date),'dd/MM/yyyy') : '—'}
+                      {fechaSegura(o.due_date)}
                     </td>
                     {/* Monto en mora — rojo semántico */}
                     <td className="text-sm font-mono font-bold" style={{ color:'var(--color-danger)' }}>
