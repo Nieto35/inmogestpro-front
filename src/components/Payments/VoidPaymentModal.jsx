@@ -39,7 +39,10 @@ const VoidPaymentModal = ({ payment, onClose, onVoided }) => {
 
   return (
     <Modal onClose={onClose}>
-      <div className="p-5 space-y-4" style={{ maxWidth: '32rem' }}>
+      {/* Modal solo aporta el fondo oscuro: la tarjeta con fondo, borde y
+          sombra la pone cada modal — igual que PaymentModal. */}
+      <div className="w-full max-w-lg rounded-xl shadow-2xl p-5 space-y-4"
+        style={{ background:'var(--color-bg-card)', border:'1px solid var(--color-border)' }}>
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 w-9 h-9 flex items-center justify-center"
             style={{ background:'rgba(220,38,38,0.08)', border:'1px solid rgba(220,38,38,0.25)' }}>
